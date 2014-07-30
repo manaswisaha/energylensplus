@@ -30,13 +30,14 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = (
-    # 'django.contrib.admin',
-    # 'django.contrib.auth',
-    # 'django.contrib.contenttypes',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
     # 'django.contrib.sessions',
     # 'django.contrib.messages',
     # 'django.contrib.staticfiles',
-    'energylenserver'
+    'energylenserver',
+    'gcm'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -65,6 +66,9 @@ DATABASES = {
         # 'HOST': ''
     }
 }
+
+# GCM
+GCM_APIKEY = "AIzaSyBVkXVh71gp1xJign284BaaQvZ5jbnbeIM"
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/
