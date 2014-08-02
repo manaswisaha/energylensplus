@@ -55,3 +55,5 @@ docs/_build/
 # Additional Files
 energylenserver/gcm_requirements.txt
 
+energylenserver/scripts/
+energylenserver/testdata/

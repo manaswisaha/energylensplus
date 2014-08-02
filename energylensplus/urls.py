@@ -11,3 +11,11 @@ urlpatterns = patterns('',
                        url(r'^admin/', include(admin.site.urls)),
                        url(r'', include('gcm.urls')),
                        )
+
+urlpatterns += patterns('energylenserver.views',
+                        url(r'^data/upload/', 'data_upload'),
+                        # url(r'^predict', 'predict'),
+                        # url(r'^realtime', 'realtime'),
+                        # url(r'^final', 'final'),
+                        # url(r'^getroomtemperature', 'getroomtemperature'),
+                        )

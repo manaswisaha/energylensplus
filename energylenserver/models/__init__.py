@@ -1,19 +1,19 @@
 
 # Importing Models for storing Phone Sensor Training Data
-from DateModels import TrainingWiFiData
-from DateModels import TrainingRawAudioData
-from DateModels import TrainingMFCCFeatureSet
-from DateModels import TrainingAcclData
-from DateModels import TrainingLightData
-from DateModels import TrainingMagData
+from DataModels import WiFiTrainData
+from DataModels import RawAudioTrainData
+from DataModels import MFCCFeatureTrainSet
+# from DataModels import AcclTrainData
+# from DataModels import LightTrainData
+# from DataModels import MagTrainData
 
 # Importing Models for storing Phone Sensor Data
-from DateModels import WiFiData
-from DateModels import RawAudioData
-from DateModels import MFCCFeatureSet
-from DateModels import AcclData
-from DateModels import LightData
-from DateModels import MagData
+from DataModels import WiFiTestData
+from DataModels import RawAudioTestData
+from DataModels import MFCCFeatureTestSet
+# from DataModels import AcclTestData
+# from DataModels import LightTestData
+# from DataModels import MagTestData
 
 # Importing Models for storing other information e.g Registered Users,
 # Activity Log, Metadata

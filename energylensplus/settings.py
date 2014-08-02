@@ -33,9 +33,9 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    # 'django.contrib.sessions',
-    # 'django.contrib.messages',
-    # 'django.contrib.staticfiles',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
     'energylenserver',
     'gcm'
 )
@@ -62,8 +62,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'energylensplus',
         'USER': 'root',
-        'PASSWORD': 'research'
-        # 'HOST': ''
+        'PASSWORD': 'research',
+        'HOST': '127.0.0.1'
     }
 }
 
@@ -77,11 +77,11 @@ LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Kolkata'
 
-USE_I18N = True
+# USE_I18N = False
 
-USE_L10N = True
+# USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
