@@ -2,32 +2,17 @@
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 
-from response_messages import *
+from constants import *
 from models.DataModels import *
 from preprocessing import audio
 
 import csv
+import json
 import pandas as pd
-import numpy as np
 import datetime as dt
 
 # Model mapping with filenames
-'''
-FILE_MODEL_MAP = {
-    'wifi': WiFiData,
-    'rawaudio': RawAudioData,
-    'audio': MFCCFeatureSet,
-    'accelerometer': AcclData,
-    'light': LightData,
-    'mag': MagData,
-    'Trainingwifi': TrainingWiFiData,
-    'Trainingrawaudio': TrainingRawAudioData,
-    'Trainingaudio': TrainingMFCCFeatureSet,
-    'Trainingaccelerometer': TrainingAcclData,
-    'Traininglight': TrainingLightData,
-    'Trainingmag': TrainingMagData
-}
-'''
+
 FILE_MODEL_MAP = {
     'wifi': WiFiTestData,
     'rawaudio': RawAudioTestData,
@@ -43,6 +28,10 @@ FILE_MODEL_MAP = {
     'Trainingmag': MagTrainData
 }
 # '''
+
+# Sample json dump code
+# json_data = json.dumps({"T0": Earray[0], "T1": Earray[1], "T2": Earray[
+                           # 2], "M0": Tminarray[0], "M1": Tminarray[1], "M2": Tminarray[2]})
 
 
 def import_from_file(filename, csvfile):
@@ -115,12 +104,15 @@ def data_upload(request):
 
     try:
         if request.method == 'GET':
-            return HttpResponse(ERROR_INVALID_REQUEST)
+            print ERROR_INVALID_REQUEST
+            print json.dumps(ERROR_INVALID_REQUEST)
+            print json.dumps({'type': 'ERROR', 'code': 2, 'message': 'not valid'})
+            return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
             print "\nReached here"
 
-            payload = request.FILES  # ['uploadedfile']
+            payload = request.FILES
             print "Files Payload:\n", payload.items()
             file_container = payload['uploadedfile']
             filename = str(file_container.name)
@@ -129,11 +121,13 @@ def data_upload(request):
 
             # Store in the database
             if(import_from_file(filename, csvfile)):
-                return HttpResponse(UPLOAD_SUCCESS)
+                return HttpResponse(json.dumps(UPLOAD_SUCCESS), content_type="application/json")
+
             else:
-                return HttpResponse(UPLOAD_UNSUCCESSFUL)
+                return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL),
+                                    content_type="application/json")
 
     except Exception, e:
 
         print "[Exception Occurred]::", e
-        return HttpResponse(UPLOAD_UNSUCCESSFUL)
+        return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
