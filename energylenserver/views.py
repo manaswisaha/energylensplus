@@ -29,17 +29,11 @@ FILE_MODEL_MAP = {
 }
 # '''
 
-# Sample json dump code
-# json_data = json.dumps({"T0": Earray[0], "T1": Earray[1], "T2": Earray[
-                           # 2], "M0": Tminarray[0], "M1": Tminarray[1], "M2": Tminarray[2]})
-
 
 def import_from_file(filename, csvfile):
     '''
     Imports the CSV file into appropriate model
     '''
-    # print "<Function called>"
-
     training_status = False
 
     # Find the sensor from the filename and choose appropriate table
@@ -48,7 +42,6 @@ def import_from_file(filename, csvfile):
     if sensor_name == 'Training':
         sensor_name = filename_l[2]
         training_status = True
-        # print "Training Status:", training_status
     print "Sensor:", sensor_name
 
     if sensor_name is 'audio':
@@ -64,21 +57,17 @@ def import_from_file(filename, csvfile):
     # Get CSV data
     df_csv = pd.read_csv(csvfile)
 
-    # Temp code
+    # If audio data received, the preprocess before storing
     if sensor_name in ['rawaudio']:
-        # TODO: Preprocess rawaudio before storing
         df_csv = audio.format_data(df_csv)
         print "[RawAudio Data Received]: Total number of records:", len(df_csv)
         print df_csv.head(15)
-        # return True
 
     # print "Head\n", df_csv.head()
 
-    # TODO: Check for incorrect records (if any)
-
+    # --Sanitize records before storing--
     # Remove NAN timestamps
     df_csv.dropna(subset=[0], inplace=True)
-
     # Remove rows with 'Infinity' in MFCCs created
     if sensor_name is 'audio':
         df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
@@ -107,7 +96,7 @@ def data_upload(request):
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
-            print "\nReached here"
+            print "\n[POST Request Received]"
 
             payload = request.FILES
             print "Files Payload:\n", payload.items()
