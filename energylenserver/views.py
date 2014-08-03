@@ -104,9 +104,6 @@ def data_upload(request):
 
     try:
         if request.method == 'GET':
-            print ERROR_INVALID_REQUEST
-            print json.dumps(ERROR_INVALID_REQUEST)
-            print json.dumps({'type': 'ERROR', 'code': 2, 'message': 'not valid'})
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
