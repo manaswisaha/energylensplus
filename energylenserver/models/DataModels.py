@@ -21,7 +21,6 @@ Models for storing phone sensor data
 
 
 class SensorData(models.Model):
-    # timestamp = UnixTimestampField('date uploaded', unique=True)
     timestamp = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     time = models.DateTimeField('date uploaded')
     dev_id = models.ForeignKey(RegisteredUsers)
@@ -45,10 +44,9 @@ class WiFiData(SensorData):
     ssid = models.CharField(max_length=200)
     rssi = models.IntegerField()
     label = models.CharField(max_length=200)
-    # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
     def save_data(self, dev_id, data_list):
-        super(WiFiData, self).save_data(self, dev_id, data_list)
+        super(WiFiData, self).save_data(dev_id, data_list)
         self.macid = data_list[1]
         self.ssid = data_list[2]
         self.rssi = data_list[3]
@@ -92,7 +90,6 @@ class RawAudioData(SensorData):
     values = models.TextField()
     label = models.CharField(max_length=200)
     location = models.CharField(max_length=200)
-    # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
     def save_data(self, dev_id, data_list):
         super(RawAudioData, self).save_data(dev_id, data_list)
@@ -149,7 +146,6 @@ class MFCCFeatureSet(SensorData):
     mfcc13 = models.FloatField()
     label = models.CharField(max_length=200)
     location = models.CharField(max_length=200)
-    # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
     def save_data(self, dev_id, data_list):
         super(MFCCFeatureSet, self).save_data(dev_id, data_list)
@@ -207,7 +203,6 @@ class LightData(SensorData):
     value = models.FloatField()
     label = models.CharField(max_length=200)
     location = models.CharField(max_length=200)
-    # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
     def save_data(self, dev_id, data_list):
         super(LightData, self).save_data(dev_id, data_list)
@@ -255,7 +250,6 @@ class AcclData(SensorData):
     z_value = models.FloatField()
     label = models.CharField(max_length=200)
     location = models.CharField(max_length=200)
-    # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
     def save_data(self, dev_id, data_list):
         super(AcclData, self).save_data(dev_id, data_list)
@@ -305,7 +299,6 @@ class MagData(SensorData):
     z_value = models.FloatField()
     label = models.CharField(max_length=200)
     location = models.CharField(max_length=200)
-    # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
     def save_data(self, dev_id, data_list):
         super(MagData, self).save_data(dev_id, data_list)

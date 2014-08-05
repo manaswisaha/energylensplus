@@ -36,14 +36,14 @@ GCM Cloud Connection Server (XMPP)
 unacked_messages_quota = 100
 unacked_messages_counter = 0
 
-'''
+"""
 format of the queue:
 sent_queue = {
-    '<msg_id>' : '<reg_id>',
-    '<msg_id>' : '<reg_id>',...
+    "<msg_id>" : "<reg_id>",...
 }
-'''
+"""
 sent_queue = {}
+
 sent_message_queue = {}
 
 # ccs_client = None
