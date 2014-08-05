@@ -4,7 +4,7 @@ from django.http import HttpResponse
 
 from constants import *
 from models.DataModels import *
-from models import *
+from models.models import *
 from preprocessing import audio
 
 import csv
@@ -37,9 +37,12 @@ def import_from_file(filename, csvfile):
     '''
     training_status = False
 
+    print "<function called>"
+
     # Find the sensor from the filename and choose appropriate table
     filename_l = filename.split('_')
-    dev_id = filename_l[0]
+    device_id = int(filename_l[0])
+    dev_id = RegisteredUsers.objects.get(dev_id__exact=device_id)
     sensor_name = filename_l[2]
     if sensor_name == 'Training':
         sensor_name = filename_l[3]
@@ -62,10 +65,9 @@ def import_from_file(filename, csvfile):
 
     # --Clean records before storing--
     # If audio data received, then preprocess before storing
-    if sensor_name in ['rawaudio']:
-        df_csv = audio.format_data(df_csv)
-        print "[RawAudio Data Received]: Total number of records:", len(df_csv)
-        print df_csv.head(15)
+    # if sensor_name in ['rawaudio']:
+    #     print "Total records before pre-processing:", len(df_csv)
+    #     df_csv = audio.format_data(df_csv)
 
     # Remove NAN timestamps
     df_csv.dropna(subset=[0], inplace=True)
@@ -73,14 +75,17 @@ def import_from_file(filename, csvfile):
     if sensor_name is 'audio':
         df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
 
+    print "Total number of records to insert:", len(df_csv)
+
     # Store data in the model
-    for idx in df_csv.index[:10]:
+    for idx in df_csv.index:
         record = list(df_csv.ix[idx])
-        if sensor_name in ['rawaudio', 'audio']:
+        if sensor_name in ['audio']:
             print "\nRecord", record
         if model.save_data(dev_id, record) is True:
-            if sensor_name in ['rawaudio', 'audio']:
+            if sensor_name in ['audio']:
                 print "[", idx, "Saved]"
+    print "Successful Upload!!"
 
     return True
 
@@ -118,11 +123,13 @@ def upload_data(request):
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 
+@csrf_exempt
 def register_device(request):
     '''
     Receives the registration requests from the mobile devices and
     stores user and device details in the database
     '''
+    print "Request received:", request.method
 
     try:
         if request.method == 'GET':
@@ -131,15 +138,23 @@ def register_device(request):
         if request.method == 'POST':
             print "\n[POST Request Received]"
 
-            payload = json.loads(request.POST)
-            print "POST Payload:\n", payload.items()
-            dev_id = payload['dev_id']
+            # print request.body
+            payload = json.loads(request.body)
+            print "POST Payload:\n", payload
+
             reg_id = payload['registration_id']
             user_name = payload['user_name']
             email_id = payload['email_id']
+            dev_id = payload['dev_id']
+
+            print "\n--User Registration Details--"
+            print "RegID:", reg_id
+            print "Username:", user_name
+            print "Email ID:", email_id
+            print "Device ID:", dev_id
 
             # Store user
-            user = RegisteredUsers(dev_id, reg_id, user_name, email_id)
+            user = RegisteredUsers(dev_id=dev_id, reg_id=reg_id, name=user_name, email_id=email_id)
             user.save()
             print "Registration successful"
             return HttpResponse(json.dumps(REGISTRATION_SUCCESS),

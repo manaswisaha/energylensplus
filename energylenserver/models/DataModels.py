@@ -26,6 +26,12 @@ class SensorData(models.Model):
     time = models.DateTimeField('date uploaded')
     dev_id = models.ForeignKey(RegisteredUsers)
 
+    def save_data(self, dev_id, data_list):
+        time = data_list[0] / 1000.
+        self.dev_id = dev_id
+        self.timestamp = time
+        self.time = modify_time(time)
+
     class Meta:
         abstract = True
         get_latest_by = 'timestamp'
@@ -41,10 +47,8 @@ class WiFiData(SensorData):
     label = models.CharField(max_length=200)
     # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
-    def save_data(self, data_list):
-        time = data_list[0] / 1000.
-        self.timestamp = time
-        self.time = modify_time(time)
+    def save_data(self, dev_id, data_list):
+        super(WiFiData, self).save_data(self, dev_id, data_list)
         self.macid = data_list[1]
         self.ssid = data_list[2]
         self.rssi = data_list[3]
@@ -85,32 +89,30 @@ class WiFiTestData(WiFiData):
 
 
 class RawAudioData(SensorData):
-    value = models.IntegerField()
+    values = models.TextField()
     label = models.CharField(max_length=200)
     location = models.CharField(max_length=200)
     # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
-    def save_data(self, data_list):
-        time = data_list[0] / 1000.
-        self.timestamp = time
-        self.time = modify_time(time)
-        self.value = data_list[1]
+    def save_data(self, dev_id, data_list):
+        super(RawAudioData, self).save_data(dev_id, data_list)
+        self.values = data_list[1]
         self.label = data_list[2]
         self.location = data_list[3]
 
         if self.pk is not None:
             self.pk = self.pk + 1
 
-        print "Data Received:", data_list
+        # print "Data Received:", data_list
 
-        try:
-            self.save(force_insert=True)
-            print "PK::", self.pk
+        # try:
+        self.save(force_insert=True)
+        # print "PK::", self.pk
 
-            # TODO: How to check if record is saved?
-            return True
-        except Exception, e:
-            print e
+        # TODO: How to check if record is saved?
+        return True
+        # except Exception, e:
+        #     print e
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -149,10 +151,8 @@ class MFCCFeatureSet(SensorData):
     location = models.CharField(max_length=200)
     # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
-    def save_data(self, data_list):
-        time = data_list[0] / 1000.
-        self.timestamp = time
-        self.time = modify_time(time)
+    def save_data(self, dev_id, data_list):
+        super(MFCCFeatureSet, self).save_data(dev_id, data_list)
         self.mfcc1 = data_list[1]
         self.mfcc2 = data_list[2]
         self.mfcc3 = data_list[3]
@@ -209,10 +209,8 @@ class LightData(SensorData):
     location = models.CharField(max_length=200)
     # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
-    def save_data(self, data_list):
-        time = data_list[0] / 1000.
-        self.timestamp = time
-        self.time = modify_time(time)
+    def save_data(self, dev_id, data_list):
+        super(LightData, self).save_data(dev_id, data_list)
         self.value = data_list[1]
         self.label = data_list[2]
         self.location = data_list[3]
@@ -259,10 +257,8 @@ class AcclData(SensorData):
     location = models.CharField(max_length=200)
     # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
-    def save_data(self, data_list):
-        time = data_list[0] / 1000.
-        self.timestamp = time
-        self.time = modify_time(time)
+    def save_data(self, dev_id, data_list):
+        super(AcclData, self).save_data(dev_id, data_list)
         self.x_value = data_list[1]
         self.y_value = data_list[2]
         self.z_value = data_list[3]
@@ -311,10 +307,8 @@ class MagData(SensorData):
     location = models.CharField(max_length=200)
     # reg_id = models.CharField(max_length=255, verbose_name=_("Registration ID"), unique=True)
 
-    def save_data(self, data_list):
-        time = data_list[0] / 1000.
-        self.timestamp = time
-        self.time = modify_time(time)
+    def save_data(self, dev_id, data_list):
+        super(MagData, self).save_data(dev_id, data_list)
         self.x_value = data_list[1]
         self.y_value = data_list[2]
         self.z_value = data_list[3]
