@@ -1,59 +1,30 @@
 from django.db import models
+from models import RegisteredUsers
 
 import datetime as dt
 from decimal import getcontext
 getcontext().prec = 14
 
-# Helper Classes
-from time import strftime
-
-
-class UnixTimestampField(models.DateTimeField):
-
-    """UnixTimestampField: creates a DateTimeField that is represented on the
-    database as a TIMESTAMP field rather than the usual DATETIME field.
-    """
-
-    def __init__(self, null=False, blank=False, **kwargs):
-        super(UnixTimestampField, self).__init__(**kwargs)
-        # default for TIMESTAMP is NOT NULL unlike most fields, so we have to
-        # cheat a little:
-        self.blank, self.isnull = blank, null
-        self.null = True  # To prevent the framework from shoving in "not null".
-
-    def db_type(self, connection):
-        typ = ['TIMESTAMP']
-        # See above!
-        if self.isnull:
-            typ += ['NULL']
-        if self.auto_created:
-            typ += ['default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP']
-        return ' '.join(typ)
-
-    def to_python(self, value):
-        if isinstance(value, int):
-            dt.datetime.fromtimestamp(value)
-        else:
-            return models.DateTimeField.to_python(self, value)
-
-    def get_db_prep_value(self, value, connection, prepared=False):
-        if value is None:
-            return None
-        return strftime('%Y%m%d%H%M%S', value.timetuple())
-
 # TODO: Add the foreign key to gcm.models.reg_id (See ForeignKey.to_field in the documentation)
 
-# Common functions
+"""
+Helper functions
+"""
 
 
 def modify_time(time):
     return dt.datetime.fromtimestamp(time)
+
+"""
+Models for storing phone sensor data
+"""
 
 
 class SensorData(models.Model):
     # timestamp = UnixTimestampField('date uploaded', unique=True)
     timestamp = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     time = models.DateTimeField('date uploaded')
+    dev_id = models.ForeignKey(RegisteredUsers)
 
     class Meta:
         abstract = True
@@ -82,11 +53,11 @@ class WiFiData(SensorData):
         if self.pk is not None:
             self.pk = self.pk + 1
 
-        print "Data Received:", data_list
+        # print "Data Received:", data_list
 
         try:
             self.save(force_insert=True)
-            print "PK::", self.pk
+            # print "PK::", self.pk
             # TODO: How to check if record is saved?
             return True
         except Exception, e:

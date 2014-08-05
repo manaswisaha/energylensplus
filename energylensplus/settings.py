@@ -36,8 +36,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'energylenserver',
-    'gcm'
+    'energylenserver'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -66,10 +65,6 @@ DATABASES = {
         'HOST': '127.0.0.1'
     }
 }
-
-# GCM
-GCM_APIKEY = "AIzaSyBVkXVh71gp1xJign284BaaQvZ5jbnbeIM"
-GCM_SENDERID = "166229175411"
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/

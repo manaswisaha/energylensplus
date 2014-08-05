@@ -17,3 +17,5 @@ from DataModels import MFCCFeatureTestSet
 
 # Importing Models for storing other information e.g Registered Users,
 # Activity Log, Metadata
+
+from models import RegisteredUsers

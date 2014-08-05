@@ -1,6 +1,5 @@
 Django
-django-gcm
-django-adaptors
 requests
 pandas
 numpy
+xmpppy
