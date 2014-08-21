@@ -1,11 +1,11 @@
 from django.db import models
 from models import RegisteredUsers
+from energylenserver.fields import BigAutoField
 
 import datetime as dt
+import pandas as pd
 from decimal import getcontext
 getcontext().prec = 14
-
-# TODO: Add the foreign key to gcm.models.reg_id (See ForeignKey.to_field in the documentation)
 
 """
 Helper functions
@@ -21,14 +21,17 @@ Models for storing phone sensor data
 
 
 class SensorData(models.Model):
+    # id = BigAutoField(primary_key=True)
+    r_id = models.CharField(max_length=200, primary_key=True)
     timestamp = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     time = models.DateTimeField('date uploaded')
     dev_id = models.ForeignKey(RegisteredUsers)
 
     def save_data(self, dev_id, data_list):
-        time = data_list[0] / 1000.
+        time = float(data_list[0]) / 1000.
         self.dev_id = dev_id
         self.timestamp = time
+        self.r_id = str(self.timestamp) + '_' + str(self.dev_id.dev_id)
         self.time = modify_time(time)
 
     class Meta:
@@ -36,6 +39,72 @@ class SensorData(models.Model):
         get_latest_by = 'timestamp'
         ordering = ['-timestamp']
 
+
+# Accelerometer
+
+
+class AcclData(SensorData):
+    x_value = models.FloatField()
+    y_value = models.FloatField()
+    z_value = models.FloatField()
+    label = models.CharField(max_length=200)
+    location = models.CharField(max_length=200)
+
+    def save_data(self, dev_id, data_list):
+        super(AcclData, self).save_data(dev_id, data_list)
+        self.x_value = data_list[1]
+        self.y_value = data_list[2]
+        self.z_value = data_list[3]
+        self.label = data_list[4]
+        self.location = data_list[5]
+
+        try:
+            self.save()
+            return True
+        except Exception, e:
+            print "[Exception] AcclData::save_data",
+            print e
+
+    # def save_data(self, dev_id, df_csv):
+
+    #     try:
+    #         list_of_objects = []
+    #         for idx in df_csv.index:
+    #             record = list(df_csv.ix[idx])
+    #             timestamp = record[0]
+    #             time = timestamp / 1000.
+    #             record.insert(1, modify_time(time))
+    #             record.insert(2, dev_id)
+
+    #             r_id = str(timestamp) + '_' + str(dev_id.dev_id)
+    #             obj = self(r_id=r_id, timestamp=timestamp, time=time, x_value=record[3],
+    #                        y_value=record[4], z_value=record[5],
+    #                        label=record[6], location=record[7])
+    #             print "DeviceID:", obj.dev_id
+    #             list_of_objects.append(obj)
+    #         return list_of_objects
+
+    #     except Exception, e:
+    #         print "[Exception]:", e
+
+    class Meta(SensorData.Meta):
+        abstract = True
+        app_label = 'energylenserver'
+
+
+class AcclTrainData(AcclData):
+
+    class Meta(AcclData.Meta):
+        db_table = 'AcclTrainData'
+        app_label = 'energylenserver'
+
+
+class AcclTestData(AcclData):
+
+    class Meta(AcclData.Meta):
+        db_table = 'AcclTestData'
+        app_label = 'energylenserver'
+# '''
 # WiFi
 
 
@@ -47,23 +116,44 @@ class WiFiData(SensorData):
 
     def save_data(self, dev_id, data_list):
         super(WiFiData, self).save_data(dev_id, data_list)
+        time = data_list[0]
+        self.dev_id = dev_id
+        self.timestamp = time
+        self.time = modify_time(time)
         self.macid = data_list[1]
+        self.r_id = self.r_id + '_' + self.macid
         self.ssid = data_list[2]
         self.rssi = data_list[3]
         self.label = data_list[4]
 
-        if self.pk is not None:
-            self.pk = self.pk + 1
-
-        # print "Data Received:", data_list
-
         try:
-            self.save(force_insert=True)
-            # print "PK::", self.pk
-            # TODO: How to check if record is saved?
+            self.save()
             return True
         except Exception, e:
+            print "[Exception] WiFiData::save_data",
             print e
+
+    # def save_data(self, dev_id, df_csv):
+
+    #     try:
+    #         list_of_objects = []
+    #         for idx in df_csv.index:
+    #             record = list(df_csv.ix[idx])
+    #             timestamp = record[0]
+    #             time = timestamp / 1000.
+    #             record.insert(1, modify_time(time))
+    #             record.insert(2, dev_id)
+
+    #             r_id = str(timestamp) + '_' + str(dev_id.dev_id)
+    #             obj = self(r_id=r_id, timestamp=timestamp, time=time, x_value=record[3],
+    #                        y_value=record[4], z_value=record[5],
+    #                        label=record[6], location=record[7])
+    #             print "DeviceID:", obj.dev_id
+    #             list_of_objects.append(obj)
+    #         return list_of_objects
+
+    #     except Exception, e:
+    #         print "[Exception]:", e
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -97,19 +187,34 @@ class RawAudioData(SensorData):
         self.label = data_list[2]
         self.location = data_list[3]
 
-        if self.pk is not None:
-            self.pk = self.pk + 1
+        try:
+            self.save()
+            return True
+        except Exception, e:
+            print "[Exception] RawAudioData::save_data",
+            print e
 
-        # print "Data Received:", data_list
+    # def save_data(self, dev_id, df_csv):
 
-        # try:
-        self.save(force_insert=True)
-        # print "PK::", self.pk
+    #     try:
+    #         list_of_objects = []
+    #         for idx in df_csv.index:
+    #             record = list(df_csv.ix[idx])
+    #             timestamp = record[0]
+    #             time = timestamp / 1000.
+    #             record.insert(1, modify_time(time))
+    #             record.insert(2, dev_id)
 
-        # TODO: How to check if record is saved?
-        return True
-        # except Exception, e:
-        #     print e
+    #             r_id = str(timestamp) + '_' + str(dev_id.dev_id)
+    #             obj = self(r_id=r_id, timestamp=timestamp, time=time, x_value=record[3],
+    #                        y_value=record[4], z_value=record[5],
+    #                        label=record[6], location=record[7])
+    #             print "DeviceID:", obj.dev_id
+    #             list_of_objects.append(obj)
+    #         return list_of_objects
+
+    #     except Exception, e:
+    #         print "[Exception]:", e
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -165,17 +270,11 @@ class MFCCFeatureSet(SensorData):
         self.label = data_list[14]
         self.location = data_list[15]
 
-        if self.pk is not None:
-            self.pk = self.pk + 1
-
-        print "Data Received:", data_list
-
         try:
-            self.save(force_insert=True)
-            print "PK::", self.pk
-            # TODO: How to check if record is saved?
+            self.save()
             return True
         except Exception, e:
+            print "[Exception] MFCCFeatureSet::save_data",
             print e
 
     class Meta(SensorData.Meta):
@@ -210,17 +309,11 @@ class LightData(SensorData):
         self.label = data_list[2]
         self.location = data_list[3]
 
-        if self.pk is not None:
-            self.pk = self.pk + 1
-
-        # print "Data Received:", data_list
-
         try:
-            self.save(force_insert=True)
-            # print "PK::", self.pk
-            # TODO: How to check if record is saved?
+            self.save()
             return True
         except Exception, e:
+            print "[Exception] LightData::save_data",
             print e
 
     class Meta(SensorData.Meta):
@@ -241,55 +334,6 @@ class LightTestData(LightData):
         db_table = 'LightTestData'
         app_label = 'energylenserver'
 
-# Accelerometer
-
-
-class AcclData(SensorData):
-    x_value = models.FloatField()
-    y_value = models.FloatField()
-    z_value = models.FloatField()
-    label = models.CharField(max_length=200)
-    location = models.CharField(max_length=200)
-
-    def save_data(self, dev_id, data_list):
-        super(AcclData, self).save_data(dev_id, data_list)
-        self.x_value = data_list[1]
-        self.y_value = data_list[2]
-        self.z_value = data_list[3]
-        self.label = data_list[4]
-        self.location = data_list[5]
-
-        if self.pk is not None:
-            self.pk = self.pk + 1
-
-        # print "Data Received:", data_list
-
-        try:
-            self.save(force_insert=True)
-            # print "PK::", self.pk
-            # TODO: How to check if record is saved?
-            return True
-        except Exception, e:
-            print e
-
-    class Meta(SensorData.Meta):
-        abstract = True
-        app_label = 'energylenserver'
-
-
-class AcclTrainData(AcclData):
-
-    class Meta(AcclData.Meta):
-        db_table = 'AcclTrainData'
-        app_label = 'energylenserver'
-
-
-class AcclTestData(AcclData):
-
-    class Meta(AcclData.Meta):
-        db_table = 'AcclTestData'
-        app_label = 'energylenserver'
-
 # Magnetometer
 
 
@@ -308,17 +352,11 @@ class MagData(SensorData):
         self.label = data_list[4]
         self.location = data_list[5]
 
-        if self.pk is not None:
-            self.pk = self.pk + 1
-
-        # print "Data Received:", data_list
-
         try:
-            self.save(force_insert=True)
-            # print "PK::", self.pk
-            # TODO: How to check if record is saved?
+            self.save()
             return True
         except Exception, e:
+            print "[Exception] MagData::save_data",
             print e
 
     class Meta(SensorData.Meta):
@@ -338,3 +376,4 @@ class MagTestData(MagData):
     class Meta(MagData.Meta):
         db_table = 'MagTestData'
         app_label = 'energylenserver'
+# '''

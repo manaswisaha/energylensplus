@@ -29,3 +29,12 @@ class RegisteredUsers(Devices):
     class Meta(Devices.Meta):
         db_table = 'RegisteredUsers'
         app_label = 'energylenserver'
+
+
+class PowerEdges(object):
+
+    """docstring for PowerEdges"""
+
+    def __init__(self, arg):
+        super(PowerEdges, self).__init__()
+        self.arg = arg
