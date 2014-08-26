@@ -1,4 +1,5 @@
 
+
 # Importing Models for storing Phone Sensor Training Data
 from DataModels import WiFiTrainData
 from DataModels import RawAudioTrainData
@@ -19,3 +20,7 @@ from DataModels import LightTestData
 # Activity Log, Metadata
 
 from models import RegisteredUsers
+from models import Metadata
+from models import Edges
+from models import MeterInfo
+from models import ActivityLog

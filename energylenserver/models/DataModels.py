@@ -1,9 +1,7 @@
 from django.db import models
 from models import RegisteredUsers
-from energylenserver.fields import BigAutoField
 
 import datetime as dt
-import pandas as pd
 from decimal import getcontext
 getcontext().prec = 14
 

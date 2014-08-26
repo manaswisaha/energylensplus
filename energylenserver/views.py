@@ -5,12 +5,12 @@ from django.http import HttpResponse
 from constants import *
 from models.DataModels import *
 from models.models import *
-from preprocessing import audio
 from preprocessing import wifi
+from meter.functions import *
+from meter.smap import *
 # from gcmxmppserver.messages import
 
-import csv
-import requests
+import sys
 import json
 import time
 import threading
@@ -176,7 +176,7 @@ def upload_data(request):
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
-            print "\n[POST Request Received]"
+            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
 
             payload = request.FILES
             file_container = payload['uploadedfile']
@@ -212,65 +212,28 @@ def real_time_data_access(request):
 
             # TODO: Get apt_no from the db based on the IMEI number
             payload = json.loads(request.body)
+            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+
             dev_id = payload['dev_id']
             print "Requested by:", dev_id
 
             # Check if it is a registered user
             is_user = user_exists(dev_id)
             if not is_user:
-                return False
+                return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
+                                    content_type="application/json")
             else:
-                pass
-                # apt_no = is_user.apt_no
-            apt_no = '1002'
-
-            url = 'http://energy.iiitd.edu.in:9106/api/query'
+                apt_no = is_user.apt_no
+                print "Apartment Number:", apt_no
 
             # Get power data
-            payload = ("select data before now "
-                       "where Metadata/Extra/FlatNumber ='" + apt_no + "' and "
-                       "Metadata/Extra/PhysicalParameter='Power'")
+            timestamp, total_power = get_latest_power_data(apt_no)
 
-            r = requests.post(url, data=payload)
-            print r
-            payload_body = r.json()
-            print payload_body
-
-            lpower = 0
-
-            if len(payload_body) > 1:
-                readings = payload_body[0]['Readings']
-                time_1 = readings[0][0]
-                power = readings[0][1]
-
-                readings = payload_body[1]['Readings']
-                time_2 = readings[0][0]
-                lpower = readings[0][1]
-
-                timestamp = max(time_1, time_2) / 1000
-
-                # Handling power outages where meter data may not be the latest
-                if abs(time_1 - time_2) > 2:
-                    time_low = min(time_1, time_2) / 1000
-                    now_time = time.time()
-
-                    if abs(now_time - time_low) > 3:
-                        if time_low == time_1:
-                            power = 0
-                        elif time_low == time_2:
-                            lpower = 0
-
-            else:
-                readings = payload_body[0]['Readings']
-                timestamp = readings[0][0]
-                power = readings[0][1]
-
-            total_power = power + lpower
-            print "Power", power
-            print "LPower", lpower
             payload = {}
-            payload['time'] = timestamp
+            payload['timestamp'] = timestamp
             payload['power'] = total_power
+
+            print "Payload", payload
 
             return HttpResponse(json.dumps(payload), content_type="application/json")
 
@@ -284,7 +247,10 @@ def real_time_data_access(request):
 @csrf_exempt
 def training_data(request):
     """
-    Receives the uploaded CSV files and stores them in the database
+    Receives the training data labels, computes power consumption,
+    and stores them as Metadata
+
+    Returns: computed power of the appliance
     """
 
     try:
@@ -292,7 +258,51 @@ def training_data(request):
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
-            pass
+            payload = json.loads(request.body)
+            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+            print payload
+
+            dev_id = payload['dev_id']
+            start_time = payload['start_time']
+            end_time = payload['end_time']
+            location = payload['location']
+            appliance = payload['appliance']
+
+            # Check if it is a registered user
+            user = user_exists(dev_id)
+            if not user:
+                return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
+                                    content_type="application/json")
+            else:
+                apt_no = user.apt_no
+                print "Apartment Number:", apt_no
+
+            # Compute Power
+            power = compute_power(apt_no, start_time, end_time)
+
+            # See if entry exists for appliance-location combination
+            # Update power value if it exists
+            try:
+                r = Metadata.objects.get(apt_no__exact=apt_no, location__exact=location,
+                                         appliance__exact=appliance)
+                print "Metadata with entry:", r.apt_no, r.appliance, r.location, "exists"
+                # Update power
+                r.power = power
+                r.save()
+                print "Metadata record updated"
+            except Metadata.DoesNotExist, e:
+
+                # Store metadata
+                user = Metadata(
+                    apt_no=apt_no, appliance=appliance, location=location, power=power)
+                user.save()
+                print "Metadata creation successful"
+
+            payload = {}
+            payload['power'] = power
+            return HttpResponse(json.dumps(payload),
+                                content_type="application/json")
+
     except Exception, e:
 
             print "[TrainingDataException Occurred]::", e
@@ -304,7 +314,7 @@ def training_data(request):
 def register_device(request):
     """
     Receives the registration requests from the mobile devices and
-    stores user and device details in the database
+    stores user-device and meter details in the database
     """
     print "Request received:", request.method
 
@@ -332,6 +342,29 @@ def register_device(request):
             print "Device ID:", dev_id
             print "Apartment Number:", apt_no
 
+            if apt_no.isdigit():
+
+                # Store the meter details of the apt_no if the current user is the first
+                # member of the house that registers
+
+                apt_no = int(apt_no)
+                user_count = RegisteredUsers.objects.filter(apt_no__exact=apt_no).count()
+                print "Number of users registered for", apt_no, ":", user_count
+                if user_count == 0:
+                    # Get meter information for the apt_no for the apartment
+                    meters = get_meter_info(apt_no)
+
+                    # Store meter information in the DB
+                    for meter in meters:
+                        meter_uuid = meter['uuid']
+                        meter_type = meter['type']
+                        if meter_type == "Light Backup":
+                            meter_type = "Light"
+
+                        minfo_record = MeterInfo(
+                            meter_uuid=meter_uuid, meter_type=meter_type, apt_no=apt_no)
+                        minfo_record.save()
+
             try:
                 r = RegisteredUsers.objects.get(dev_id__exact=dev_id)
                 print "Registration with device ID", r.dev_id, "exists"
@@ -345,7 +378,7 @@ def register_device(request):
 
                 # Store user
                 user = RegisteredUsers(
-                    dev_id=dev_id, reg_id=reg_id, name=user_name, email_id=email_id)
+                    dev_id=dev_id, reg_id=reg_id, apt_no=apt_no, name=user_name, email_id=email_id)
                 user.save()
                 print "Registration successful"
             return HttpResponse(json.dumps(REGISTRATION_SUCCESS),
@@ -356,6 +389,25 @@ def register_device(request):
         print "[DeviceRegistrationException Occurred]::", e
         print "Registration unsuccessful"
         return HttpResponse(json.dumps(REGISTRATION_UNSUCCESSFUL), content_type="application/json")
+
+
+@csrf_exempt
+def test_function_structure(request):
+    """
+    Receives the uploaded CSV files and stores them in the database
+    """
+
+    try:
+        if request.method == 'GET':
+            return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
+
+        if request.method == 'POST':
+            pass
+    except Exception, e:
+
+            print "[TrainingDataException Occurred]::", e
+            return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
+                                content_type="application/json")
 
 
 @csrf_exempt

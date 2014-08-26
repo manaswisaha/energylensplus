@@ -1,4 +1,10 @@
 #!/usr/bin/python
+"""
+TODO:
+1. Implement exponential backoff for retries
+2. Implement rest of the code (handling errors, exception etc.)
+    to completely implement CCS
+"""
 
 """
 Main XMPP CCS Client file
@@ -12,9 +18,19 @@ import ast
 import time
 import json
 import xmpp
-import random as rnd
-import numpy as np
-from numpy import random
+
+sys.path.insert(1, '/home/manaswi/EnergyLensPlusCode/energylensplus')
+# print "SYSPATH", sys.path
+
+import os
+os.environ['DJANGO_SETTINGS_MODULE'] = "energylensplus.settings"
+
+# import django
+# django.setup()
+
+from api.reporting import *
+from api.reassign import *
+from models.functions import retrieve_metadata
 
 from gcmxmppclient.messages import create_message
 from gcmxmppclient.messages import create_control_message
@@ -24,37 +40,18 @@ from gcmxmppclient.settings import GCM_SENDERID
 
 from constants import *
 
-# PERSONAL_ENERGY_API = "energy/personal/"
-# DISAGG_ENERGY_API = "energy/disaggregated/"
-# REAL_TIME_POWER_API = "power/real-time/"
-# ENERGY_COMPARISON_API = "energy/comparison/"
-# ENERGY_WASTAGE_API = "energy/wastage/"
-# ENERGY_REPORT_API = "energy/report/"
+# export DJANGO_SETTINGS_MODULE="energylensplus.settings"
 
 
 # For testing
 # SERVER = 'gcm-staging.googleapis.com'
 # PORT = 5236
+
 # For production
 SERVER = 'gcm.googleapis.com'
 PORT = 5235
 USERNAME = GCM_SENDERID
 PASSWORD = GCM_APIKEY
-
-# Vedant's phone
-reg_id = 'APA91bHviIi_udpOIMEm_cu2DtQE0lj4RtSYBVXc5t4UfHnbErnhkrus_W5JPI4GDpO91m6YPYznWAQGulBLFOryboLfT74hY9fUmAT3rPYs5Q5yuAtnaMoSo9znfzd9dF3uSAxOhkM2MGcvw5CpeWXHnonO370LOg'
-# MotoG
-reg_id = 'APA91bF6i8F0Yo6afUcZXqIyEsaj1FEy98G2vZApj071sxVoTx6sYxGOElu8Z_uqCPamU7r7imSpeMhvyGbaXAg98k1scubjwaWIX7Tg277TEETGKMmLcxjll8Bf0E9T4sb1g_AzoILLqe7rR721Y5Kt3WzjyuSUgw'
-
-# Helper functions
-
-
-def constrained_sum_sample_pos(n, total):
-    """Return a randomly chosen list of n positive integers summing to total.
-    Each such list is equally likely to occur."""
-
-    dividers = sorted(rnd.sample(xrange(1, total), n - 1))
-    return [a - b for a, b in zip(dividers + [total], [0] + dividers)]
 
 
 """
@@ -124,7 +121,7 @@ class MessageClient:
                 print "NEED TO STOP SENDING MESSAGES"
                 pass
         except Exception, e:
-            print "[GCMCLIENT EXCEPTION]:", e
+            print "[GCMCLIENT EXCEPTION] SendMessage:", e
 
     # Doesn't make sense -- alter
     def resend_queued_messages(self):
@@ -139,6 +136,8 @@ class MessageClient:
             self.send_message(sent_queue.pop()["message"])
 
     def handle_request_message(self, message):
+
+        reg_id = message['from']
         data = message['data']
         api = data['api']
 
@@ -151,77 +150,48 @@ class MessageClient:
         data_to_send['api'] = api
         data_to_send['options'] = {}
 
-        if api == PERSONAL_ENERGY_API:
+        # Get User Details
+        user = determine_user(reg_id)
+        if not user:
+            return False
+        apt_no = user.apt_no
+
+        if api == PERSONAL_ENERGY_API or api == ENERGY_WASTAGE_API:
             # API: personal_energy
+            start_time = options['start_time']
             end_time = options['end_time']
-            no_of_hours = 12
-            if "last" in end_time:
-                end_time_str = end_time.split(" ")
-                if end_time_str[2] == "hours":
-                    no_of_hours = int(end_time_str[1])
-                    print "Number of hours:", no_of_hours
 
-            # Replace the following with the call to the appropriate API
-            # temp code
-            # usage_list = [1000, 1030, 1100, 4500, 2300, 5500, 3200, 2100, 5500, 6000, 3000, 7800]
-            usage_list = random.randint(1000, size=no_of_hours)
-            print "Energy Usage", usage_list
+            # Get energy report
+            options = get_energy_report(reg_id, api, start_time, end_time)
+            data_to_send['options'] = options
 
-            total_usage = sum(usage_list)
-            perc_list = constrained_sum_sample_pos(4, 100)
-            perc_list.sort()
-
-            data_to_send['options']['total_consumption'] = total_usage
-            data_to_send['options']['hourly_consumption'] = usage_list.tolist()
-
-            data_to_send['options']['activities'] = []
-            data_to_send['options']['activities'].append(
-                {'name': "TV", "usage": total_usage * perc_list[1] / 100.})
-            data_to_send['options']['activities'].append(
-                {'name': "AC", "usage": total_usage * perc_list[2] / 100.})
-            data_to_send['options']['activities'].append(
-                {'name': "Microwave", "usage": total_usage * perc_list[3] / 100.})
-            data_to_send['options']['activities'].append(
-                {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
-
-            print "Data to send:\n", json.dumps(data_to_send)
-            print "\nSending personal energy data.."
+            print "\nSending data for", api
 
         elif api == DISAGG_ENERGY_API:
             # API: disaggregated_energy
+            start_time = options['start_time']
             end_time = options['end_time']
             activity_name = options['activity_name']
-            no_of_hours = 12
-            if "last" in end_time:
-                end_time_str = end_time.split(" ")
-                if end_time_str[2] == "hours":
-                    no_of_hours = int(end_time_str[1])
-                    print "Number of hours:", no_of_hours
-            # Replace the following with the call to the appropriate API
-            # temp code
 
-            activities = []
-            activities.append(
-                {'id': 1, 'name': activity_name, 'location': 'Dining Room', "usage": 320,
-                 "start_time": 1408093265, "end_time": 1408095726})
-            activities.append(
-                {'id': 2, 'name': activity_name, 'location': 'Dining Room', "usage": 320,
-                 "start_time": 1408096865, "end_time": 1408111265})
-            activities.append(
-                {'id': 3, 'name': activity_name, 'location': 'Bedroom', "usage": 80,
-                 "start_time": 1408165265, "end_time": 1408168865})
-            activities.append(
-                {'id': 4, 'name': activity_name, 'location': 'Bedroom', "usage": 120,
-                 "start_time": 1408179665, "end_time": 1408185065})
+            activities = disaggregated_energy(reg_id, activity_name, start_time, end_time)
+            appliances = retrieve_metadata(apt_no)
 
             data_to_send['options']['activities'] = activities
+            data_to_send['options']['appliances'] = appliances
 
-            print "Data to send:\n", json.dumps(data_to_send)
             print "\nSending diaggregated energy data.."
 
-        elif api == REAL_TIME_POWER_API:
-            print "\nSending real-time power data.."
+        elif api == REASSIGN_INFERENCE_API:
+            print "\nCorrecting inferences.."
 
+            # Reassign the specified activity and update the db
+            status = correct_inference(reg_id, options)
+            data_to_send['options'] = {'status': status}
+
+            # print "Data to send:\n", json.dumps(data_to_send, indent=4)
+            print "\nSending diaggregated energy data.."
+
+        # May not use the following APIs
         elif api == ENERGY_COMPARISON_API:
             print "\nSending comparison energy data.."
 
@@ -285,15 +255,13 @@ class MessageClient:
         now_time = "[" + time.ctime(time.time()) + "]"
         print now_time, "Received ACK"
         print "MessageID:", msg_id
-        print "1 : Sent Queue:\n", json.dumps(sent_queue, indent=4)
+        # print "1 : Sent Queue:\n", json.dumps(sent_queue, indent=4)
         if msg_id in sent_queue and sent_queue[msg_id]["reg_id"] == reg_id:
 
             # Remove message from the unACKed message queue
             del sent_queue[msg_id]
             len_queue = len(sent_queue)
             unacked_messages_counter = len_queue
-
-            print "2 : Sent Queue:\n", json.dumps(sent_queue, indent=4)
 
             """
             # Check if there are any messages to resend

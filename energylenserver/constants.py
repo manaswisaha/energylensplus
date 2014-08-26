@@ -15,31 +15,10 @@ TRAINING_UNSUCCESSFUL = {
     "type": "ERROR", "code": 6, "message": "Error while retrieving power data"}
 
 # API Names
-PERSONAL_ENERGY_API = "energy/personal/"
-DISAGG_ENERGY_API = "energy/disaggregated/"
+from api.constants import *
 
-TRAINING_API = "data/training/"
-REAL_TIME_POWER_API = "power/real-time/"
-
-ENERGY_COMPARISON_API = "energy/comparison/"
-ENERGY_WASTAGE_API = "energy/wastage/"
-ENERGY_REPORT_API = "energy/report/"
-
-
-# Edge Transition Window (in seconds)
-# for the change to take place
-# its more for simultaneous or quick sequential activity
-lwinmin = 3
-pwinmin = 3
-# lwinmin = pwinmin
-
-# Power Threshold (in Watts) for the magnitude of the change
-lthresmin = 10   # for light meter
-pthresmin = 15  # for power meter
-# pthresmin = lthresmin
-
-# Power Percent Change between rising and falling edge
-percent_change = 0.31
+# Meter Data Processing Constants
+from meter.constants import *
 
 '''
 # JSON Messages: Request/Response Format
@@ -128,21 +107,32 @@ data = {
              "end_time": "epoch_time"
              }, {}, ..., {}
         ]
+        "appliances": [
+            {"location" : "Dining Room",
+             "appliance": "TV"},
+            {}, {}
+        ]
     }
 }
 
-# API: realtime_power
+# API: reassign
 # -- request
 data = {
     "msg_type": "request",
-    "api": "power/real-time/",
-    "options": {}
+    "api": "inference/reassign/",
+    "options": {
+        "activity_id": <activity id>,
+        "start_time": <time in epoch>,
+        "end_time": <time in epoch>,
+        "to_appliance": <selected appliance>,
+        "to_location": <selected location>
+    }
 }
 
 # -- response
 data = {
     "msg_type": "response",
-    "api": "power/real-time/",
+    "api": "inference/reassign/",
     "options": {
         "values": []
     }
