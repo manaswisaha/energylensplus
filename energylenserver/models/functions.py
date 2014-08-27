@@ -17,6 +17,26 @@ def determine_user(reg_id):
     return user
 
 
+def retrieve_meter_info(apt_no):
+    try:
+        meter_set = MeterInfo.objects.filter(apt_no__exact=apt_no)
+    except MeterInfo.DoesNotExist:
+        print "[MeterDoesNotExistException Occurred] No meters found for the given apt. no.", apt_no
+        return False
+    except Exception, e:
+        print "[MeterInfoException Occurred]", e
+        return False
+
+    meters = []
+    for meter in meter_set:
+        m = {}
+        m['uuid'] = meter.meter_uuid
+        m['type'] = meter.meter_type
+        meters.append(m)
+
+    return meters
+
+
 def retrieve_metadata(apt_no):
     """
     Retrieve appliances from Metadata

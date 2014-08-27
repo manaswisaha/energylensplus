@@ -3,8 +3,87 @@ Contains all the filters required for the meter data
 """
 
 import math
+import datetime as dt
 
 from energylenserver.common_imports import *
+
+
+def remove_duplicate_edges(df):
+    df["index"] = df.index
+    df.drop_duplicates(cols='index', take_last=True, inplace=True)
+    del df["index"]
+
+    return df
+
+
+def filter_select_maxtime_edge(df):
+
+    # Select the edge amongst a group of edges within a small time frame (a minute)
+    # and which are close to each other in terms of magnitude
+    # with maximum timestamp
+
+    # Rising Edges
+    tmp_df = df.copy()
+    # tmp_df['ts'] = (df.time / 100).astype('int')
+    tmp_df['tmin'] = [str(dt.datetime.fromtimestamp(i).hour) + '-' +
+                      str(dt.datetime.fromtimestamp(i).minute) for i in tmp_df.time]
+
+    # Select the edge with the maximum timestamp lying within a minute
+    idx_list = []
+    for i, idx in enumerate(tmp_df.index):
+
+        if idx == tmp_df.index[-1]:
+            if idx not in idx_list:
+                idx_list.append(idx)
+            break
+        next_idx = tmp_df.index[i + 1]
+        t = tmp_df.ix[idx]['time']
+        t_next = tmp_df.ix[next_idx]['time']
+        diff = t_next - t
+        if diff <= 60:
+            t_mag = math.fabs(tmp_df.ix[idx]['magnitude'])
+            t_next_mag = math.fabs(tmp_df.ix[next_idx]['magnitude'])
+
+            t_curr_power = math.fabs(tmp_df.ix[idx]['curr_power'])
+            t_next_curr_power = math.fabs(tmp_df.ix[next_idx]['curr_power'])
+
+            curr_diff = math.fabs(t_next_curr_power - t_curr_power)
+
+            if curr_diff == 0:
+                idx_list.append(next_idx)
+                if idx in idx_list:
+                    idx_list.remove(idx)
+            elif curr_diff < 0.5 * thresmin:
+                if t_mag <= 60:
+                    threshold = 0.2
+                elif t_mag >= 1000:
+                    print "in"
+                    threshold = 0.25
+                else:
+                    threshold = 0.1
+
+                threshold_mag = threshold * t_mag
+                # print "Threshold:", threshold
+                # print "ThresholdMag:", threshold_mag
+
+                if math.fabs(t_mag - t_next_mag) <= threshold_mag:
+                    idx_list.append(next_idx)
+                    if idx in idx_list:
+                        idx_list.remove(idx)
+                else:
+                    if idx not in idx_list:
+                        idx_list.append(idx)
+            else:
+                if idx not in idx_list:
+                    idx_list.append(idx)
+        else:
+            if idx not in idx_list:
+                idx_list.append(idx)
+    print "Edge idx_list", idx_list
+    tmp_df = tmp_df.ix[idx_list].sort(['time'])
+    df = tmp_df.ix[:, :-1]
+
+    return df
 
 
 def filter_edges(rise_df, fall_df, winmin, thres):
@@ -70,22 +149,6 @@ def filter_edges(rise_df, fall_df, winmin, thres):
                     rise_df = rise_df.drop(ix_i)
                 fall_df = fall_df.drop(ix_j)
 
-    # for ix_i in rise_df.index:
-    #     curr = df_l.ix[ix_i]['lightpower']
-    #     currnext = df_l.ix[ix_i + 1]['lightpower']
-    #     currnext_next = df_l.ix[ix_i + 2]['lightpower']
-    #     curr_next_diff = int(currnext - curr)
-    #     succ_fall_mag = math.ceil(int(currnext_next - currnext))
-    #     logger.debug("Index:", ix_i, "Succ Fall Mag", \
-        # succ_fall_mag, "CurrNextDiff", curr_next_diff)
-    # if ix_i ==
-    #     if (succ_fall_mag >= lthresmin and
-    #        (succ_fall_mag - curr_next_diff) in np.arange(0, 2, 0.1)):
-    #         logger.debug("Index:", ix_i, "Succ Fall Mag", succ_fall_mag,)
-    #         logger.debug("CurrNextDiff", curr_next_diff)
-    #         rise_df.drop(ix_i)
-    #         logger.debug("Inside Succ Fall Mag", succ_fall_mag, "Index", i)
-
     # FILTER 3:
     # Select the edge amongst a group of edges within a small time frame (a minute)
     # and which are close to each other in terms of magnitude
@@ -96,13 +159,6 @@ def filter_edges(rise_df, fall_df, winmin, thres):
     # tmp_df['ts'] = (rise_df.time / 100).astype('int')
     tmp_df['tmin'] = [str(dt.datetime.fromtimestamp(i).hour) + '-' +
                       str(dt.datetime.fromtimestamp(i).minute) for i in tmp_df.time]
-    # print "Grouped Max", tmp_df.groupby('tmin')['magnitude'].max()
-    # ts_grouped = tmp_df.groupby('tmin').max()
-    # tmp_df = pd.concat([tmp_df[(tmp_df.tmin == i) &
-    #                   (tmp_df.magnitude == ts_grouped.ix[i]['magnitude'])]
-    #     for i in ts_grouped.index])
-    # ts_grouped = tmp_df.groupby('tmin')['time'].max()
-    # tmp_df = tmp_df[tmp_df.time.isin(ts_grouped)].sort(['time'])
 
     # Select the edge with the maximum timestamp lying within a minute
     idx_list = []
@@ -123,7 +179,11 @@ def filter_edges(rise_df, fall_df, winmin, thres):
 
             curr_diff = math.fabs(t_next_curr_power - t_curr_power)
 
-            if curr_diff < 0.5 * thres:
+            if curr_diff == 0:
+                idx_list.append(tmp_df.index[i + 1])
+                if idx in idx_list:
+                    idx_list.remove(idx)
+            elif curr_diff < 0.5 * thres:
                 if t_mag <= 60:
                     threshold = 0.2
                 elif t_mag >= 1000:

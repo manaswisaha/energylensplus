@@ -26,7 +26,7 @@ def create_message(reg_id, data):
                           'message_id': random_id(),
                           'data': data,
                           "time_to_live": 3600})
-    print "Message created::", json.dumps(message, indent=4)
+    print "Message created::\n", json.dumps(message, indent=4)
     return message
 
 
@@ -37,5 +37,5 @@ def create_control_message(reg_id, msg_type, msg_id):
     message = json.dumps({'to': reg_id,
                           'message_type': msg_type,
                           'message_id': msg_id})
-    print "Control Message created::", json.dumps(message, indent=4)
+    print "Control Message created::", message
     return message

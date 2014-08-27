@@ -249,8 +249,6 @@ def training_data(request):
     """
     Receives the training data labels, computes power consumption,
     and stores them as Metadata
-
-    Returns: computed power of the appliance
     """
 
     try:
@@ -278,7 +276,8 @@ def training_data(request):
                 print "Apartment Number:", apt_no
 
             # Compute Power
-            power = compute_power(apt_no, start_time, end_time)
+            power = training_compute_power(apt_no, start_time, end_time)
+            print "Computed Power::", power
 
             # See if entry exists for appliance-location combination
             # Update power value if it exists

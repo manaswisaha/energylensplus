@@ -8,9 +8,26 @@ import requests
 import pandas as pd
 import numpy as np
 
+from energylenserver.models.functions import retrieve_meter_info
 
 # Global variables
 url = 'http://energy.iiitd.edu.in:9106/api/query'
+
+
+def get_meter_data(query):
+    """
+    Gets the readings from smap based on the query
+
+    Returns: Dataframes for both streams
+    """
+
+    print "\nsMap: Getting meter data..."
+    r = requests.post(url, data=query)
+    print r
+    payload = r.json()
+    print payload
+
+    return payload
 
 
 def get_latest_power_data(apt_no):
@@ -65,28 +82,12 @@ def get_latest_power_data(apt_no):
     return timestamp, total_power
 
 
-def get_meter_data(query):
-    """
-    Gets the readings from smap based on the query
-
-    Returns: Dataframes for both streams
-    """
-
-    print "Getting meter data..."
-    r = requests.post(url, data=query)
-    print r
-    payload = r.json()
-    print payload
-
-    return payload
-
-
 def get_meter_data_for_time_slice(apt_no, start_time, end_time):
     """
     Retrieves meter data in the specified time interval
     """
 
-    print "\nGetting meter data between", start_time, "and", end_time
+    print "\nsMap: Getting meter data between", start_time, "and", end_time
 
     query = ("select data in ('" + str(start_time) + "','" + str(end_time) + "') "
              "limit 200000 "
@@ -96,9 +97,9 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
     r = requests.post(url, data=query)
     # print r
     payload = r.json()
-    print "Payload:", payload
+    # print "Payload:", payload
 
-    meters = get_meter_info(apt_no)
+    meters = retrieve_meter_info(apt_no)
 
     streams = []
     meter_type = []
@@ -109,14 +110,14 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
         for meter in meters:
             if meter['uuid'] == uuid:
                 m_type = meter['type']
-                print uuid, m_type
+                # print uuid, m_type
 
         meter_type.append(m_type)
         streams.append(np.array(payload[i]['Readings']))
     # print "Streams:", streams
 
     df = [pd.DataFrame({'time': readings[:, 0] / 1000, 'power': readings[:, 1],
-                        'type': meter_type[i] * len(readings)}, columns=['time', 'power'])
+                        'type': [meter_type[i]] * len(readings)}, columns=['time', 'power', 'type'])
           for i, readings in enumerate(streams)]
 
     return df
