@@ -41,6 +41,7 @@ from energylenserver.preprocessing import wifi
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
 from energylenserver.meter.edge_detection import detect_edges
+from energylenserver.gcmxmppclient.messages import create_message
 
 
 # Global variables
@@ -221,6 +222,8 @@ def determineWastageHandler(result_label, edge):
     """
     energy_wasted = True
     who, what, where = result_label
+    reg_id = ''  # Get regid based on the who value
+
     print "Determines energy wastage:: [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
     print "Activity: " + who + " in " + where + " uses " + what
     # Call module that determines energy wastage
@@ -228,7 +231,8 @@ def determineWastageHandler(result_label, edge):
 
     if energy_wasted:
         # Call real-time feedback component to send a message to the user
-        inform_user.delay(edge)
+        message = "Light in Bedroom left on."
+        inform_user.delay(edge, reg_id, message)
         pass
 
     print "Wastage Determined: " + str(energy_wasted)
@@ -237,14 +241,14 @@ def determineWastageHandler(result_label, edge):
 
 
 @shared_task
-def inform_user(edge):
+def inform_user(edge, reg_id, message_to_send):
     """
     Informs the user by sending a notification to the phone
     :return message:
     """
     print "Sending message:: [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
     # Call module that sends message
-    message = {'data': {'msg': 'EnergyWastage Detected'}}
+    message = create_message(reg_id, {'msg': message_to_send})
     gcm.send_message(message)
     time.sleep(1)
     print "Message Sent [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
