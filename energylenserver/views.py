@@ -1,6 +1,9 @@
 # from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+from django.conf import settings
 
 from constants import *
 from models.DataModels import *
@@ -8,8 +11,9 @@ from models.models import *
 from preprocessing import wifi
 from meter.functions import *
 from meter.smap import *
-# from gcmxmppserver.messages import
+from energylenserver.tasks import phoneDataHandler
 
+import os
 import sys
 import json
 import time
@@ -36,22 +40,6 @@ FILE_MODEL_MAP = {
 # """
 
 
-class insertRecordThread(threading.Thread):
-
-    def __init__(self, filename, sensorname, df, training_status, dev_id):
-        threading.Thread.__init__(self)
-        self.filename = filename
-        self.sensor_name = sensorname
-        self.df = df
-        self.training_status = training_status
-        self.dev_id = dev_id
-
-    def run(self):
-        print "\n---Starting ", self.filename
-        insert_records(self.filename, self.sensor_name, self.df, self.training_status, self.dev_id)
-        print "---Exiting ", self.filename
-
-
 def user_exists(device_id):
     """
     Check whether user is registered
@@ -64,59 +52,20 @@ def user_exists(device_id):
         return False
 
 
-def insert_records(filename, sensor_name, df_csv, training_status, dev_id):
-    """
-    Function for each thread: performs some preprocessing and inserts records
-    into the database
-    """
-
-    print "\n---Starting", filename, "---"
-
-    # --Preprocess records before storing--
-    if sensor_name == "wifi":
-        df_csv = wifi.format_data(df_csv)
-
-    # If audio data received, then preprocess before storing
-    # if sensor_name in ['rawaudio']:
-    #     print "Total records before pre-processing:", len(df_csv)
-    #     df_csv = audio.format_data(df_csv)
-
-    # Remove NAN timestamps
-    df_csv.dropna(subset=[0], inplace=True)
-    # Remove rows with 'Infinity' in MFCCs created
-    if sensor_name == "audio":
-        if str(df_csv.mfcc1.dtype) != 'float64':
-            df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
-
-    print "Total number of records to insert:", len(df_csv)
-
-    # Initialize Model
-    if training_status is True:
-        model = FILE_MODEL_MAP['Training' + sensor_name]
-    else:
-        model = FILE_MODEL_MAP[sensor_name]
-
-    # Store data in the model
-    # list_of_objects = model().save_data(dev_id, df_csv)
-    # model.objects.bulk_create(list_of_objects)
-
-    print "Inserting records..."
-    for idx in df_csv.index:
-        record = list(df_csv.ix[idx])
-        model().save_data(dev_id, record)
-        # if sensor_name in ['audio']:
-        #     print "\nRecord", record
-    now_time = "[" + time.ctime(time.time()) + "]"
-    print now_time, "Successful Upload for", sensor_name, filename + "!!\n"
-
-
 def import_from_file(filename, csvfile):
     """
     Imports the CSV file into appropriate db model
     """
-    training_status = False
+    print "File size:", csvfile.size
+    # print "File content:", csvfile.read()
 
-    print "<function called>"
+    # Save file in a temporary location
+    # path = default_storage.save(filename, ContentFile(csvfile.read()))
+    # print "Path before deletion", path, type(path)
+    # tmp_file = os.path.join(settings.MEDIA_ROOT, path)
+    # print "Temp location", tmp_file, type(tmp_file)
+
+    training_status = False
 
     # Find the sensor from the filename and choose appropriate table
     filename_l = filename.split('_')
@@ -146,21 +95,22 @@ def import_from_file(filename, csvfile):
     try:
         df_csv = pd.read_csv(csvfile)
         print "No of records::", len(df_csv)
+        # Delete file
+        # path = default_storage.delete(filename)
     except Exception, e:
-        if e == "Passed header=0 but only 0 lines in file":
-            print "[Exception] No lines found in the file!"
+        if str(e) == "Passed header=0 but only 0 lines in file":
+            print "[Exception]:: Creation of dataframe failed! No lines found in the file!"
             return True
-    # print "Head\n", df_csv.head()
+        else:
+            print "[Exception]::", e
+            return False
 
-    """
-    TODO: Find a better way than threading
-    Try bulk_create
-    """
+    # Call new celery task for importing records
+    phoneDataHandler.delay(filename, sensor_name, df_csv, training_status, dev_id)
 
-    # Create and start new thread for inserting records
-    insertThread = threading.Thread(target=insert_records, args=(
-        filename, sensor_name, df_csv, training_status, dev_id))
-    insertThread.start()
+    # insertThread = threading.Thread(target=insert_records, args=(
+    #     filename, sensor_name, df_csv, training_status, dev_id))
+    # insertThread.start()
 
     return True
 

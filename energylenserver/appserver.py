@@ -13,20 +13,15 @@ Usage: start the XMPP client on a different terminal along with
 Django server running simultaneously
 
 """
-import sys
+
+
+from setup_django_envt import *
+
 import ast
 import time
 import json
 import xmpp
 
-sys.path.insert(1, '/home/manaswi/EnergyLensPlusCode/energylensplus')
-# print "SYSPATH", sys.path
-
-import os
-os.environ['DJANGO_SETTINGS_MODULE'] = "energylensplus.settings"
-
-# import django
-# django.setup()
 
 from api.reporting import *
 from api.reassign import *
@@ -57,6 +52,7 @@ PASSWORD = GCM_APIKEY
 """
 GCM Cloud Connection Server (XMPP)
 """
+ccs_client = ''
 unacked_messages_quota = 100
 unacked_messages_counter = 0
 
@@ -76,6 +72,7 @@ pong = 0
 class MessageClient:
 
     def __init__(self):
+        global ccs_client
         self.client = ccs_client
 
     def register_handlers(self):
@@ -351,6 +348,7 @@ def connect_to_gcm_server():
     """
     Create a persistent XMPP connection to Google CCS Server
     """
+    global ccs_client
     ccs_client.connect(server=(SERVER, PORT), secure=1, use_srv=False)
     auth = ccs_client.auth(USERNAME, PASSWORD)
     # Authentication failed!
@@ -369,9 +367,17 @@ if __name__ == '__main__':
     msg_client.register_handlers()
     sent = False
 
-    while True:
-        ccs_client.Process(1)
-        # if not sent:
-        #     msg_client.send_message(create_message(reg_id, {'test': 'msg2'}))
-        # Increase the counter for unacked messages
-        #     sent = True
+    try:
+        while True:
+            ccs_client.Process(1)
+            if not ccs_client.isConnected():
+                if not connect_to_gcm_server():
+                    print "Authentication failed! Try again!"
+                    sys.exit(1)
+            # if not sent:
+            #     msg_client.send_message(create_message(reg_id, {'test': 'msg2'}))
+            # Increase the counter for unacked messages
+            #     sent = True
+    except KeyboardInterrupt:
+        print "\n\nInterrupted by user, shutting down.."
+        sys.exit(0)

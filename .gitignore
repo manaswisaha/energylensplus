@@ -57,3 +57,8 @@ energylenserver/gcm_requirements.txt
 
 energylenserver/scripts/
 energylenserver/testdata/
+appserver.py
+energylenserver/data/
+energylenserver/backupcode/
+energylenserver/meter/old_code.py
+log.csv

@@ -66,6 +66,17 @@ DATABASES = {
     }
 }
 
+# For File Handling
+MEDIA_ROOT = os.path.join(BASE_DIR, 'energylenserver/tmp/')
+# FILE_UPLOAD_HANDLERS = ("django.core.files.uploadhandler.TemporaryFileUploadHandler",)
+
+
+# Celery Settings
+# CELERY_RESULT_BACKEND = 'amqp'
+CELERY_ACCEPT_CONTENT = ['pickle', 'json']
+
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/
 

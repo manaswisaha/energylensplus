@@ -3,3 +3,6 @@ requests
 pandas
 numpy
 xmpppy
+Celery
+rabbitmq-server
+flower

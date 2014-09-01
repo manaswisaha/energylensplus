@@ -13,7 +13,7 @@ import pandas as pd
 
 def format_data(ip_df):
 
-    print "Number of records before preprocessing:", len(ip_df)
+    print "Number of records before preprocessing:" + str(len(ip_df))
 
     # Convert timestamps from millisec to seconds
     ip_df[ip_df.columns[0]] = (ip_df[ip_df.columns[0]] / 1000).astype('int')
@@ -53,7 +53,7 @@ def format_data(ip_df):
 
     op_df.sort(['time'], inplace=True)
 
-    print "Number of records after preprocessing:", len(op_df)
+    print "Number of records after preprocessing:" + str(len(op_df))
 
     return op_df
 

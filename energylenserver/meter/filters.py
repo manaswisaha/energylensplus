@@ -79,14 +79,14 @@ def filter_select_maxtime_edge(df):
         else:
             if idx not in idx_list:
                 idx_list.append(idx)
-    print "Edge idx_list", idx_list
+    # print "Edge idx_list", idx_list
     tmp_df = tmp_df.ix[idx_list].sort(['time'])
     df = tmp_df.ix[:, :-1]
 
     return df
 
 
-def filter_edges(rise_df, fall_df, winmin, thres):
+def filter_edges(rise_df, fall_df, winmin):
 
     # Removing duplicate indexes
     rise_df["index"] = rise_df.index
@@ -149,137 +149,15 @@ def filter_edges(rise_df, fall_df, winmin, thres):
                     rise_df = rise_df.drop(ix_i)
                 fall_df = fall_df.drop(ix_j)
 
-    # FILTER 3:
-    # Select the edge amongst a group of edges within a small time frame (a minute)
-    # and which are close to each other in terms of magnitude
-    # with maximum timestamp
-
-    # Rising Edges
-    tmp_df = rise_df.copy()
-    # tmp_df['ts'] = (rise_df.time / 100).astype('int')
-    tmp_df['tmin'] = [str(dt.datetime.fromtimestamp(i).hour) + '-' +
-                      str(dt.datetime.fromtimestamp(i).minute) for i in tmp_df.time]
-
-    # Select the edge with the maximum timestamp lying within a minute
-    idx_list = []
-    for i, idx in enumerate(tmp_df.index):
-
-        if idx == tmp_df.index[-1]:
-            if idx not in idx_list:
-                idx_list.append(idx)
-            break
-        t = tmp_df.ix[idx]['time']
-        t_next = tmp_df.ix[tmp_df.index[i + 1]]['time']
-        diff = t_next - t
-        if diff <= 60:
-            t_mag = tmp_df.ix[idx]['magnitude']
-            t_next_mag = tmp_df.ix[tmp_df.index[i + 1]]['magnitude']
-            t_curr_power = math.fabs(tmp_df.ix[idx]['curr_power'])
-            t_next_curr_power = math.fabs(tmp_df.ix[tmp_df.index[i + 1]]['curr_power'])
-
-            curr_diff = math.fabs(t_next_curr_power - t_curr_power)
-
-            if curr_diff == 0:
-                idx_list.append(tmp_df.index[i + 1])
-                if idx in idx_list:
-                    idx_list.remove(idx)
-            elif curr_diff < 0.5 * thres:
-                if t_mag <= 60:
-                    threshold = 0.2
-                elif t_mag >= 1000:
-                    print "in"
-                    threshold = 0.25
-                else:
-                    threshold = 0.1
-                if math.fabs(t_mag - t_next_mag) <= threshold * t_mag:
-                    idx_list.append(tmp_df.index[i + 1])
-                    if idx in idx_list:
-                        idx_list.remove(idx)
-                else:
-                    if idx not in idx_list:
-                        idx_list.append(idx)
-            else:
-                if idx not in idx_list:
-                    idx_list.append(idx)
-        else:
-            if idx not in idx_list:
-                idx_list.append(idx)
-    print "Rise idx_list", idx_list
-    tmp_df = tmp_df.ix[idx_list].sort(['time'])
-    rise_df = tmp_df.ix[:, :-1]
-
-    # Falling Edges
-    tmp_df = fall_df.copy()
-    # tmp_df['ts'] = (fall_df.time / 100).astype('int')
-    tmp_df['tmin'] = [str(dt.datetime.fromtimestamp(i).hour) + '-' +
-                      str(dt.datetime.fromtimestamp(i).minute) for i in tmp_df.time]
-
-    # Select the edge with the maximum timestamp lying within a minute
-    idx_list = []
-    for i, idx in enumerate(tmp_df.index):
-        # if idx in idx_list:
-        #     continue
-        if idx == tmp_df.index[-1]:
-            if idx not in idx_list:
-                idx_list.append(idx)
-            break
-        t = tmp_df.ix[idx]['time']
-        t_next = tmp_df.ix[tmp_df.index[i + 1]]['time']
-        diff = t_next - t
-        if diff <= 60:
-            t_mag = math.fabs(tmp_df.ix[idx]['magnitude'])
-            t_next_mag = math.fabs(tmp_df.ix[tmp_df.index[i + 1]]['magnitude'])
-            t_curr_power = math.fabs(tmp_df.ix[idx]['curr_power'])
-            t_next_curr_power = math.fabs(tmp_df.ix[tmp_df.index[i + 1]]['curr_power'])
-
-            curr_diff = math.fabs(t_next_curr_power - t_curr_power)
-
-            # print "\n idx ", idx, "now time", dt.datetime.fromtimestamp(t),
-            # print "next time", dt.datetime.fromtimestamp(t_next)
-            # print "t_mag", t_mag, "t_next_mag", t_next_mag
-            # print "t_curr_power", t_curr_power, "t_next_curr_power", t_next_curr_power
-            # print "curr_diff", curr_diff
-            if curr_diff == 0:
-                idx_list.append(tmp_df.index[i + 1])
-                if idx in idx_list:
-                    idx_list.remove(idx)
-                # print "idx in", idx, "next idx", tmp_df.index[i + 1], idx_list
-            elif curr_diff < 0.5 * thres:
-                if t_mag <= 60:
-                    threshold = 0.2
-                elif t_mag >= 1000:
-                    print "in"
-                    threshold = 0.25
-                else:
-                    threshold = 0.1
-                if math.fabs(t_mag - t_next_mag) <= threshold * t_mag:
-                    idx_list.append(tmp_df.index[i + 1])
-                    if idx in idx_list:
-                        idx_list.remove(idx)
-                    # print "idx in", idx, "next idx", tmp_df.index[i + 1], idx_list
-                else:
-                    # print "idx out", idx
-                    if idx not in idx_list:
-                        idx_list.append(idx)
-            else:
-                if idx not in idx_list:
-                    idx_list.append(idx)
-
-        else:
-            if idx not in idx_list:
-                idx_list.append(idx)
-    print "\nFall idx_list", idx_list
-    tmp_df = tmp_df.ix[idx_list].sort(['time'])
-
-    # tmp_df = pd.concat([tmp_df[(tmp_df.tmin == i) &
-    #                   (tmp_df.magnitude == ts_grouped.ix[i]['magnitude'])]
-    #     for i in ts_grouped.index])
-    # ts_grouped = tmp_df.groupby('tmin')['time'].max()
-    # tmp_df = tmp_df[tmp_df.time.isin(ts_grouped)].sort(['time'])
-    fall_df = tmp_df.ix[:, :-1]
-
     return rise_df, fall_df
 
+def filter_unmon_appl_edges(df):
+    """
+    Filters out appliances that are not of interest
+    e.g. washing machine, fridge and geyser
+    """
+    # --Filter out fridge--
+    #
 
 def filter_apt_edges(rise_df, fall_df, apt_no, etype, df_p):
 

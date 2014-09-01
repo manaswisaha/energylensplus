@@ -1,17 +1,11 @@
-from django.db import models
-from models import RegisteredUsers
-
 import datetime as dt
 from decimal import getcontext
 getcontext().prec = 14
 
-"""
-Helper functions
-"""
+from django.db import models
 
-
-def modify_time(time):
-    return dt.datetime.fromtimestamp(time)
+from models import RegisteredUsers
+from functions import modify_time
 
 """
 Models for storing phone sensor data

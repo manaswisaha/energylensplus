@@ -1,3 +1,5 @@
+import sys
+print sys.path
 from models.functions import *
 
 

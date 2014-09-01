@@ -1,6 +1,17 @@
 """
 Functions that interacts with sMAP server
 and retrieves meter data
+
+sMAP Details:
+Time range syntax: %m/%d/%Y, %m/%d/%Y %H:%M, or %Y-%m-%dT%H:%M:%S.
+For instance 10/16/1985 and 2/29/2012 20:00 are valid
+
+Example query:
+payload="select data in (now -5minutes, now) where
+Metadata/Extra/FlatNumber ='103' and Metadata/Extra/PhysicalParameter='PowerPhase1'
+and Metadata/Extra/Type='Power'"
+
+Refer: http://www.cs.berkeley.edu/~stevedh/smap2/archiver.html
 """
 
 import time
@@ -132,13 +143,13 @@ def get_meter_info(apt_no):
                "Metadata/Extra/PhysicalParameter='Power'")
 
     r = requests.post(url, data=payload)
-    print r
+    # print r
     payload_body = r.json()
-    print payload_body
+    # print "Payload:\n", payload_body
 
     meters = []
-    for i in range(0, len(payload)):
-        meter = payload_body[0]
+    for i in range(0, len(payload_body)):
+        meter = payload_body[i]
 
         meters.append({'uuid': meter['uuid'], 'type': meter[
                        'Metadata']['Instrument']['SupplyType']})

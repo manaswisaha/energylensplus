@@ -73,9 +73,10 @@ class Edges(models.Model):
     """
     Stores the light and power edges from the smart meter data
     """
-    index = models.IntegerField()
     timestamp = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    time = models.DateTimeField('edge time')
     magnitude = models.FloatField()
+    type = models.CharField(max_length=10)
     curr_power = models.FloatField()
     meter = models.ForeignKey(MeterInfo)
 

@@ -1,8 +1,20 @@
 import json
+import datetime as dt
 
 from models import *
 from energylenserver.constants import DISAGG_ENERGY_API
 
+"""
+Helper functions
+"""
+
+
+def modify_time(time):
+    return dt.datetime.fromtimestamp(time)
+
+"""
+Model methods
+"""
 
 def determine_user(reg_id):
     """

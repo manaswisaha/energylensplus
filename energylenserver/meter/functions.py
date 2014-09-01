@@ -5,6 +5,7 @@ import datetime as dt
 from smap import get_meter_data_for_time_slice
 from edge_detection import *
 from constants import *
+from energylenserver.functions import *
 
 
 # sys.path.insert(1, '/home/manaswi/EnergyLensPlusCode/energylensplus')
@@ -20,11 +21,6 @@ date_format = "%Y-%m-%dT%H:%M:%S"
 TODO:
 1. Measure the difference between the time between phone and meter
 """
-
-
-def str_to_timestamp(time_str):
-    t = dt.datetime.strptime(time_str, date_format)
-    return time.mktime(t.timetuple())
 
 
 def compute_power(start_mag, end_mag):
@@ -53,10 +49,10 @@ def training_compute_power(apt_no, start_time, end_time):
     # window = transition seconds + time_diff (compensate for the time difference between
         # phone and meter)
     s_time = start_time - winmax
-    s_time = dt.datetime.fromtimestamp(s_time).strftime(date_format)
+    s_time = timestamp_to_str(s_time, date_format)
 
     e_time = end_time + winmax
-    e_time = dt.datetime.fromtimestamp(e_time).strftime(date_format)
+    e_time = timestamp_to_str(e_time, date_format)
 
     # ---Temp code----START
     # Test Edge 1- Light
@@ -67,8 +63,8 @@ def training_compute_power(apt_no, start_time, end_time):
     s_time = "2014-08-20T17:43:17"
     e_time = "2014-08-20T17:44:01"
 
-    start_time = str_to_timestamp(s_time)
-    end_time = str_to_timestamp(e_time)
+    start_time = str_to_timestamp(s_time, date_format)
+    end_time = str_to_timestamp(e_time, date_format)
 
     # Test Edge 1- Light
     s_time = "2014-08-20T17:33:54"
@@ -112,7 +108,7 @@ def training_compute_power(apt_no, start_time, end_time):
         # print "NewStreams:\n", streams_df_new
 
         # Detect edges for both meters
-        edge_list.append(detect_edges(streams_df_new))
+        edge_list.append(detect_edges_from_meters(streams_df_new))
     # print "Edges_i:\n", edge_list
 
     # Accumulate start/end edges from each meter
@@ -120,6 +116,7 @@ def training_compute_power(apt_no, start_time, end_time):
     edge_dict = edge_list[0]
     if len(edge_dict.keys()) == 2:
         meter_edges_list.append({})
+
     flag = False  # indicates whether light meter exists
     for i, edge_dict in enumerate(edge_list):
 
