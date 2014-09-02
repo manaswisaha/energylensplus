@@ -18,6 +18,8 @@ import time
 import json
 import xmpp
 
+from energylenserver.setup_django_envt import *
+
 # EnergyLens+ imports
 from energylenserver.api.reporting import *
 from energylenserver.api.reassign import *
@@ -26,7 +28,7 @@ from energylenserver.models.functions import retrieve_metadata
 from gcmxmppclient.messages import create_message, create_control_message
 from gcmxmppclient.settings import *
 
-from constants import *
+from energylenserver.constants import *
 
 """
 Main XMPP Message Client
@@ -34,9 +36,9 @@ Main XMPP Message Client
 
 
 class MessageClient:
+    client = None
 
     def __init__(self):
-        self.client = None
         self.pong = 0
         self.unacked_messages_quota = 100
         self.unacked_messages_counter = 0
@@ -60,11 +62,13 @@ class MessageClient:
         """
         Create a persistent XMPP connection to Google CCS Server
         """
-        self.client = xmpp.Client(SERVER, debug=['socket'])
-        self.client.connect(server=(SERVER, PORT), secure=1, use_srv=False)
-        auth = self.client.auth(USERNAME, PASSWORD)
-        if not auth:
-            return False
+        if self.client is None:
+            print "Not connected"
+            self.client = xmpp.Client(SERVER, debug=['socket'])
+            self.client.connect(server=(SERVER, PORT), secure=1, use_srv=False)
+            auth = self.client.auth(USERNAME, PASSWORD)
+            if not auth:
+                return False
         return True
 
     def get_connection_client(self):
@@ -74,10 +78,10 @@ class MessageClient:
         self.client = client
 
     def register_handlers(self):
-        # Handles messages from CCS/Device
+        """
+        Handles messages from CCS/Device
+        """
         self.client.RegisterHandler('message', self.receive_upstream_message)
-        # TODO: add handler for EnergyLens App Server
-        # self.client.RegisterHandler('message', self.receive_server_message)
 
     def send_message(self, message):
         """
@@ -117,6 +121,38 @@ class MessageClient:
                 pass
         except Exception, e:
             print "[GCMCLIENT EXCEPTION] SendMessage:", e
+
+    def receive_upstream_message(self, session, message):
+        """
+        Handles upstream message from the mobile device or
+        control messages from the CCS
+        """
+
+        try:
+            now_time = "[" + time.ctime(time.time()) + "]"
+            print now_time, "Received Upstream Message"
+            gcm = message.getTags('gcm')
+            if gcm:
+                gcm_json = gcm[0].getData()
+                msg = json.loads(gcm_json)
+
+                # Indicates it is an upstream data message and accept from the EnergyLens app
+                if 'message_type' not in msg and msg['category'] == 'com.example.energylens':
+                    self.handle_message(msg)
+
+                # Indicates it is an ACK message
+                elif msg['message_type'] == 'ack':
+                    self.handle_ack(msg)
+
+                # Indicates it is an NACK message
+                elif msg['message_type'] == 'nack':
+                    self.handle_nack(msg)
+
+                # Indicates it is a control message
+                elif msg['message_type'] == "control":
+                    self.handle_control_message(msg)
+        except Exception, e:
+            print "[GCMCLIENT EXCEPTION]: UpMessageHandler ::", e
 
     # Doesn't make sense -- alter
     def resend_queued_messages(self):
@@ -303,35 +339,3 @@ class MessageClient:
             if not self.connect_to_gcm_server():
                 print "Authentication failed! Try again!"
                 sys.exit(1)
-
-    def receive_upstream_message(self, session, message):
-        """
-        Handles upstream message from the mobile device or
-        control messages from the CCS
-        """
-
-        try:
-            now_time = "[" + time.ctime(time.time()) + "]"
-            print now_time, "Received Upstream Message"
-            gcm = message.getTags('gcm')
-            if gcm:
-                gcm_json = gcm[0].getData()
-                msg = json.loads(gcm_json)
-
-                # Indicates it is an upstream data message and accept from the EnergyLens app
-                if 'message_type' not in msg and msg['category'] == 'com.example.energylens':
-                    self.handle_message(msg)
-
-                # Indicates it is an ACK message
-                elif msg['message_type'] == 'ack':
-                    self.handle_ack(msg)
-
-                # Indicates it is an NACK message
-                elif msg['message_type'] == 'nack':
-                    self.handle_nack(msg)
-
-                # Indicates it is a control message
-                elif msg['message_type'] == "control":
-                    self.handle_control_message(msg)
-        except Exception, e:
-            print "[GCMCLIENT EXCEPTION]: UpMessageHandler ::", e

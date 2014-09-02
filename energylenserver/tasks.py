@@ -5,25 +5,6 @@
 2. Initiates the classification pipeline
 3. Detects wastage/usage
 4. Sends real-time feedback to user
-
-Tasks are used for embodies the events i.e. Tasks === Events.
-They are:
-1. DataReceived
-2. EdgeDetected
-3. OFFDetected
-4. WastageDetected
-
-TODO:
-Event System in EnergyLens+:
-1. Create listeners/watchers/observers/workers for each uuid
-2. For every DataReceived event, detect edges
-3. For every EdgeDetected event, run the classification pipeline
-    (create an event for the next module/component i.e. Classification Pipeline)
-4. In the classification Pipeline, for every OFFDetected event, run activity duration
-    component
-5. For every WastageDetected event, send message to the real-time feedback
-    component
-
 """
 
 from __future__ import absolute_import
@@ -36,7 +17,7 @@ import datetime as dt
 from celery import shared_task
 
 # Imports from EnergyLens+
-import energylenserver.appserver as gcm
+import energylenserver.gcmxmppclient.msgclient as gcm
 from energylenserver.preprocessing import wifi
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
@@ -181,6 +162,7 @@ def classifyEdgeHandler(edge):
     where = ''
     print("Classify edge of type: " + edge.type +
           ": [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude))
+    # TODO TODAY!!
     who = 'Manaswi'
     where = 'Bedroom'
     what = 'Laptop'
