@@ -3,7 +3,7 @@ Module for the energy reporting APIs
 """
 import random as rnd
 from numpy import random
-from constants import PERSONAL_ENERGY_API, ENERGY_WASTAGE_API
+from constants import PERSONAL_ENERGY_API, ENERGY_WASTAGE_REPORT_API
 # , ENERGY_REPORT_API
 
 """
@@ -64,7 +64,7 @@ def get_energy_report(reg_id, api, start_time, end_time):
         options['activities'].append(
             {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
 
-    elif api == ENERGY_WASTAGE_API:
+    elif api == ENERGY_WASTAGE_REPORT_API:
         # Call API
         options['total_wastage'] = total_usage
         options['hourly_wastage'] = usage_list.tolist()

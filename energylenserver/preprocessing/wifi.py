@@ -15,11 +15,15 @@ def format_data(ip_df):
 
     print "Number of records before preprocessing:" + str(len(ip_df))
 
-    # Convert timestamps from millisec to seconds
-    ip_df[ip_df.columns[0]] = (ip_df[ip_df.columns[0]] / 1000).astype('int')
+    try:
+        # Convert timestamps from millisec to seconds
+        ip_df[ip_df.columns[0]] = (ip_df[ip_df.columns[0]] / 1000).astype('int')
 
-    # Take the mean of the rssi values based on mac and time
-    mean_rssi = ip_df.groupby(['label', 'mac', 'time'])['rssi'].mean()
+        # Take the mean of the rssi values based on mac and time
+        mean_rssi = ip_df.groupby(['label', 'mac', 'time'])['rssi'].mean()
+    except Exception, e:
+        print "[WifiFormatException]::" + str(e)
+        print "WifiDF::", str(ip_df.head())
 
     # Make map of mac to ssid
     mac_list = ip_df.mac.unique()

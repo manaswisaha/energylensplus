@@ -45,9 +45,7 @@ def training_compute_power(apt_no, start_time, end_time):
     start_time = int(start_time) / 1000 + time_diff
     end_time = int(end_time) / 1000 + time_diff
 
-    # Add a window to the given event time
-    # window = transition seconds + time_diff (compensate for the time difference between
-        # phone and meter)
+    # Add a window to the given event time duration
     s_time = start_time - winmax
     s_time = timestamp_to_str(s_time, date_format)
 
@@ -76,30 +74,32 @@ def training_compute_power(apt_no, start_time, end_time):
     # ---Temp code----END
 
     # Retrieve power data from smap server for both meters
-    # at <start_time> and <end_time>
+    # between <start_time> and <end_time>
     streams_df = get_meter_data_for_time_slice(apt_no, s_time, e_time)
 
     # print "Streams:", streams_df
 
     # Contains start and end edges list from both meters
     edge_list = []
-    # Detect start/end edges for both meters
-    for i, edge_time in enumerate([start_time, end_time]):
-        # Temp code - to remove later
-        # Adding window: winmax = 8 seconds
-        # Add a window around the event edges
-        s_time = edge_time - winmax
-        e_time = edge_time + winmax
 
+    # ---Detect start/end edges for both meters---
+    for i, edge_time in enumerate([start_time, end_time]):
+
+        # Temp code -- START
         if i == 0:
             print "\n[For rising edge (ON)]"
         else:
             print "\n[For falling edge (OFF)]"
+        # Temp code -- END
+
+        # Add a window around the event edges
+        # Adding 5 to fetch extra to account for missing values
+        s_time = edge_time - winmax - 5
+        e_time = edge_time + winmax + 5
 
         # print "Start time:", s_time
         # print "End time:", e_time
 
-        # print df
         # For checking the edge, filter df to include data only in the window of <winmax> seconds
         # around the event time
         streams_df_new = [df[(df.time >= s_time) &
@@ -111,7 +111,7 @@ def training_compute_power(apt_no, start_time, end_time):
         edge_list.append(detect_edges_from_meters(streams_df_new))
     # print "Edges_i:\n", edge_list
 
-    # Accumulate start/end edges from each meter
+    # ---Accumulate start/end edges from each meter---
     meter_edges_list = [{}]
     edge_dict = edge_list[0]
     if len(edge_dict.keys()) == 2:
@@ -152,7 +152,7 @@ def training_compute_power(apt_no, start_time, end_time):
 
     # print "\nEdges:\n", meter_edges_list
 
-    # Determine in which meter, edge was detected"
+    # ---Determine in which meter, edge was detected and computer power---
     for meter_edges in meter_edges_list:
         start_df = meter_edges["start"]
         end_df = meter_edges["end"]

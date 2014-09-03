@@ -13,16 +13,17 @@ import os
 import time
 import pandas as pd
 import datetime as dt
+from multiprocessing.managers import BaseManager
 
 from celery import shared_task
 
 # Imports from EnergyLens+
-import energylenserver.gcmxmppclient.msgclient as gcm
 from energylenserver.preprocessing import wifi
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
 from energylenserver.meter.edge_detection import detect_edges
 from energylenserver.gcmxmppclient.messages import create_message
+from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API
 
 
 # Global variables
@@ -42,6 +43,16 @@ FILE_MODEL_MAP = {
     'Traininglight': LightTrainData,
     'Trainingmag': MagTrainData
 }
+
+
+class ClientManager(BaseManager):
+    pass
+
+# Establishing connection with the running gcmserver
+ClientManager.register('get_client')
+manager = ClientManager(address=('localhost', 50000), authkey='abracadabra')
+manager.connect()
+client = manager.get_client()
 
 
 @shared_task
@@ -68,6 +79,9 @@ def phoneDataHandler(filename, sensor_name, df_csv, training_status, dev_id):
     # --Preprocess records before storing--
     if sensor_name == 'wifi':
         df_csv = wifi.format_data(df_csv)
+        if df_csv is False:
+            print "Incorrect file sent. Upload not successful!"
+            return False
 
     # Remove NAN timestamps
     df_csv.dropna(subset=[0], inplace=True)
@@ -213,8 +227,12 @@ def determineWastageHandler(result_label, edge):
 
     if energy_wasted:
         # Call real-time feedback component to send a message to the user
-        message = "Light in Bedroom left on."
-        inform_user.delay(edge, reg_id, message)
+        message_to_send = {}
+        message_to_send['msg_type'] = 'response'
+        message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
+        message_to_send['options'] = {}
+        message_to_send['options']['message'] = 'Please turn off the Light in the Bedroom'
+        inform_user.delay(edge, reg_id, message_to_send)
         pass
 
     print "Wastage Determined: " + str(energy_wasted)
@@ -230,9 +248,8 @@ def inform_user(edge, reg_id, message_to_send):
     """
     print "Sending message:: [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
     # Call module that sends message
-    message = create_message(reg_id, {'msg': message_to_send})
-    gcm.send_message(message)
-    time.sleep(1)
+    message = create_message(reg_id, message_to_send)
+    client.send_message(message)
     print "Message Sent [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
 
 

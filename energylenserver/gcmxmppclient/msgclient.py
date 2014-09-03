@@ -89,7 +89,6 @@ class MessageClient:
         It maintains a queue of the sent messages and removes them
         when it receives ACK message from the server
         """
-
         try:
             # Send only if unACKed messages are less than the quota
             if self.unacked_messages_counter < self.unacked_messages_quota:
@@ -109,6 +108,7 @@ class MessageClient:
                     self.sent_queue[msg_id]["message"] = message
                     len_queue = len(self.sent_queue)
                     self.unacked_messages_counter = len_queue
+                    print "Sending Message to...", reg_id
             else:
                 '''
                 TODO:
@@ -186,7 +186,7 @@ class MessageClient:
             return False
         apt_no = user.apt_no
 
-        if api == PERSONAL_ENERGY_API or api == ENERGY_WASTAGE_API:
+        if api == PERSONAL_ENERGY_API or api == ENERGY_WASTAGE_REPORT_API:
             # API: personal_energy
             start_time = options['start_time']
             end_time = options['end_time']
@@ -225,7 +225,7 @@ class MessageClient:
         elif api == ENERGY_COMPARISON_API:
             print "\nSending comparison energy data.."
 
-        elif api == ENERGY_WASTAGE_API:
+        elif api == ENERGY_WASTAGE_REPORT_API:
             print "\nSending energy wastage data.."
 
         elif api == ENERGY_REPORT_API:

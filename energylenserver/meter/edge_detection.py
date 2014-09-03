@@ -49,7 +49,7 @@ def detect_edges(df):
             rise_edges.append(edge)
         elif edge_type == "falling":
             fall_edges.append(edge)
-        # print "Edge: " + edge
+        # print "Edge: " + str(edge)
 
     # --Storing edges in a df--
     rise_df = pd.DataFrame(columns=['index', 'time',
@@ -81,6 +81,7 @@ def detect_edges(df):
         edges_df = edges_df.set_index('index', drop=True)
 
     return edges_df
+
 
 def detect_and_filter_edges(df):
     """
@@ -132,19 +133,16 @@ def check_if_edge(df, index, power_stream):
     curr_prevwin_diff = int(prevwin - curr)
     curr_nextnext_diff = int(currnextnext - curr)
 
-    # if (prev_curr_diff < thresmin and curr_nextwin_diff >= thresmin and
-    #         curr_next_diff > prev_curr_diff and curr_next_diff > 0):
-
     # if curr_nextwin_diff > 0:
     #     print("RISETEST::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
     #     print("prev={0} curr={1} next={2}".format(prev, curr, next))
     #     print("curr_next_diff::{0}  prev_curr_diff::{1}".format(curr_next_diff, prev_curr_diff))
 
-    print "[" + t.ctime(time) + "] currnextnextDIFF:" + str(math.fabs(curr_nextnext_diff))
+    # print "[" + t.ctime(time) + "] currnextnextDIFF:" + str(math.fabs(curr_nextnext_diff))
     # Removes spikes
     if math.fabs(curr_nextnext_diff) < thresmin:
-        print("[{0} currnextnext:{1} curr_nextnext_diff:{2}".format(
-            t.ctime(time), currnextnext, curr_nextnext_diff))
+        # print("[{0} currnextnext:{1} curr_nextnext_diff:{2}".format(
+        #     t.ctime(time), currnextnext, math.fabs(curr_nextnext_diff)))
         return "Not an edge", {}
 
     # Rising Edge
@@ -153,7 +151,7 @@ def check_if_edge(df, index, power_stream):
         print("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
         print("prev={0} curr={1} next={2}".format(prev, curr, next))
         print("curr_next_diff::{0}  prev_curr_diff::{1} curr_nextnext_diff::{2}".
-              format(curr_next_diff, prev_curr_diff, curr_nextnext_diff))
+              format(curr_next_diff, prev_curr_diff, math.fabs(curr_nextnext_diff)))
 
         edge_type = "rising"
 
@@ -172,11 +170,11 @@ def check_if_edge(df, index, power_stream):
           and ((curr_next_diff != 0 and prev_curr_diff != 0) or (curr_next_diff > prev_curr_diff))
           and math.fabs(curr_prevwin_diff) < thresmin and curr_next_diff > thresmin):
 
-        # print("Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
-        # print("prev={0} curr={1} next={2}".format(prev, curr, next))
-        # print("curr_next_diff::{0} prev_curr_diff::{1} curr_prevwin_diff::{2}".
-        #       format(curr_next_diff, prev_curr_diff,
-        #              curr_prevwin_diff))
+        print("Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
+        print("prev={0} curr={1} next={2}".format(prev, curr, next))
+        print("curr_next_diff::{0} prev_curr_diff::{1} curr_prevwin_diff::{2}".
+              format(curr_next_diff, prev_curr_diff,
+                     curr_prevwin_diff))
 
         edge_type = "falling"
         if curr_next_diff < thresmin or curr_next_diff > thresmin:
