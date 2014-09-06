@@ -19,9 +19,11 @@ from celery import shared_task
 
 # Imports from EnergyLens+
 from energylenserver.preprocessing import wifi
+from energylenserver.preprocessing import functions as pre_f
+from energylenserver.wifi import functions as wifi_f
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
-from energylenserver.meter.edge_detection import detect_edges
+from energylenserver.meter.edge_detection import detect_and_filter_edges
 from energylenserver.gcmxmppclient.messages import create_message
 from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API
 
@@ -49,10 +51,17 @@ class ClientManager(BaseManager):
     pass
 
 # Establishing connection with the running gcmserver
-ClientManager.register('get_client')
-manager = ClientManager(address=('localhost', 50000), authkey='abracadabra')
-manager.connect()
-client = manager.get_client()
+try:
+    ClientManager.register('get_client')
+    manager = ClientManager(address=('localhost', 50000), authkey='abracadabra')
+    manager.connect()
+    client = manager.get_client()
+except Exception, e:
+    pass
+
+"""
+Data Handlers
+"""
 
 
 @shared_task
@@ -120,7 +129,7 @@ def meterDataHandler(df, file_path):
     print "Detecting Edges for UUID:: " + uuid
 
     # -- Detect Edge --
-    edges_df = detect_edges(df)
+    edges_df = detect_and_filter_edges(df)
     # Store edges into db
 
     # For the detected edge, store edge and call classification pipeline task
@@ -163,20 +172,29 @@ def edgeHandler(edge):
     chain()
     print "Classification Pipeline ended!"
 
+"""
+Invokes the EnergyLens+ core algorithm
+"""
+
 
 @shared_task
 def classifyEdgeHandler(edge):
     """
-    Consumes edges and gives out
+    Consumes smart meter edges and phone data to give out 'who', 'what', 'where' and 'when''
     :param edge:
     :return "where", what" and "who" labels:
     """
-    who = ''
-    what = ''
-    where = ''
     print("Classify edge of type: " + edge.type +
           ": [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude))
     # TODO TODAY!!
+    # Preprocessing Step 2: Determine user at home
+    at_home, user_list = wifi_f.determine_user_home_status(edge.timestamp)
+    if not at_home:
+        return '', '', ''
+    # Preprocessing Step 3: Determine phone is with user
+    phone_with_user = pre_f.determine_phone_with_user(edge.timestamp)
+    if not phone_with_user:
+        return '', '', ''
     who = 'Manaswi'
     where = 'Bedroom'
     what = 'Laptop'
@@ -207,6 +225,12 @@ def findTimeSliceHandler(result_labels, edge):
           + who + " uses " + what + " in " + where + " during " + start_time + " and " + end_time)
 
     return start_time, end_time
+
+"""
+Invokes the components that use EnergyLens+ outputs - who, what, where and when:
+1. Wastage Detection
+2. Energy Apportionment
+"""
 
 
 @shared_task
@@ -241,6 +265,22 @@ def determineWastageHandler(result_label, edge):
 
 
 @shared_task
+def apportion_energy():
+    """
+    Determines the energy usage of an individual based on activity parameters
+    and length of stay for each activity
+
+    :return: energy usage
+    """
+    print "Apportioning energy.."
+
+
+"""
+Invokes the real-time feedback component
+"""
+
+
+@shared_task
 def inform_user(edge, reg_id, message_to_send):
     """
     Informs the user by sending a notification to the phone
@@ -252,16 +292,22 @@ def inform_user(edge, reg_id, message_to_send):
     client.send_message(message)
     print "Message Sent [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
 
+"""
+Test Task
+"""
+
 
 @shared_task
-def apportion_energy():
-    """
-    Determines the energy usage of an individual based on activity parameters
-    and length of stay for each activity
-
-    :return: energy usage
-    """
-    print "Apportioning energy.."
+def send_msg(reg_id):
+    print "Sending Message [" + time.ctime(time.time()) + "]"
+    message_to_send = {}
+    message_to_send['msg_type'] = 'response'
+    message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
+    message_to_send['options'] = {}
+    message_to_send['options']['message'] = 'Please turn off the Light in the Bedroom'
+    message = create_message(reg_id, message_to_send)
+    client.send_message(message)
+    print "Message Sent [" + time.ctime(time.time()) + "]"
 
 
 '''
