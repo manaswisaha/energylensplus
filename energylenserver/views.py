@@ -283,6 +283,8 @@ def register_device(request):
             email_id = payload['email_id']
             dev_id = payload['dev_id']
             apt_no = payload['apt_no']
+            home_ap = payload['home_ap']
+            other_ap = payload['other_ap']
 
             print "\n--User Registration Details--"
             print "RegID:", reg_id
@@ -290,6 +292,8 @@ def register_device(request):
             print "Email ID:", email_id
             print "Device ID:", dev_id
             print "Apartment Number:", apt_no
+            print "Home AP:", home_ap
+            print "Other APs:", other_ap
 
             if apt_no.isdigit():
 

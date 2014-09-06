@@ -61,6 +61,13 @@ def format_data(ip_df):
 
     return op_df
 
+def determine_user_home_status(event_time):
+    """
+    Determines if user is at home
+    :param event_time:
+    :return at home status and list of users at homehome:
+    """
+
 if __name__ == '__main__':
     csvfile = 'testdata/354994050433123_upload_wifi_log_07-08-2014_12-19-38.csv'
     ip_df = pd.read_csv(csvfile)

@@ -17,6 +17,17 @@ from energylenserver.common_imports import *
 # Global variables
 stars = 30
 
+def detect_and_filter_edges(df):
+    """
+    1. Detect edges
+    2. Perform Preprocessing Step 1a: Filter appliances that are not of interest
+    e.g. washing machine, fridge and geyser
+
+    :param df:
+    :return edges:
+    """
+    edges_df = detect_edges(df)
+    filter_unmon_appl_edges(edges_df)
 
 def detect_edges_from_meters(streams_df):
     """
@@ -31,7 +42,6 @@ def detect_edges_from_meters(streams_df):
         stream_edges[stream_type] = detect_edges(df_i)
         # print "Stream edges:\n", stream_edges
     return stream_edges
-
 
 def detect_edges(df):
     """
@@ -83,17 +93,6 @@ def detect_edges(df):
     return edges_df
 
 
-def detect_and_filter_edges(df):
-    """
-    1. Detect edges
-    2. Perform Preprocessing Step 1a: Filter appliances that are not of interest
-    e.g. washing machine, fridge and geyser
-
-    :param df:
-    :return edges:
-    """
-    edges_df = detect_edges(df)
-    filter_unmon_appl_edges(edges_df)
 
 
 def check_if_edge(df, index, power_stream):

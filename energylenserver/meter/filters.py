@@ -85,79 +85,15 @@ def filter_select_maxtime_edge(df):
 
     return df
 
-
-def filter_edges(rise_df, fall_df, winmin):
-
-    # Removing duplicate indexes
-    rise_df["index"] = rise_df.index
-    rise_df.drop_duplicates(cols='index', take_last=True, inplace=True)
-    del rise_df["index"]
-
-    fall_df["index"] = fall_df.index
-    fall_df.drop_duplicates(cols='index', take_last=True, inplace=True)
-    del fall_df["index"]
-
-    # FILTER 1:
-    # Handle cases where 2 rising edges corresponding to a single
-    # falling edge - combining them to one edge
-
-    for ix_i in rise_df.index:
-        sim_edge_set = []
-        for ix_j in rise_df.index:
-            curr_prev_diff = math.fabs(rise_df.ix[ix_j]['time'] -
-                                       rise_df.ix[ix_i]['time'])
-            if ix_i == ix_j or ix_i > ix_j:
-                continue
-            elif curr_prev_diff in range(winmin, winmin + 2 + 1):
-                logger.debug("Index i: %d", ix_i)
-                logger.debug("Index j: %d", ix_j)
-                sim_edge_set.append(ix_j)
-        # Add the magnitude of the two edges and convert into a single
-        # edge
-        if len(sim_edge_set) > 0:
-            tmp = rise_df.ix[sim_edge_set]
-            sel_idx = tmp[tmp.magnitude == tmp.magnitude.max()].index[0]
-            new_mag = (rise_df.ix[ix_i]['magnitude'] +
-                       rise_df.ix[sel_idx]['magnitude'])
-            rise_df.ix[ix_i]['magnitude'] = new_mag
-            logger.debug("Inside Index j: %s New Mag: %s ", sel_idx, new_mag)
-            logger.debug("Rise time:: %s Rise Time (2): %s",
-                         dt.datetime.fromtimestamp(rise_df.ix[ix_i]['time']),
-                         dt.datetime.fromtimestamp(rise_df.ix[sel_idx]['time']))
-            # Remove the second edge
-            rise_df.drop(sel_idx)
-
-    # FILTER 2:
-    # Filter out spike edges where rising and falling edges
-    # are within a small time frame (lwinmin)
-    # This is to remove quick successive turn ON and OFFs
-
-    tmp = pd.concat([rise_df, fall_df])
-    tmp = tmp.sort('time')
-    tmp['ts'] = (tmp.time / 100).astype('int')
-    # logger.debug("\nConcatenated TMPDF::\n %s", tmp)
-    for i, ix_i in enumerate(tmp.index):
-        for j, ix_j in enumerate(tmp.index):
-            if(ix_i == ix_j) or ix_i > ix_j:
-                continue
-            elif (tmp.ix[ix_i]['ts'] == tmp.ix[ix_j]['ts'] and
-                  tmp.ix[ix_i]['magnitude'] > tmp.ix[ix_j]['magnitude'] and
-                  tmp.ix[ix_j]['magnitude'] == -tmp.ix[ix_i]['magnitude']):
-                logger.debug("Index i:: %s", ix_i)
-                logger.debug("Removing %s %s", ix_i, ix_j)
-                if ix_i in rise_df.index:
-                    rise_df = rise_df.drop(ix_i)
-                fall_df = fall_df.drop(ix_j)
-
-    return rise_df, fall_df
-
 def filter_unmon_appl_edges(df):
     """
     Filters out appliances that are not of interest
     e.g. washing machine, fridge and geyser
     """
     # --Filter out fridge--
-    #
+
+    # --Filter out washing machine
+    pass
 
 def filter_apt_edges(rise_df, fall_df, apt_no, etype, df_p):
 
@@ -291,6 +227,72 @@ def filter_apt_edges(rise_df, fall_df, apt_no, etype, df_p):
         # Removing selected edges
         rise_df = rise_df.ix[rise_df.index - rise_idx_list]
         fall_df = fall_df.ix[fall_df.index - fall_idx_list]
+
+    return rise_df, fall_df
+
+
+def filter_edges(rise_df, fall_df, winmin):
+
+    # Removing duplicate indexes
+    rise_df["index"] = rise_df.index
+    rise_df.drop_duplicates(cols='index', take_last=True, inplace=True)
+    del rise_df["index"]
+
+    fall_df["index"] = fall_df.index
+    fall_df.drop_duplicates(cols='index', take_last=True, inplace=True)
+    del fall_df["index"]
+
+    # FILTER 1:
+    # Handle cases where 2 rising edges corresponding to a single
+    # falling edge - combining them to one edge
+
+    for ix_i in rise_df.index:
+        sim_edge_set = []
+        for ix_j in rise_df.index:
+            curr_prev_diff = math.fabs(rise_df.ix[ix_j]['time'] -
+                                       rise_df.ix[ix_i]['time'])
+            if ix_i == ix_j or ix_i > ix_j:
+                continue
+            elif curr_prev_diff in range(winmin, winmin + 2 + 1):
+                logger.debug("Index i: %d", ix_i)
+                logger.debug("Index j: %d", ix_j)
+                sim_edge_set.append(ix_j)
+        # Add the magnitude of the two edges and convert into a single
+        # edge
+        if len(sim_edge_set) > 0:
+            tmp = rise_df.ix[sim_edge_set]
+            sel_idx = tmp[tmp.magnitude == tmp.magnitude.max()].index[0]
+            new_mag = (rise_df.ix[ix_i]['magnitude'] +
+                       rise_df.ix[sel_idx]['magnitude'])
+            rise_df.ix[ix_i]['magnitude'] = new_mag
+            logger.debug("Inside Index j: %s New Mag: %s ", sel_idx, new_mag)
+            logger.debug("Rise time:: %s Rise Time (2): %s",
+                         dt.datetime.fromtimestamp(rise_df.ix[ix_i]['time']),
+                         dt.datetime.fromtimestamp(rise_df.ix[sel_idx]['time']))
+            # Remove the second edge
+            rise_df.drop(sel_idx)
+
+    # FILTER 2:
+    # Filter out spike edges where rising and falling edges
+    # are within a small time frame (lwinmin)
+    # This is to remove quick successive turn ON and OFFs
+
+    tmp = pd.concat([rise_df, fall_df])
+    tmp = tmp.sort('time')
+    tmp['ts'] = (tmp.time / 100).astype('int')
+    # logger.debug("\nConcatenated TMPDF::\n %s", tmp)
+    for i, ix_i in enumerate(tmp.index):
+        for j, ix_j in enumerate(tmp.index):
+            if(ix_i == ix_j) or ix_i > ix_j:
+                continue
+            elif (tmp.ix[ix_i]['ts'] == tmp.ix[ix_j]['ts'] and
+                  tmp.ix[ix_i]['magnitude'] > tmp.ix[ix_j]['magnitude'] and
+                  tmp.ix[ix_j]['magnitude'] == -tmp.ix[ix_i]['magnitude']):
+                logger.debug("Index i:: %s", ix_i)
+                logger.debug("Removing %s %s", ix_i, ix_j)
+                if ix_i in rise_df.index:
+                    rise_df = rise_df.drop(ix_i)
+                fall_df = fall_df.drop(ix_j)
 
     return rise_df, fall_df
 
