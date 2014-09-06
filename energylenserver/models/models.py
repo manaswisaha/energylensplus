@@ -111,8 +111,11 @@ class ActivityLog(models.Model):
     """
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
-    appliance = models.CharField(max_length=50, verbose_name=("Appliance"), null=False)
-    location = models.CharField(max_length=50, verbose_name=("Location"), null=False)
+    appliance = models.CharField(max_length=50, verbose_name=("Predicted Appliance"))
+    location = models.CharField(max_length=50, verbose_name=("Predicted Location"))
+    true_appliance = models.CharField(
+        max_length=50, verbose_name=("Predicted Appliance"), null=True)
+    true_location = models.CharField(max_length=50, verbose_name=("Predicted Location"), null=True)
     power = models.FloatField()  # Average of magnitude of the matched edges
     meter = models.ForeignKey(MeterInfo)
     start_event = models.ForeignKey(EventLog)
@@ -158,9 +161,9 @@ class EnergyWastageNotif(models.Model):
     """
     dev_id = models.ForeignKey(RegisteredUsers)
     time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
-    appliance = models.CharField(max_length=50, verbose_name=("Appliance"), null=False)
-    location = models.CharField(max_length=50, verbose_name=("Location"), null=False)
-    message = models.CharField(max_length=255, verbose_name=("Message"), null=False)
+    appliance = models.CharField(max_length=50, verbose_name=("Appliance"))
+    location = models.CharField(max_length=50, verbose_name=("Location"))
+    message = models.CharField(max_length=255, verbose_name=("Message"))
 
     class Meta:
         db_table = 'EnergyWastageNotif'
