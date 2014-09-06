@@ -108,7 +108,6 @@ class MessageClient:
                     self.sent_queue[msg_id]["message"] = message
                     len_queue = len(self.sent_queue)
                     self.unacked_messages_counter = len_queue
-                    print "Sending Message to...", reg_id
             else:
                 '''
                 TODO:
@@ -210,6 +209,17 @@ class MessageClient:
             data_to_send['options']['appliances'] = appliances
 
             print "\nSending diaggregated energy data.."
+
+        # To be used only for testing purposes
+        elif api == GROUND_TRUTH_NOTIF_API:
+            # API: ground_truth api
+            activities = get_inferred_activities(reg_id)
+            appliances = retrieve_metadata(apt_no)
+
+            data_to_send['options']['activities'] = activities
+            data_to_send['options']['appliances'] = appliances
+
+            print "\nSending ground truth report.."
 
         elif api == REASSIGN_INFERENCE_API:
             print "\nCorrecting inferences.."
