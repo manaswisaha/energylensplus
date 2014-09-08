@@ -62,9 +62,13 @@ DATABASES = {
         'NAME': 'energylensplus',
         'USER': 'root',
         'PASSWORD': 'research',
-        'HOST': '127.0.0.1'
+        'HOST': '127.0.0.1',
+        'OPTIONS': {
+            'local_infile': 1,
+        }
     }
 }
+
 
 # For File Handling
 MEDIA_ROOT = os.path.join(BASE_DIR, 'energylenserver/tmp/')
@@ -75,6 +79,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'energylenserver/tmp/')
 # CELERY_RESULT_BACKEND = 'amqp'
 CELERY_ACCEPT_CONTENT = ['pickle', 'json']
 
+from datetime import timedelta
+CELERYBEAT_SCHEDULE = {
+    'send-report-every-hour': {
+        'task': 'tasks.send_validation_report',
+        'schedule': timedelta(seconds=60 * 10),
+    },
+}
 
 
 # Internationalization

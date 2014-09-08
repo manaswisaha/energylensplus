@@ -9,6 +9,8 @@
 
 from __future__ import absolute_import
 
+from energylenserver.setup_django_envt import *
+
 import os
 import time
 import pandas as pd
@@ -16,6 +18,7 @@ import datetime as dt
 from multiprocessing.managers import BaseManager
 
 from celery import shared_task
+from django.db import connection
 
 # Imports from EnergyLens+
 from energylenserver.preprocessing import wifi
@@ -23,27 +26,29 @@ from energylenserver.preprocessing import functions as pre_f
 from energylenserver.wifi import functions as wifi_f
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
+from energylenserver.models.functions import retrieve_metadata
 from energylenserver.meter.edge_detection import detect_and_filter_edges
 from energylenserver.gcmxmppclient.messages import create_message
-from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API
+from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API, GROUND_TRUTH_NOTIF_API
+from energylenserver.api.reporting import get_inferred_activities, get_all_users
 
 
 # Global variables
 # Model mapping with filenames
 
 FILE_MODEL_MAP = {
-    'wifi': WiFiTestData,
-    'rawaudio': RawAudioTestData,
-    'audio': MFCCFeatureTestSet,
-    'accelerometer': AcclTestData,
-    'light': LightTestData,
-    'mag': MagTestData,
-    'Trainingwifi': WiFiTrainData,
-    'Trainingrawaudio': RawAudioTrainData,
-    'Trainingaudio': MFCCFeatureTrainSet,
-    'Trainingaccelerometer': AcclTrainData,
-    'Traininglight': LightTrainData,
-    'Trainingmag': MagTrainData
+    'wifi': (WiFiTestData, "WiFiTestData"),
+    'rawaudio': (RawAudioTestData, "RawAudioTestData"),
+    'audio': (MFCCFeatureTestSet, "MFCCFeatureTestSet"),
+    'accelerometer': (AcclTestData, "AcclTestData"),
+    'light': (LightTestData, "LightTestData"),
+    'mag': (MagTestData, "MagTestData"),
+    'Trainingwifi': (WiFiTrainData, "WiFiTrainData"),
+    'Trainingrawaudio': (RawAudioTrainData, "RawAudioTrainData"),
+    'Trainingaudio': (MFCCFeatureTrainSet, "MFCCFeatureTrainSet"),
+    'Trainingaccelerometer': (AcclTrainData, "AcclTrainData"),
+    'Traininglight': (LightTrainData, "LightTrainData"),
+    'Trainingmag': (MagTrainData, "MagTrainData")
 }
 
 
@@ -52,10 +57,10 @@ class ClientManager(BaseManager):
 
 # Establishing connection with the running gcmserver
 try:
-    ClientManager.register('get_client')
+    ClientManager.register('get_msg_client')
     manager = ClientManager(address=('localhost', 50000), authkey='abracadabra')
     manager.connect()
-    client = manager.get_client()
+    client = manager.get_msg_client()
 except Exception, e:
     pass
 
@@ -83,7 +88,8 @@ def phoneDataHandler(filename, sensor_name, df_csv, training_status, dev_id):
     :return upload status:
     """
 
-    print "\n---Starting Insertion of Records for " + filename + " ---"
+    now_time = "[" + time.ctime(time.time()) + "]"
+    print now_time + " FILE:: " + filename
 
     # --Preprocess records before storing--
     if sensor_name == 'wifi':
@@ -100,6 +106,10 @@ def phoneDataHandler(filename, sensor_name, df_csv, training_status, dev_id):
             df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
 
     print "Total number of records to insert: " + str(len(df_csv))
+    # Create temp csv file
+    tmp_file = energylenserver_path + 'tmp/data_file_' + \
+        sensor_name + '_' + str(dev_id.dev_id) + '.csv'
+    df_csv.to_csv(tmp_file, index=False)
 
     # --Initialize Model--
     if training_status is True:
@@ -108,10 +118,12 @@ def phoneDataHandler(filename, sensor_name, df_csv, training_status, dev_id):
         model = FILE_MODEL_MAP[sensor_name]
 
     # --Store data in the model--
-    print "Inserting records..."
-    for idx in df_csv.index:
-        record = list(df_csv.ix[idx])
-        model().save_data(dev_id, record)
+    model[0]().insert_records(dev_id, tmp_file, model[1])
+    # print "Inserting records..."
+    # for idx in df_csv.index:
+    #     record = list(df_csv.ix[idx])
+    #     model().save_data(dev_id, record)
+
     now_time = "[" + time.ctime(time.time()) + "]"
     print now_time + " Successful Upload for " + sensor_name + " " + filename + "!!\n"
 
@@ -195,6 +207,7 @@ def classifyEdgeHandler(edge):
     phone_with_user = pre_f.determine_phone_with_user(edge.timestamp)
     if not phone_with_user:
         return '', '', ''
+
     who = 'Manaswi'
     where = 'Bedroom'
     what = 'Laptop'
@@ -278,6 +291,38 @@ def apportion_energy():
 """
 Invokes the real-time feedback component
 """
+
+
+@shared_task(name='tasks.send_validation_report')
+def send_validation_report():
+    """
+    Sends a ground truth validation report to all the users
+    """
+    print "Sending periodic validation report.."
+    # Get all the users
+    users = get_all_users()
+    for user in users:
+        reg_id = user.reg_id
+        apt_no = user.apt_no
+        dev_id = user.dev_id
+
+        # Construct the message
+        data_to_send = {}
+        data_to_send['msg_type'] = "response"
+        data_to_send['api'] = GROUND_TRUTH_NOTIF_API
+        data_to_send['options'] = {}
+        activities = get_inferred_activities(dev_id)
+        appliances = retrieve_metadata(apt_no)
+
+        data_to_send['options']['activities'] = activities
+        data_to_send['options']['appliances'] = appliances
+
+        message = create_message(reg_id, data_to_send)
+
+        # Send the message to all the users
+        client.send_message(message)
+
+        print "Sending report for:: " + reg_id
 
 
 @shared_task
