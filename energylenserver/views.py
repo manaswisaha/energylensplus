@@ -318,6 +318,16 @@ def register_device(request):
                             meter_uuid=meter_uuid, meter_type=meter_type, apt_no=apt_no)
                         minfo_record.save()
 
+                # Store the access point details
+                ap_record = AccessPoints(
+                    apt_no=apt_no, macid=home_ap['macid'], ssid=home_ap['ssid'], home_ap=True)
+                ap_record.save()
+
+                for ap in other_ap:
+                    ap_record = AccessPoints(
+                        apt_no=apt_no, macid=ap['macid'], ssid=ap['ssid'], home_ap=False)
+                    ap_record.save()
+
             try:
                 r = RegisteredUsers.objects.get(dev_id__exact=dev_id)
                 print "Registration with device ID", r.dev_id, "exists"

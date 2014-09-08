@@ -9,8 +9,7 @@ import sys
 from multiprocessing.managers import BaseManager
 
 # Django imports
-from django.core.management.base import BaseCommand, CommandError
-from energylenserver.gcmxmppclient.msgclient import MessageClient
+from django.core.management.base import BaseCommand
 
 
 class ClientManager(BaseManager):
@@ -18,20 +17,19 @@ class ClientManager(BaseManager):
 
 
 class Command(BaseCommand):
-    help = "Establishes a persistent connection with Google's Server via XMPP"
+    help = "Maintains a persistent connection with Google's Server via XMPP"
 
     def handle(self, *args, **options):
-        # Creates a message client that is connected to the Google server
-        msg_client = MessageClient()
-        msg_client.register_handlers()
-        client = msg_client.get_connection_client()
-
-        ClientManager.register('get_client', callable=lambda: msg_client)
-        manager = ClientManager(address=('', 50000), authkey='abracadabra')
-        server = manager.get_server()
-        server.serve_forever()
-
+        # Establishing connection with the running gcmserver
+        print "Waiting for requests from the Google Server..."
         try:
+            ClientManager.register('get_client')
+            ClientManager.register('get_msg_client')
+            manager = ClientManager(address=('localhost', 50000), authkey='abracadabra')
+            manager.connect()
+            client = manager.get_client()
+            msg_client = manager.get_msg_client()
+
             while True:
                 client.Process(1)
                 # Restore connection if connection broken
@@ -42,3 +40,5 @@ class Command(BaseCommand):
         except KeyboardInterrupt:
             self.stdout.write("\n\nInterrupted by user, shutting down..")
             sys.exit(0)
+        except Exception, e:
+            self.stdout.write("[RunGCMServerException] %s" % str(e))

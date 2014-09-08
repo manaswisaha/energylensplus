@@ -191,7 +191,7 @@ class MessageClient:
             end_time = options['end_time']
 
             # Get energy report
-            options = get_energy_report(reg_id, api, start_time, end_time)
+            options = get_energy_report(user.dev_id, api, start_time, end_time)
             data_to_send['options'] = options
 
             print "\nSending data for", api
@@ -202,7 +202,7 @@ class MessageClient:
             end_time = options['end_time']
             activity_name = options['activity_name']
 
-            activities = disaggregated_energy(reg_id, activity_name, start_time, end_time)
+            activities = disaggregated_energy(user.dev_id, activity_name, start_time, end_time)
             appliances = retrieve_metadata(apt_no)
 
             data_to_send['options']['activities'] = activities
@@ -213,7 +213,7 @@ class MessageClient:
         # To be used only for testing purposes
         elif api == GROUND_TRUTH_NOTIF_API:
             # API: ground_truth api
-            activities = get_inferred_activities(reg_id)
+            activities = get_inferred_activities(user.dev_id)
             appliances = retrieve_metadata(apt_no)
 
             data_to_send['options']['activities'] = activities
@@ -225,7 +225,7 @@ class MessageClient:
             print "\nCorrecting inferences.."
 
             # Reassign the specified activity and update the db
-            status = correct_inference(reg_id, options)
+            status = correct_inference(user.dev_id, options)
             data_to_send['options'] = {'status': status}
 
             # print "Data to send:\n", json.dumps(data_to_send, indent=4)
