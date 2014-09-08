@@ -4,8 +4,8 @@ Setup Django Environment
 import os
 import sys
 
-energyplus_path = '/home/manaswi/EnergyLensPlusCode/energylensplus'
-energylenserver_path = '/home/manaswi/EnergyLensPlusCode/energylensplus/energylenserver'
+energyplus_path = '/home/manaswi/EnergyLensPlusCode/energylensplus/'
+energylenserver_path = '/home/manaswi/EnergyLensPlusCode/energylensplus/energylenserver/'
 
 if energyplus_path not in sys.path:
     sys.path.insert(0, energyplus_path)

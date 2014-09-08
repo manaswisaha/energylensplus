@@ -38,6 +38,24 @@ class RegisteredUsers(Devices):
         app_label = app_label_str
 
 
+class AccessPoints(models.Model):
+
+    """
+    Stores the access points for each apartment
+    """
+    apt_no = models.IntegerField()
+    macid = models.CharField(max_length=200, verbose_name=("MACID"))
+    ssid = models.CharField(max_length=200, verbose_name=("SSID"))
+    home_ap = models.BooleanField()
+
+    def __unicode__(self):
+        return self.ssid + "-" + self.macid
+
+    class Meta:
+        db_table = 'AccessPoints'
+        app_label = app_label_str
+
+
 class Metadata(models.Model):
 
     """
@@ -117,9 +135,10 @@ class ActivityLog(models.Model):
         max_length=50, verbose_name=("Predicted Appliance"), null=True)
     true_location = models.CharField(max_length=50, verbose_name=("Predicted Location"), null=True)
     power = models.FloatField()  # Average of magnitude of the matched edges
+    usage = models.FloatField()  # Power * activity_duration (hours bw start and end time)
     meter = models.ForeignKey(MeterInfo)
-    start_event = models.ForeignKey(EventLog)
-    end_event = models.ForeignKey(EventLog)
+    start_event = models.ForeignKey(EventLog, related_name=("ON event"))
+    end_event = models.ForeignKey(EventLog, related_name=("OFF event"))
 
     class Meta:
         db_table = 'ActivityLog'
