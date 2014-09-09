@@ -10,4 +10,3 @@ REASSIGN_INFERENCE_API = "inference/reassign/"
 
 # Not to be used
 ENERGY_COMPARISON_API = "energy/comparison/"
-ENERGY_REPORT_API = "energy/report/"
