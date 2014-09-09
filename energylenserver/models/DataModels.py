@@ -182,7 +182,7 @@ class WiFiTestData(WiFiData):
 
 
 class RawAudioData(SensorData):
-    values = models.TextField()
+    value = models.TextField()
     label = models.CharField(max_length=200)
     location = models.CharField(max_length=200)
 
@@ -196,7 +196,7 @@ class RawAudioData(SensorData):
             records_inserted = cursor.execute("LOAD DATA LOCAL INFILE %s INTO TABLE " + model +
                                               " FIELDS TERMINATED BY ','"
                                               " OPTIONALLY ENCLOSED BY '`' IGNORE 1 LINES"
-                                              " (@timestamp, values, label, location) "
+                                              " (@timestamp, value, label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               "dev_id_id = " + str(user.dev_id), [filename])
             print "Number of records inserted: " + str(records_inserted)
