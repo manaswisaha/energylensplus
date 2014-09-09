@@ -3,30 +3,28 @@ print sys.path
 from models.functions import *
 
 
-def correct_inference(reg_id, parameters):
+def correct_inference(user, parameters):
     """
     Reassigns an activity with the given parameters
     """
 
-    # Unbundle request
-    act_id = parameters['activity_id']
-    start_time = parameters['start_time']
-    end_time = parameters['end_time']
-    to_appl = parameters['to_appliance']
-    to_loc = parameters['to_location']
-
-    user = determine_user(reg_id)
-    if not user:
-        return False
-
     print "Reassign called for:", user.name
 
-    print "ActivityID:", act_id
-    print "Start Time:", start_time
-    print "End Time", end_time
-    print "To Appliance", to_appl
-    print "To Location", to_loc
+    # Unbundle request
+    activities = parameters['activities']
+    for activity in activities:
+        act_id = activity['activity_id']
+        true_appl = activity['to_appliance']
+        true_loc = activity['to_location']
+        incorrect = activity['incorrect']
 
-    # TODO: Add editing the existing activity with the new details
+        print "\nActivityID:", act_id
+        print "True Appliance", true_appl
+        print "True Location", true_loc
+        print "Accuracy Status:", incorrect
+
+        # Update activity
+        # if incorrect and len(true_appl) > 0 and len(true_loc) > 0:
+        #     update_activities(act_id, true_appl, true_loc)
 
     return True
