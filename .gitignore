@@ -62,3 +62,4 @@ energylenserver/data/
 energylenserver/backupcode/
 energylenserver/meter/old_code.py
 log.csv
+celerybeat-schedule

@@ -138,28 +138,6 @@ class WiFiData(SensorData):
             print "[Exception] WiFiData::save_data",
             print e
 
-    # def save_data(self, dev_id, df_csv):
-
-    #     try:
-    #         list_of_objects = []
-    #         for idx in df_csv.index:
-    #             record = list(df_csv.ix[idx])
-    #             timestamp = record[0]
-    #             time = timestamp / 1000.
-    #             record.insert(1, modify_time(time))
-    #             record.insert(2, dev_id)
-
-    #             r_id = str(timestamp) + '_' + str(dev_id.dev_id)
-    #             obj = self(r_id=r_id, timestamp=timestamp, time=time, x_value=record[3],
-    #                        y_value=record[4], z_value=record[5],
-    #                        label=record[6], location=record[7])
-    #             print "DeviceID:", obj.dev_id
-    #             list_of_objects.append(obj)
-    #         return list_of_objects
-
-    #     except Exception, e:
-    #         print "[Exception]:", e
-
     class Meta(SensorData.Meta):
         abstract = True
         app_label = 'energylenserver'

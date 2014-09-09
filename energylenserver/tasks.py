@@ -70,46 +70,57 @@ Data Handlers
 
 
 @shared_task
-def phoneDataHandler(filename, sensor_name, df_csv, training_status, dev_id):
+def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     """
     Consumes sensor data streams from the phone
     Performs some preprocessing and inserts records
     into the database
 
-    Currently, saves in the database, record by record
-    TODO: Modify to save csv in one operation - using
-    raw sql command
-
     :param filename:
     :param sensor_name:
     :param df_csv:
     :param training_status:
-    :param dev_id:
+    :param user:
     :return upload status:
     """
 
     now_time = "[" + time.ctime(time.time()) + "]"
     print now_time + " FILE:: " + filename
 
+    # Create a dataframe for preprocessing
+    if sensor_name != 'rawaudio':
+        try:
+            df_csv = pd.read_csv(filepath)
+            print "No of records::", len(df_csv)
+        except Exception, e:
+            if str(e) == "Passed header=0 but only 0 lines in file":
+                print "[Exception]:: Creation of dataframe failed! No lines found in the file!"
+                return
+            else:
+                print "[Exception]::", e
+                return
+
     # --Preprocess records before storing--
     if sensor_name == 'wifi':
         df_csv = wifi.format_data(df_csv)
         if df_csv is False:
-            print "Incorrect file sent. Upload not successful!"
-            return False
+            print "[Error] Incorrect file sent. Upload not successful!"
+            return
 
-    # Remove NAN timestamps
-    df_csv.dropna(subset=[0], inplace=True)
     # Remove rows with 'Infinity' in MFCCs created
     if sensor_name == 'audio':
         if str(df_csv.mfcc1.dtype) != 'float64':
             df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
 
-    print "Total number of records to insert: " + str(len(df_csv))
-    # Create temp csv file
-    tmp_file = energylenserver_path + 'tmp/data_file_' + \
-        sensor_name + '_' + str(dev_id.dev_id) + '.csv'
-    df_csv.to_csv(tmp_file, index=False)
+    if sensor_name != 'rawaudio':
+        print "Total number of records to insert: " + str(len(df_csv))
+
+        # Remove NAN timestamps
+        df_csv.dropna(subset=[0], inplace=True)
+
+        # Create temp csv file
+        os.remove(filepath)
+        df_csv.to_csv(filepath, index=False)
 
     # --Initialize Model--
     if training_status is True:
@@ -118,16 +129,10 @@ def phoneDataHandler(filename, sensor_name, df_csv, training_status, dev_id):
         model = FILE_MODEL_MAP[sensor_name]
 
     # --Store data in the model--
-    model[0]().insert_records(dev_id, tmp_file, model[1])
-    # print "Inserting records..."
-    # for idx in df_csv.index:
-    #     record = list(df_csv.ix[idx])
-    #     model().save_data(dev_id, record)
+    model[0]().insert_records(user, filepath, model[1])
 
     now_time = "[" + time.ctime(time.time()) + "]"
     print now_time + " Successful Upload for " + sensor_name + " " + filename + "!!\n"
-
-    return True
 
 
 @shared_task

@@ -57,15 +57,6 @@ def import_from_file(filename, csvfile):
     Imports the CSV file into appropriate db model
     """
     print "File size:", csvfile.size
-    # print "File content:", csvfile.read()
-
-    # Save file in a temporary location
-    # path = default_storage.save(filename, ContentFile(csvfile.read()))
-    # print "Path before deletion", path, type(path)
-    # tmp_file = os.path.join(settings.MEDIA_ROOT, path)
-    # print "Temp location", tmp_file, type(tmp_file)
-
-    training_status = False
 
     # Find the sensor from the filename and choose appropriate table
     filename_l = filename.split('_')
@@ -76,7 +67,9 @@ def import_from_file(filename, csvfile):
     if not is_user:
         return False
     else:
-        dev_id = is_user
+        user = is_user
+
+    training_status = False
 
     sensor_name = filename_l[2]
     if sensor_name == "Training":
@@ -84,33 +77,13 @@ def import_from_file(filename, csvfile):
         training_status = True
     print "Sensor:", sensor_name
 
-    # if sensor_name != 'accelerometer':
-    #     return True
-
-    # if sensor_name is 'audio':
-    # Store csv file
-    #     filename = 'tmp/audio_log_' + dt.datetime.fromtimestamp(time.time()) + '.csv'
-
-    # Get CSV data
-    try:
-        df_csv = pd.read_csv(csvfile)
-        print "No of records::", len(df_csv)
-        # Delete file
-        # path = default_storage.delete(filename)
-    except Exception, e:
-        if str(e) == "Passed header=0 but only 0 lines in file":
-            print "[Exception]:: Creation of dataframe failed! No lines found in the file!"
-            return True
-        else:
-            print "[Exception]::", e
-            return False
+    # Save file in a temporary location
+    new_filename = 'data_file_' + sensor_name + '_' + str(user.dev_id) + '.csv'
+    path = default_storage.save(new_filename, ContentFile(csvfile.read()))
+    filepath = os.path.join(settings.MEDIA_ROOT, path)
 
     # Call new celery task for importing records
-    phoneDataHandler.delay(filename, sensor_name, df_csv, training_status, dev_id)
-
-    # insertThread = threading.Thread(target=insert_records, args=(
-    #     filename, sensor_name, df_csv, training_status, dev_id))
-    # insertThread.start()
+    phoneDataHandler.delay(filename, sensor_name, filepath, training_status, user)
 
     return True
 

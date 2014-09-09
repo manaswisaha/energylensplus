@@ -23,7 +23,8 @@ def format_data(ip_df):
         mean_rssi = ip_df.groupby(['label', 'mac', 'time'])['rssi'].mean()
     except Exception, e:
         print "[WifiFormatException]::" + str(e)
-        print "WifiDF::", str(ip_df.head())
+        print "WifiDF::\n" + str(ip_df.head())
+        return False
 
     # Make map of mac to ssid
     mac_list = ip_df.mac.unique()
@@ -60,6 +61,7 @@ def format_data(ip_df):
     print "Number of records after preprocessing:" + str(len(op_df))
 
     return op_df
+
 
 def determine_user_home_status(event_time):
     """
