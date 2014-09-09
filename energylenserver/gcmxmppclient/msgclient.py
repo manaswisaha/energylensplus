@@ -140,11 +140,11 @@ class MessageClient:
                     self.handle_message(msg)
 
                 # Indicates it is an ACK message
-                elif msg['message_type'] == 'ack':
+                elif msg['message_type'] == "ack":
                     self.handle_ack(msg)
 
                 # Indicates it is an NACK message
-                elif msg['message_type'] == 'nack':
+                elif msg['message_type'] == "nack":
                     self.handle_nack(msg)
 
                 # Indicates it is a control message
@@ -225,21 +225,15 @@ class MessageClient:
             print "\nCorrecting inferences.."
 
             # Reassign the specified activity and update the db
-            status = correct_inference(user.dev_id, options)
+            status = correct_inference(user, options)
             data_to_send['options'] = {'status': status}
 
             # print "Data to send:\n", json.dumps(data_to_send, indent=4)
-            print "\nSending disaggregated energy data.."
+            print "\nSending status for correction of inferences.."
 
         # May not use the following APIs
         elif api == ENERGY_COMPARISON_API:
             print "\nSending comparison energy data.."
-
-        elif api == ENERGY_WASTAGE_REPORT_API:
-            print "\nSending energy wastage data.."
-
-        elif api == ENERGY_REPORT_API:
-            print "\nSending energy report.."
 
         # Send a response back based on the api request
         if 'from' in message:
@@ -317,30 +311,30 @@ class MessageClient:
         error = message['error']
 
         # Handle different error codes
-        if error is 'BAD_ACK':
-            print 'BAD_ACK'
+        if error == "BAD_ACK":
+            print "BAD_ACK"
 
-        elif error is 'BAD_REGISTRATION':
-            print 'BAD_REGISTRATION'
+        elif error == "BAD_REGISTRATION":
+            print "BAD_REGISTRATION request received"
 
-        elif error is 'CONNECTION_DRAINING':
-            print 'CONNECTION_DRAINING'
+        elif error == "CONNECTION_DRAINING":
+            print "CONNECTION_DRAINING"
 
-        elif error is 'DEVICE_UNREGISTERED':
-            print 'DEVICE_UNREGISTERED'
+        elif error == "DEVICE_UNREGISTERED":
+            print "DEVICE_UNREGISTERED"
 
-        elif error is 'INTERNAL_SERVER_ERROR':
-            print 'INTERNAL_SERVER_ERROR'
+        elif error == "INTERNAL_SERVER_ERROR":
+            print "INTERNAL_SERVER_ERROR"
 
-        elif error is 'INVALID_JSON':
-            print 'INVALID_JSON'
+        elif error == "INVALID_JSON":
+            print "INVALID_JSON"
 
-        elif error is 'QUOTA_EXCEEDED':
-            print 'QUOTA_EXCEEDED'
+        elif error == "QUOTA_EXCEEDED":
+            print "QUOTA_EXCEEDED"
 
-        elif error is 'SERVICE_UNAVAILABLE':
+        elif error == "SERVICE_UNAVAILABLE":
             # Start exponential backoff with an intial delay of 1 second
-            print 'SERVICE_UNAVAILABLE'
+            print "SERVICE_UNAVAILABLE"
 
     def handle_control_message(self, message):
         # Connection about to close from the CCS

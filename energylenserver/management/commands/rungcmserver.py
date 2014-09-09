@@ -42,3 +42,4 @@ class Command(BaseCommand):
             sys.exit(0)
         except Exception, e:
             self.stdout.write("[RunGCMServerException] %s" % str(e))
+            sys.exit(1)
