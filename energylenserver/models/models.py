@@ -9,19 +9,18 @@ app_label_str = 'energylenserver'
 
 class Devices(models.Model):
 
-    dev_id = models.BigIntegerField(max_length=15, verbose_name=("Device ID"), primary_key=True)
-    reg_id = models.CharField(max_length=255, verbose_name=("Registration ID"), unique=True)
-    name = models.CharField(max_length=50, verbose_name=("Name"), blank=True, null=True)
-    is_active = models.BooleanField(verbose_name=("Is active?"), default=True)
-    creation_date = models.DateTimeField(verbose_name=("Creation date"), auto_now_add=True)
-    modified_date = models.DateTimeField(verbose_name=("Modified date"), auto_now=True)
+    dev_id = models.BigIntegerField(max_length=15,  primary_key=True)
+    reg_id = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=50, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    creation_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
 
     def __unicode__(self):
         return self.name
 
     class Meta:
         abstract = True
-        verbose_name_plural = ("Devices")
         ordering = ['-modified_date']
 
 
@@ -31,7 +30,7 @@ class RegisteredUsers(Devices):
     Keeps track of all the registered users
     """
     apt_no = models.IntegerField()
-    email_id = models.CharField(max_length=100, verbose_name=("Email ID"), null=True)
+    email_id = models.CharField(max_length=100, null=True)
 
     class Meta(Devices.Meta):
         db_table = 'RegisteredUsers'
@@ -44,8 +43,8 @@ class AccessPoints(models.Model):
     Stores the access points for each apartment
     """
     apt_no = models.IntegerField()
-    macid = models.CharField(max_length=200, verbose_name=("MACID"))
-    ssid = models.CharField(max_length=200, verbose_name=("SSID"))
+    macid = models.CharField(max_length=200, )
+    ssid = models.CharField(max_length=200)
     home_ap = models.BooleanField()
 
     def __unicode__(self):
@@ -62,8 +61,8 @@ class Metadata(models.Model):
     Stores the metadata for each apartment
     """
     apt_no = models.IntegerField()
-    appliance = models.CharField(max_length=50, verbose_name=("Appliance"))
-    location = models.CharField(max_length=50, verbose_name=("Location"))
+    appliance = models.CharField(max_length=50)
+    location = models.CharField(max_length=50)
     power = models.FloatField()
 
     def __unicode__(self):
@@ -79,8 +78,8 @@ class MeterInfo(models.Model):
     """
     Stores the meter details in each apartment
     """
-    meter_uuid = models.CharField(max_length=255, verbose_name=("Meter UUID"), primary_key=True)
-    meter_type = models.CharField(max_length=20, verbose_name=("Meter Type"), null=True)
+    meter_uuid = models.CharField(max_length=255, primary_key=True)
+    meter_type = models.CharField(max_length=20, null=True)
     apt_no = models.IntegerField()
 
     class Meta:
@@ -94,7 +93,7 @@ class Edges(models.Model):
     Stores the light and power edges from the smart meter data
     """
     timestamp = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
-    time = models.DateTimeField('edge time')
+    time = models.DateTimeField()
     magnitude = models.FloatField()
     type = models.CharField(max_length=10)
     curr_power = models.FloatField()
@@ -111,12 +110,11 @@ class EventLog(models.Model):
     Stores all the detected events associated with the inferred "who", "what", "where" and "when"
     """
     edge_id = models.ForeignKey(Edges)
-    event_time = models.DecimalField(unique=False, verbose_name=(
-        "Event Time"), max_digits=14, decimal_places=3)  # when
-    location = models.CharField(max_length=50, verbose_name=("Location"), null=True)  # where
-    appliance = models.CharField(max_length=50, verbose_name=("Appliance"), null=True)  # what
-    dev_id = models.ForeignKey(RegisteredUsers, verbose_name=("User"))  # who
-    event_type = models.CharField(max_length=20, verbose_name=("ON/OFF"), null=True)
+    event_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)  # when
+    location = models.CharField(max_length=50,  null=True)  # where
+    appliance = models.CharField(max_length=50,  null=True)  # what
+    dev_id = models.ForeignKey(RegisteredUsers, )  # who
+    event_type = models.CharField(max_length=20,  null=True)
 
     class Meta:
         db_table = 'EventLog'
@@ -130,11 +128,11 @@ class ActivityLog(models.Model):
     """
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
-    appliance = models.CharField(max_length=50, verbose_name=("Predicted Appliance"))
-    location = models.CharField(max_length=50, verbose_name=("Predicted Location"))
+    appliance = models.CharField(max_length=50)
+    location = models.CharField(max_length=50)
     true_appliance = models.CharField(
-        max_length=50, verbose_name=("Predicted Appliance"), null=True)
-    true_location = models.CharField(max_length=50, verbose_name=("Predicted Location"), null=True)
+        max_length=50, null=True)
+    true_location = models.CharField(max_length=50, null=True)
     power = models.FloatField()  # Average of magnitude of the matched edges
     usage = models.FloatField()  # Power * activity_duration (hours bw start and end time)
     meter = models.ForeignKey(MeterInfo)
@@ -181,9 +179,9 @@ class EnergyWastageNotif(models.Model):
     """
     dev_id = models.ForeignKey(RegisteredUsers)
     time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
-    appliance = models.CharField(max_length=50, verbose_name=("Appliance"))
-    location = models.CharField(max_length=50, verbose_name=("Location"))
-    message = models.CharField(max_length=255, verbose_name=("Message"))
+    appliance = models.CharField(max_length=50)
+    location = models.CharField(max_length=50)
+    message = models.CharField(max_length=255)
 
     class Meta:
         db_table = 'EnergyWastageNotif'
@@ -204,7 +202,7 @@ class UsageLogScreens(models.Model):
     time_of_day = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     tod_time = models.DateTimeField('edge time')
     screen_name = models.CharField(
-        max_length=50, verbose_name=("Screen Name"), blank=True, null=False)
+        max_length=50, blank=True, null=False)
     time_of_stay = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
 
     class Meta:
@@ -220,7 +218,7 @@ class UsageLogNotifs(models.Model):
     dev_id = models.ForeignKey(RegisteredUsers)
     received_at = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     notif_id = models.CharField(
-        max_length=50, verbose_name=("NotificationID"), blank=True, null=False)
+        max_length=50, blank=True, null=False)
     seen_at = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
 
     class Meta:
