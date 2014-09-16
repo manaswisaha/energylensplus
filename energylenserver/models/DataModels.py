@@ -6,7 +6,6 @@ from django.db import models
 from django.db import connection
 
 from models import RegisteredUsers
-from functions import modify_time
 
 """
 Models for storing phone sensor data
@@ -25,7 +24,6 @@ class SensorData(models.Model):
         self.dev_id = dev_id
         self.timestamp = time
         # self.r_id = str(self.timestamp) + '_' + str(self.dev_id.dev_id)
-        self.time = modify_time(time)
 
     class Meta:
         abstract = True
@@ -60,21 +58,6 @@ class AcclData(SensorData):
             os.remove(filename)
         except Exception, e:
             print "[FileSaveException] AcclData::" + str(e)
-
-    def save_data(self, dev_id, data_list):
-        super(AcclData, self).save_data(dev_id, data_list)
-        self.x_value = data_list[1]
-        self.y_value = data_list[2]
-        self.z_value = data_list[3]
-        self.label = data_list[4]
-        self.location = data_list[5]
-
-        try:
-            self.save()
-            return True
-        except Exception, e:
-            print "[Exception] AcclData::save_data",
-            print e
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -119,25 +102,6 @@ class WiFiData(SensorData):
         except Exception, e:
             print "[FileSaveException] WiFiData::" + str(e)
 
-    def save_data(self, dev_id, data_list):
-        super(WiFiData, self).save_data(dev_id, data_list)
-        time = data_list[0]
-        self.dev_id = dev_id
-        self.timestamp = time
-        self.time = modify_time(time)
-        self.macid = data_list[1]
-        self.r_id = self.r_id + '_' + self.macid
-        self.ssid = data_list[2]
-        self.rssi = data_list[3]
-        self.label = data_list[4]
-
-        try:
-            self.save()
-            return True
-        except Exception, e:
-            print "[Exception] WiFiData::save_data",
-            print e
-
     class Meta(SensorData.Meta):
         abstract = True
         app_label = 'energylenserver'
@@ -181,19 +145,6 @@ class RawAudioData(SensorData):
             os.remove(filename)
         except Exception, e:
             print "[FileSaveException] RawAudioData::" + str(e)
-
-    def save_data(self, dev_id, data_list):
-        super(RawAudioData, self).save_data(dev_id, data_list)
-        self.values = data_list[1]
-        self.label = data_list[2]
-        self.location = data_list[3]
-
-        try:
-            self.save()
-            return True
-        except Exception, e:
-            print "[Exception] RawAudioData::save_data",
-            print e
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -250,31 +201,6 @@ class MFCCFeatureSet(SensorData):
         except Exception, e:
             print "[FileSaveException] MFCCFeatureSet::" + str(e)
 
-    def save_data(self, dev_id, data_list):
-        super(MFCCFeatureSet, self).save_data(dev_id, data_list)
-        self.mfcc1 = data_list[1]
-        self.mfcc2 = data_list[2]
-        self.mfcc3 = data_list[3]
-        self.mfcc4 = data_list[4]
-        self.mfcc5 = data_list[5]
-        self.mfcc6 = data_list[6]
-        self.mfcc7 = data_list[7]
-        self.mfcc8 = data_list[8]
-        self.mfcc9 = data_list[9]
-        self.mfcc10 = data_list[10]
-        self.mfcc11 = data_list[11]
-        self.mfcc12 = data_list[12]
-        self.mfcc13 = data_list[13]
-        self.label = data_list[14]
-        self.location = data_list[15]
-
-        try:
-            self.save()
-            return True
-        except Exception, e:
-            print "[Exception] MFCCFeatureSet::save_data",
-            print e
-
     class Meta(SensorData.Meta):
         abstract = True
         app_label = 'energylenserver'
@@ -317,19 +243,6 @@ class LightData(SensorData):
             os.remove(filename)
         except Exception, e:
             print "[FileSaveException] LightData::" + str(e)
-
-    def save_data(self, dev_id, data_list):
-        super(LightData, self).save_data(dev_id, data_list)
-        self.value = data_list[1]
-        self.label = data_list[2]
-        self.location = data_list[3]
-
-        try:
-            self.save()
-            return True
-        except Exception, e:
-            print "[Exception] LightData::save_data",
-            print e
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -376,21 +289,6 @@ class MagData(SensorData):
             os.remove(filename)
         except Exception, e:
             print "[FileSaveException] MagData::" + str(e)
-
-    def save_data(self, dev_id, data_list):
-        super(MagData, self).save_data(dev_id, data_list)
-        self.x_value = data_list[1]
-        self.y_value = data_list[2]
-        self.z_value = data_list[3]
-        self.label = data_list[4]
-        self.location = data_list[5]
-
-        try:
-            self.save()
-            return True
-        except Exception, e:
-            print "[Exception] MagData::save_data",
-            print e
 
     class Meta(SensorData.Meta):
         abstract = True
