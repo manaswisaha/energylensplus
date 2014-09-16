@@ -23,7 +23,7 @@ from energylenserver.setup_django_envt import *
 # EnergyLens+ imports
 from energylenserver.api.reporting import *
 from energylenserver.api.reassign import *
-from energylenserver.models.functions import retrieve_metadata
+from energylenserver.models.functions import retrieve_metadata, mark_not_active
 
 from gcmxmppclient.messages import create_message, create_control_message
 from gcmxmppclient.settings import *
@@ -316,6 +316,11 @@ class MessageClient:
 
         elif error == "BAD_REGISTRATION":
             print "BAD_REGISTRATION request received"
+            # Mark the registration as "not active" in the database
+            if mark_not_active(message["from"]):
+                print "Successfully marked not active"
+            else:
+                print "Successfully marked active"
 
         elif error == "CONNECTION_DRAINING":
             print "CONNECTION_DRAINING"

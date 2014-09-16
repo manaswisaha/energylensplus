@@ -14,6 +14,10 @@ REALTIMEDATA_UNSUCCESSFUL = {
 TRAINING_UNSUCCESSFUL = {
     "type": "ERROR", "code": 6, "message": "Error while retrieving power data"}
 
+REASSIGN_SUCCESS = {"type": "SUCCESS", "code": 7,
+                    "message": "Inferences were sucessfully reassigned"}
+REASSIGN_UNSUCCESSFUL = {"type": "ERROR", "code": 8, "message": "Inferences were not reassigned"}
+
 # API Names
 from api.constants import *
 
