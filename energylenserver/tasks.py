@@ -86,6 +86,15 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     now_time = "[" + time.ctime(time.time()) + "]"
     print now_time + " FILE:: " + filename
 
+    # Create a dataframe for preprocessing
+    if sensor_name != 'rawaudio':
+        try:
+            df_csv = pd.read_csv(filepath)
+        except Exception, e:
+            print "[InsertDataException]!::", str(e)
+            os.remove(filepath)
+            return
+
     # --Preprocess records before storing--
     if sensor_name == 'wifi':
         df_csv = wifi.format_data(df_csv)
@@ -188,29 +197,30 @@ def classifyEdgeHandler(edge):
     :param edge:
     :return "where", what" and "who" labels:
     """
-    print("Classify edge of type: " + edge.type +
-          ": [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude))
+    apt_no = edge.meter.apt_no
+    print("Apt.No.:: %d Classify edge of type: '%s' : [%s] :: %d" % (
+        apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude))
 
     # --- Preprocessing ---
     # Step 2: Determine user at home
-    user_list = wifi_f.determine_user_home_status(edge.timestamp)
+    user_list = wifi_f.determine_user_home_status(edge.timestamp, apt_no)
     if len(user_list) <= 0:
-        return "ignore", "ignore", "ignore"
+        return 'ignore', 'ignore', 'ignore'
 
     # Step 3: Determine phone is with user
     phone_with_user = pre_f.determine_phone_with_user(edge.timestamp, user_list)
     if not phone_with_user:
-        return "ignore", "ignore", "ignore"
+        return 'ignore', 'ignore', 'ignore'
 
     # --- Classification ---
     # Step 1: Determine location for every user
-    location = classify_location(edge.timestamp)
+    location = classify_location(edge.timestamp, user_list)
 
     # Step 2: Determine appliance for every user
-    appliance = clasify_sound(edge.timestamp)
+    appliance = clasify_sound(edge.timestamp, user_list)
 
     # Step 3: Determine user based on location, appliance and metadata
-    user = determine_user(location, appliance)
+    user = determine_user(location, appliance, user_list)
 
     who = user['dev_id']
     where = user['location']
@@ -359,12 +369,11 @@ def send_validation_report():
         print "Sending report for:: " + user.name
 
 
-@shared_task(name='tasks.send_wastage_notification')
+@shared_task
 def send_wastage_notification(apt_no):
     """
     Sends a wastage notification to all the users
     """
-    print "Sending wastage notification.."
     import random
     import string
 
@@ -392,7 +401,7 @@ def send_wastage_notification(apt_no):
         # Send the message to all the users
         client.send_message(message)
 
-        print "Sending notification for:: " + user.name
+        print "Sending wastage notification for:: " + user.name
 
 
 @shared_task
