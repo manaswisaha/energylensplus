@@ -25,11 +25,11 @@ from energylenserver.preprocessing import functions as pre_f
 from energylenserver.wifi import functions as wifi_f
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
-from energylenserver.models.functions import retrieve_metadata, retrieve_users
+from energylenserver.models import functions as mod_func
 from energylenserver.meter.edge_detection import detect_and_filter_edges
 from energylenserver.gcmxmppclient.messages import create_message
 from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API, GROUND_TRUTH_NOTIF_API
-from energylenserver.api.reporting import get_inferred_activities, get_all_users
+from energylenserver.api import reporting as rpt
 
 
 # Global variables
@@ -191,23 +191,25 @@ def classifyEdgeHandler(edge):
     print("Classify edge of type: " + edge.type +
           ": [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude))
 
-    # TODO TODAY!!
-    # Preprocessing Step 2: Determine user at home
-    at_home, user_list = wifi_f.determine_user_home_status(edge.timestamp)
-    if not at_home:
-        return '', '', ''
-    # Preprocessing Step 3: Determine phone is with user
-    phone_with_user = pre_f.determine_phone_with_user(edge.timestamp)
+    # --- Preprocessing ---
+    # Step 2: Determine user at home
+    user_list = wifi_f.determine_user_home_status(edge.timestamp)
+    if len(user_list) <= 0:
+        return "ignore", "ignore", "ignore"
+
+    # Step 3: Determine phone is with user
+    phone_with_user = pre_f.determine_phone_with_user(edge.timestamp, user_list)
     if not phone_with_user:
         return "ignore", "ignore", "ignore"
 
-    # Classification Step 1: Determine location for every user
+    # --- Classification ---
+    # Step 1: Determine location for every user
     location = classify_location(edge.timestamp)
 
-    # Classification Step 2: Determine appliance for every user
+    # Step 2: Determine appliance for every user
     appliance = clasify_sound(edge.timestamp)
 
-    # Classification Step 3: Determine user based on location, appliance and metadata
+    # Step 3: Determine user based on location, appliance and metadata
     user = determine_user(location, appliance)
 
     who = user['dev_id']
@@ -318,7 +320,10 @@ def send_validation_report():
     """
     print "Sending periodic validation report.."
     # Get all the users
-    users = get_all_users()
+    users = mod_func.get_all_users()
+    if users is False:
+        print "No users that are active"
+        return
     for user in users:
         reg_id = user.reg_id
         apt_no = user.apt_no
@@ -329,10 +334,14 @@ def send_validation_report():
         data_to_send['msg_type'] = "response"
         data_to_send['api'] = GROUND_TRUTH_NOTIF_API
         data_to_send['options'] = {}
-        activities = get_inferred_activities(dev_id)
-        appliances = retrieve_metadata(apt_no)
+        activities = rpt.get_inferred_activities(dev_id)
 
-        users = retrieve_users(apt_no)
+        if len(activities) <= 0:
+            return
+
+        appliances = mod_func.retrieve_metadata(apt_no)
+
+        users = mod_func.retrieve_users(apt_no)
 
         occupants = {}
         for user in users:
@@ -351,15 +360,20 @@ def send_validation_report():
 
 
 @shared_task(name='tasks.send_wastage_notification')
-def send_wastage_notification():
+def send_wastage_notification(apt_no):
     """
     Sends a wastage notification to all the users
     """
     print "Sending wastage notification.."
     import random
     import string
-    # Get all the users
-    users = get_all_users()
+
+    # Get all the users in the apt_no where wastage was detected
+    users = mod_func.retrieve_users(apt_no)
+    if users is False:
+        print "No users that are active"
+        return
+    # Create notification for active users
     for user in users:
         reg_id = user.reg_id
         notif_id = random.choice(string.digits)

@@ -126,7 +126,7 @@ Sensor Data Management Model methods
 
 def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list):
     """
-    Retrives the sensor data based on its type and the dataset type
+    Retrieves the sensor data based on its type and the dataset type
     between the specified period
     """
 
@@ -203,15 +203,15 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
     """
     try:
         if activity_name == "all":
-            # Retrieves all appliances
+            # Retrieves all activities - for validation report generation
             records = ActivityLog.objects.filter(dev_id=dev_id,
-                                                 start_time__gte=start_time,
-                                                 end_time__gte=end_time)
+                                                 end_time__gte=start_time,
+                                                 end_time__lte=end_time)
         else:
-            # Retrieves the specified activities
+            # Retrieves the specified activities - for disaggregated activities
             records = ActivityLog.objects.filter(dev_id=dev_id,
                                                  start_time__gte=start_time,
-                                                 end_time__gte=end_time,
+                                                 end_time__lte=end_time,
                                                  appliance=activity_name)
 
     except Exception, e:

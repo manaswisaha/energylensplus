@@ -88,6 +88,7 @@ CELERYBEAT_SCHEDULE = {
     'send-notification-every-hour': {
         'task': 'tasks.send_wastage_notification',
         'schedule': timedelta(seconds=60 * 45),
+        'args': (1102),
     },
 }
 
