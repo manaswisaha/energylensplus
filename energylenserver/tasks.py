@@ -86,20 +86,6 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     now_time = "[" + time.ctime(time.time()) + "]"
     print now_time + " FILE:: " + filename
 
-    # Create a dataframe for preprocessing
-    if sensor_name != 'rawaudio':
-        try:
-            df_csv = pd.read_csv(filepath)
-        except Exception, e:
-            if str(e) == "Passed header=0 but only 0 lines in file":
-                print "[Exception]:: Creation of dataframe failed! No lines found in the file!"
-                os.remove(filepath)
-                return
-            else:
-                print "[Exception]::", e
-                os.remove(filepath)
-                return
-
     # --Preprocess records before storing--
     if sensor_name == 'wifi':
         df_csv = wifi.format_data(df_csv)

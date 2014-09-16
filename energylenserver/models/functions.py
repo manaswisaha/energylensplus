@@ -2,7 +2,28 @@ import json
 import datetime as dt
 
 from models import *
+from DataModels import *
 from energylenserver.constants import DISAGG_ENERGY_API
+
+"""
+Global variables
+"""
+# Model mapping with filenames
+
+MODEL_MAP = {
+    'wifi': WiFiTestData,
+    'rawaudio': RawAudioTestData,
+    'audio': MFCCFeatureTestSet,
+    'accelerometer': AcclTestData,
+    'light': LightTestData,
+    'mag': MagTestData,
+    'Trainingwifi': WiFiTrainData,
+    'Trainingrawaudio': RawAudioTrainData,
+    'Trainingaudio': MFCCFeatureTrainSet,
+    'Trainingaccelerometer': AcclTrainData,
+    'Traininglight': LightTrainData,
+    'Trainingmag': MagTrainData
+}
 
 """
 Helper functions
@@ -101,6 +122,38 @@ def retrieve_meter_info(apt_no):
 """
 Sensor Data Management Model methods
 """
+
+
+def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list):
+    """
+    Retrives the sensor data based on its type and the dataset type
+    between the specified period
+    """
+
+    # Determing sensor data model
+    if dataset_type == "train":
+        model = MODEL_MAP['Training' + sensor_name]
+    else:
+        model = MODEL_MAP[sensor_name]
+
+    # Get data activity_id__in=activity_id_list
+    try:
+        if dev_id_list == "all":
+            data = model.objects.filter(start_time__gte=start_time,
+                                        end_time__gte=end_time)
+        else:
+            data = model.objects.filter(dev_id__in=dev_id_list,
+                                        start_time__gte=start_time,
+                                        end_time__gte=end_time)
+    except model.DoesNotExist:
+        print("[SensorDataDoesNotExistException Occurred] No data found for the given sensor: "
+              + sensor_name)
+        return False
+    except Exception, e:
+        print "[GetSensorDataException Occurred] " + str(e)
+        return False
+
+    return data
 
 
 """
