@@ -17,12 +17,14 @@ def correct_inference(user, parameters):
             true_loc = activity['to_location']
             incorrect = activity['incorrect']
             time_of_stay = activity['time_of_stay']
+            to_occupant_dev_id = activity['to_occupant']
 
             print "\nActivityID:", act_id
             print "True Appliance", true_appl
             print "True Location", true_loc
             print "Accuracy Status:", incorrect
             print "Time of stay:", time_of_stay
+            print "To Occupant:", to_occupant_dev_id
 
             # Update activity
             # if incorrect and len(true_appl) > 0 and len(true_loc) > 0:
