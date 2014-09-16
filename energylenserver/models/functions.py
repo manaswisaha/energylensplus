@@ -130,13 +130,13 @@ def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list
     between the specified period
     """
 
-    # Determing sensor data model
+    # Determine sensor data model
     if dataset_type == "train":
         model = MODEL_MAP['Training' + sensor_name]
     else:
         model = MODEL_MAP[sensor_name]
 
-    # Get data activity_id__in=activity_id_list
+    # Get data
     try:
         if dev_id_list == "all":
             data = model.objects.filter(start_time__gte=start_time,
