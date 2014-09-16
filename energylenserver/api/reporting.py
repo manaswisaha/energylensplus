@@ -166,16 +166,22 @@ def disaggregated_energy(reg_id, activity_name, start_time, end_time):
     activities = []
     # activities = retrieve_activities(reg_id, start_time, end_time, activity_name)
     activities.append(
-        {'id': 1, 'name': activity_name, 'location': 'Dining Room', "usage": 320,
-         "start_time": 1408093265, "end_time": 1408095726})
+        {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
+         "start_time": 1408093265, "end_time": 1408095726,
+         "wastage_times": [{"start_time": 1408093500, "end_time": 1408093800},
+                           {"start_time": 1408094100, "end_time": 1408094400}]})
     activities.append(
-        {'id': 2, 'name': activity_name, 'location': 'Dining Room', "usage": 320,
-         "start_time": 1408096865, "end_time": 1408111265})
+        {'id': 2, 'name': activity_name, 'location': 'Dining Room', "value": 320,
+         "start_time": 1408096865, "end_time": 1408111265,
+         "wastage_times": [{"start_time": 1408097100, "end_time": 1408099500},
+                           {"start_time": 1408100400, "end_time": 1408104000}]})
     activities.append(
-        {'id': 3, 'name': activity_name, 'location': 'Bedroom', "usage": 80,
-         "start_time": 1408165265, "end_time": 1408168865})
+        {'id': 3, 'name': activity_name, 'location': 'Bedroom', "value": 80,
+         "start_time": 1408165265, "end_time": 1408168865,
+         "wastage_times": []})
     activities.append(
-        {'id': 4, 'name': activity_name, 'location': 'Bedroom', "usage": 120,
-         "start_time": 1408179665, "end_time": 1408185065})
+        {'id': 4, 'name': activity_name, 'location': 'Bedroom', "value": 120,
+         "start_time": 1408179665, "end_time": 1408185065,
+         "wastage_times": [{"start_time": 1408183200, "end_time": 1408184100}]})
 
     return activities
