@@ -52,7 +52,7 @@ def get_latest_power_data(apt_no):
                "Metadata/Extra/PhysicalParameter='Power'")
 
     r = requests.post(url, data=payload)
-    print r
+    # print r
     payload_body = r.json()
     print payload_body
 

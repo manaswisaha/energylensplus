@@ -1,4 +1,5 @@
 import time
+import pandas as pd
 import numpy as np
 import datetime as dt
 
@@ -168,3 +169,33 @@ def training_compute_power(apt_no, start_time, end_time):
         elif start_len > 1 and end_len > 1:
             print "CONFUSION!!"
     return power
+
+
+def combine_streams(df):
+    """
+    Receives the light and power streams and combines them into one stream
+    """
+
+    stream1_df = df[0]
+    stream2_df = df[1]
+
+    start_time = min(stream1_df.ix[0]['time'], stream2_df.ix[0]['time'])
+    end_time = min(stream1_df.ix[stream1_df.index[-1]][
+                   'time'], stream2_df.ix[stream2_df.index[-1]]['time'])
+
+    time_values = range(start_time, end_time + 1)
+    n_time_values = len(time_values)
+
+    df_1 = pd.DataFrame({'time': time_values, 'power': [0] * n_time_values})
+    df_2 = pd.DataFrame({'time': time_values, 'power': [0] * n_time_values})
+
+    for df in [stream1_df, stream2_df]:
+        print df
+
+    for df in data_df_list:
+        for idx in df.index:
+            try:
+                val = payload[df.ix[idx]['time']]
+                payload[df.ix[idx]['time']] = val + df.ix[idx]['power']
+            except KeyError:
+                payload[df.ix[idx]['time']] = df.ix[idx]['power']

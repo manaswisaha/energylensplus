@@ -17,6 +17,7 @@ from energylenserver.common_imports import *
 # Global variables
 stars = 30
 
+
 def detect_and_filter_edges(df):
     """
     1. Detect edges
@@ -28,6 +29,7 @@ def detect_and_filter_edges(df):
     """
     edges_df = detect_edges(df)
     filter_unmon_appl_edges(edges_df)
+
 
 def detect_edges_from_meters(streams_df):
     """
@@ -42,6 +44,7 @@ def detect_edges_from_meters(streams_df):
         stream_edges[stream_type] = detect_edges(df_i)
         # print "Stream edges:\n", stream_edges
     return stream_edges
+
 
 def detect_edges(df):
     """
@@ -91,8 +94,6 @@ def detect_edges(df):
         edges_df = edges_df.set_index('index', drop=True)
 
     return edges_df
-
-
 
 
 def check_if_edge(df, index, power_stream):
