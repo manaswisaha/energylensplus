@@ -83,7 +83,11 @@ from datetime import timedelta
 CELERYBEAT_SCHEDULE = {
     'send-report-every-hour': {
         'task': 'tasks.send_validation_report',
-        'schedule': timedelta(seconds=60 * 2),
+        'schedule': timedelta(seconds=60 * 60),
+    },
+    'send-notification-every-hour': {
+        'task': 'tasks.send_wastage_notification',
+        'schedule': timedelta(seconds=60 * 45),
     },
 }
 
