@@ -21,24 +21,6 @@ import time
 import pandas as pd
 import datetime as dt
 
-# Model mapping with filenames
-
-FILE_MODEL_MAP = {
-    'wifi': WiFiTestData,
-    'rawaudio': RawAudioTestData,
-    'audio': MFCCFeatureTestSet,
-    'accelerometer': AcclTestData,
-    'light': LightTestData,
-    'mag': MagTestData,
-    'Trainingwifi': WiFiTrainData,
-    'Trainingrawaudio': RawAudioTrainData,
-    'Trainingaudio': MFCCFeatureTrainSet,
-    'Trainingaccelerometer': AcclTrainData,
-    'Traininglight': LightTrainData,
-    'Trainingmag': MagTrainData
-}
-# """
-
 
 def user_exists(device_id):
     """
@@ -86,13 +68,20 @@ def import_from_file(filename, csvfile):
     path = default_storage.save(new_filename, ContentFile(csvfile.read()))
     filepath = os.path.join(settings.MEDIA_ROOT, path)
 
-    if sensor_name == "wifi":
+    # Create a dataframe for preprocessing
+    if sensor_name != 'rawaudio':
         try:
-            df_wifi = pd.read_csv(filepath)
-            t = df_wifi.time
+            df_csv = pd.read_csv(filepath)
+            t = df_csv.time
         except Exception, e:
-            print "[WiFiFormatIncorrect] WiFi Header missing!::", str(e)
-            return False
+            if str(e) == "Passed header=0 but only 0 lines in file":
+                print "[Exception]:: Creation of dataframe failed! No lines found in the file!"
+                os.remove(filepath)
+                return False
+            else:
+                print "[DataFileFormatIncorrect] Header missing!::", str(e)
+                os.remove(filepath)
+                return False
 
     # Call new celery task for importing records
     phoneDataHandler.delay(filename, sensor_name, filepath, training_status, user)
