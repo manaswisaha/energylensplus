@@ -65,3 +65,4 @@ log.csv
 celerybeat-schedule
 energylenserver/tmp/
 energylenserver/test_code.py
+django_app_output
