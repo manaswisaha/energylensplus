@@ -1,3 +1,4 @@
+import time
 import json
 import datetime as dt
 
@@ -136,15 +137,17 @@ def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list
     else:
         model = MODEL_MAP[sensor_name]
 
+    print("Getting data between %s and %s for dev_id: %s" %
+         (time.ctime(start_time), time.ctime(end_time), dev_id_list))
     # Get data
     try:
         if dev_id_list == "all":
-            data = model.objects.filter(start_time__gte=start_time,
-                                        end_time__gte=end_time)
+            data = model.objects.filter(timestamp__gte=start_time,
+                                        timestamp__lte=end_time)
         else:
             data = model.objects.filter(dev_id__in=dev_id_list,
-                                        start_time__gte=start_time,
-                                        end_time__gte=end_time)
+                                        timestamp__gte=start_time,
+                                        timestamp__lte=end_time)
     except model.DoesNotExist:
         print("[SensorDataDoesNotExistException Occurred] No data found for the given sensor: "
               + sensor_name)
@@ -159,6 +162,31 @@ def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list
 """
 Metadata Management Model methods
 """
+
+
+def get_access_points(apt_no):
+    """
+    Retrieves all the access points that are visible around the apt_no
+    """
+    try:
+        ap = AccessPoints.objects.filter(apt_no=apt_no)
+    except Exception, e:
+        print "[GetAPException Occurred]:: " + str(e)
+        return False
+
+    return ap
+
+
+def get_home_ap(apt_no):
+    """
+    Retrieves the home AP for the specified apartment
+    """
+    try:
+        home_ap = AccessPoints.objects.get(apt_no=apt_no, home_ap=True)
+        return home_ap.macid
+    except Exception, e:
+        print "[GetHomeAPException Occurred]:: " + str(e)
+        return False
 
 
 def retrieve_metadata(apt_no):
