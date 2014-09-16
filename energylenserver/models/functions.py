@@ -13,7 +13,7 @@ def modify_time(time):
     return dt.datetime.fromtimestamp(time)
 
 """
-Model methods
+User Management Model methods
 """
 
 
@@ -36,12 +36,46 @@ def get_all_users():
     Determine all the users
     """
     try:
-        users = RegisteredUsers.objects.all()
+        users = RegisteredUsers.objects.filter(is_active=True)
     except Exception, e:
         print "[GetAllUsersException Occurred]:: " + str(e)
         return False
 
     return users
+
+
+def retrieve_users(apt_no):
+    """
+    Determine all the users
+    """
+    try:
+        users = RegisteredUsers.objects.filter(apt_no=apt_no)
+    except Exception, e:
+        print "[GetAllUsersException Occurred]:: " + str(e)
+        return False
+
+    return users
+
+
+def mark_not_active(reg_id):
+    """
+    Marks the existing registration as not active
+    Reason: Bad Registration
+    """
+    try:
+        user = RegisteredUsers.objects.get(reg_id=reg_id)
+        user.is_active = False
+        user.save()
+    except RegisteredUsers.DoesNotExist, e:
+        print("[UserDoesNotExistException Occurred] No registration found! for %d::%s " %
+             (reg_id, str(e)))
+        return False
+
+    return True
+
+"""
+Meter Data Management Model methods
+"""
 
 
 def retrieve_meter_info(apt_no):
@@ -63,6 +97,15 @@ def retrieve_meter_info(apt_no):
         meters.append(m)
 
     return meters
+
+"""
+Sensor Data Management Model methods
+"""
+
+
+"""
+Metadata Management Model methods
+"""
 
 
 def retrieve_metadata(apt_no):
@@ -94,6 +137,10 @@ def retrieve_metadata(apt_no):
         {'location': 'Bedroom', 'appliance': 'AC'})
 
     return appliances
+
+"""
+Inference Management Model methods
+"""
 
 
 def retrieve_activities(dev_id, start_time, end_time, activity_name):

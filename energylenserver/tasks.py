@@ -18,7 +18,6 @@ import datetime as dt
 from multiprocessing.managers import BaseManager
 
 from celery import shared_task
-from django.db import connection
 
 # Imports from EnergyLens+
 from energylenserver.preprocessing import wifi
@@ -26,7 +25,7 @@ from energylenserver.preprocessing import functions as pre_f
 from energylenserver.wifi import functions as wifi_f
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
-from energylenserver.models.functions import retrieve_metadata
+from energylenserver.models.functions import retrieve_metadata, retrieve_users
 from energylenserver.meter.edge_detection import detect_and_filter_edges
 from energylenserver.gcmxmppclient.messages import create_message
 from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API, GROUND_TRUTH_NOTIF_API
@@ -91,13 +90,14 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     if sensor_name != 'rawaudio':
         try:
             df_csv = pd.read_csv(filepath)
-            print "No of records::", len(df_csv)
         except Exception, e:
             if str(e) == "Passed header=0 but only 0 lines in file":
                 print "[Exception]:: Creation of dataframe failed! No lines found in the file!"
+                os.remove(filepath)
                 return
             else:
                 print "[Exception]::", e
+                os.remove(filepath)
                 return
 
     # --Preprocess records before storing--
@@ -182,10 +182,11 @@ def edgeHandler(edge):
     Starts the classification pipeline and relays edges based on edge type
     """
     print "Starting the Classification pipeline.."
-    if edge.type == 'falling':
-        chain = classifyEdgeHandler.s(edge) | findTimeSliceHandler.s(edge)
+    if edge.type == "falling":
+        chain = classifyEdgeHandler.s(
+            edge) | findTimeSliceHandler.s() | determineWastageHandler.s()
     else:
-        chain = classifyEdgeHandler.s(edge) | determineWastageHandler.s(edge)
+        chain = classifyEdgeHandler.s(edge) | determineWastageHandler.s()
     chain()
     print "Classification Pipeline ended!"
 
@@ -203,6 +204,7 @@ def classifyEdgeHandler(edge):
     """
     print("Classify edge of type: " + edge.type +
           ": [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude))
+
     # TODO TODAY!!
     # Preprocessing Step 2: Determine user at home
     at_home, user_list = wifi_f.determine_user_home_status(edge.timestamp)
@@ -211,22 +213,42 @@ def classifyEdgeHandler(edge):
     # Preprocessing Step 3: Determine phone is with user
     phone_with_user = pre_f.determine_phone_with_user(edge.timestamp)
     if not phone_with_user:
-        return '', '', ''
+        return "ignore", "ignore", "ignore"
 
-    who = 'Manaswi'
-    where = 'Bedroom'
-    what = 'Laptop'
-    time.sleep(2)
-    print "[" + time.ctime(edge.timestamp) + "] :: Determined labels:" + who + " " + where + " " + what
-    # Using id as a reference and store the who what where
+    # Classification Step 1: Determine location for every user
+    location = classify_location(edge.timestamp)
 
-    return who, what, where
+    # Classification Step 2: Determine appliance for every user
+    appliance = clasify_sound(edge.timestamp)
+
+    # Classification Step 3: Determine user based on location, appliance and metadata
+    user = determine_user(location, appliance)
+
+    who = user['dev_id']
+    where = user['location']
+    what = user['appliance']
+
+    if edge.type == "rising":
+        event_type = "ON"
+    else:
+        event_type = "OFF"
+
+    print("[%s] :: Determined labels: %s %s %s" % (time.ctime(edge.timestamp), who, where, what))
+
+    # Create a record in the Event Log with edge id
+    # and store who what where labels
+    event = EventLog(edge_id=edge, event_time=edge.timestamp,
+                     location=where, appliance=what, dev_id=who, event_type=event_type)
+    event.save()
+
+    return who, what, where, event
 
 
 @shared_task
-def findTimeSliceHandler(result_labels, edge):
+def findTimeSliceHandler(result_labels):
     """
     Consumes "where", what" and "who" labels and gives out "when"
+    and stores an "activity"
     Runs when an OFF event is detected
     :param edge:
     :param who:
@@ -234,15 +256,19 @@ def findTimeSliceHandler(result_labels, edge):
     :param where:
     :return when:
     """
-    who, what, where = result_labels
-    print "Determines activity duration: [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
+    who, what, where, event = result_labels
+    print("Determines activity duration: [%s] :: %s" % (
+        time.ctime(edge.timestamp), str(edge.magnitude)))
+
+    if who == 'ignore' and what == 'ignore' and where == 'ignore':
+        return
     time.sleep(2)
     start_time = time.ctime(edge.timestamp - 10)
     end_time = time.ctime(edge.timestamp)
     print("[" + time.ctime(edge.timestamp) + "] :: Time slice for activity: "
           + who + " uses " + what + " in " + where + " during " + start_time + " and " + end_time)
 
-    return start_time, end_time
+    return start_time, end_time, event
 
 """
 Invokes the components that use EnergyLens+ outputs - who, what, where and when:
@@ -252,17 +278,18 @@ Invokes the components that use EnergyLens+ outputs - who, what, where and when:
 
 
 @shared_task
-def determineWastageHandler(result_label, edge):
+def determineWastageHandler(result_labels):
     """
     Consumes edge and determines energy wastage
     :param edge:
     :return determined wastage:
     """
     energy_wasted = True
-    who, what, where = result_label
+    who, what, where, event = result_labels
     reg_id = ''  # Get regid based on the who value
 
-    print "Determines energy wastage:: [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
+    print("Determines energy wastage:: [%s] :: %s" % (
+        time.ctime(edge.timestamp), str(edge.magnitude)))
     print "Activity: " + who + " in " + where + " uses " + what
     # Call module that determines energy wastage
     time.sleep(2)
@@ -273,7 +300,7 @@ def determineWastageHandler(result_label, edge):
         message_to_send['msg_type'] = 'response'
         message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
         message_to_send['options'] = {}
-        message_to_send['options']['message'] = 'Please turn off the Light in the Bedroom'
+        message_to_send['options']['message'] = 'Please turn off the Light in the Bedroom.'
         inform_user.delay(edge, reg_id, message_to_send)
         pass
 
@@ -319,15 +346,53 @@ def send_validation_report():
         activities = get_inferred_activities(dev_id)
         appliances = retrieve_metadata(apt_no)
 
+        users = retrieve_users(apt_no)
+
+        occupants = {}
+        for user in users:
+            occupants[user.dev_id] = user.name
+
         data_to_send['options']['activities'] = activities
         data_to_send['options']['appliances'] = appliances
+        data_to_send['options']['occupants'] = occupants
 
         message = create_message(reg_id, data_to_send)
 
         # Send the message to all the users
         client.send_message(message)
 
-        print "Sending report for:: " + reg_id
+        print "Sending report for:: " + user.name
+
+
+@shared_task(name='tasks.send_wastage_notification')
+def send_wastage_notification():
+    """
+    Sends a wastage notification to all the users
+    """
+    print "Sending wastage notification.."
+    import random
+    import string
+    # Get all the users
+    users = get_all_users()
+    for user in users:
+        reg_id = user.reg_id
+        notif_id = random.choice(string.digits)
+
+        # Construct the message
+        message_to_send = {}
+        message_to_send['msg_type'] = 'response'
+        message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
+        message_to_send['options'] = {}
+        message_to_send['options']['id'] = notif_id
+        message_to_send['options'][
+            'message'] = ('Please turn off the Light in the Bedroom' + str(notif_id)) * 3
+
+        message = create_message(reg_id, message_to_send)
+
+        # Send the message to all the users
+        client.send_message(message)
+
+        print "Sending notification for:: " + user.name
 
 
 @shared_task

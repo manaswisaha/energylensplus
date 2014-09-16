@@ -111,10 +111,11 @@ class EventLog(models.Model):
     Stores all the detected events associated with the inferred "who", "what", "where" and "when"
     """
     edge_id = models.ForeignKey(Edges)
-    event_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)  # when
-    appliance = models.CharField(max_length=50, verbose_name=("Appliance"), null=True)  # what
+    event_time = models.DecimalField(unique=False, verbose_name=(
+        "Event Time"), max_digits=14, decimal_places=3)  # when
     location = models.CharField(max_length=50, verbose_name=("Location"), null=True)  # where
-    dev_id = models.ForeignKey(RegisteredUsers)  # who
+    appliance = models.CharField(max_length=50, verbose_name=("Appliance"), null=True)  # what
+    dev_id = models.ForeignKey(RegisteredUsers, verbose_name=("User"))  # who
     event_type = models.CharField(max_length=20, verbose_name=("ON/OFF"), null=True)
 
     class Meta:
