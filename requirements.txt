@@ -2,6 +2,7 @@ Django
 requests
 pandas
 numpy
+django-pandas
 xmpppy
 Celery
 rabbitmq-server
