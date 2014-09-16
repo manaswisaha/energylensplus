@@ -6,18 +6,18 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 
 from constants import *
-from models.DataModels import *
 from models.models import *
-from preprocessing import wifi
+from models.DataModels import *
 from meter.functions import *
 from meter.smap import *
+from functions import *
+from energylenserver.api.reassign import *
 from energylenserver.tasks import phoneDataHandler
 
 import os
 import sys
 import json
 import time
-import threading
 import pandas as pd
 import datetime as dt
 
@@ -51,6 +51,10 @@ def user_exists(device_id):
         print "[UserDoesNotExistException Occurred] No registration found!:: ", e
         return False
 
+"""
+Upload API
+"""
+
 
 def import_from_file(filename, csvfile):
     """
@@ -81,6 +85,14 @@ def import_from_file(filename, csvfile):
     new_filename = 'data_file_' + sensor_name + '_' + str(user.dev_id) + '.csv'
     path = default_storage.save(new_filename, ContentFile(csvfile.read()))
     filepath = os.path.join(settings.MEDIA_ROOT, path)
+
+    if sensor_name == "wifi":
+        try:
+            df_wifi = pd.read_csv(filepath)
+            t = df_wifi.time
+        except Exception, e:
+            print "[WiFiFormatIncorrect] WiFi Header missing!::", str(e)
+            return False
 
     # Call new celery task for importing records
     phoneDataHandler.delay(filename, sensor_name, filepath, training_status, user)
@@ -120,6 +132,10 @@ def upload_data(request):
         print "[UploadDataException Occurred]::", e
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
+"""
+Real Time Power Plots API
+"""
+
 
 @csrf_exempt
 def real_time_data_access(request):
@@ -153,8 +169,7 @@ def real_time_data_access(request):
             timestamp, total_power = get_latest_power_data(apt_no)
 
             payload = {}
-            payload['timestamp'] = timestamp
-            payload['power'] = total_power
+            payload[timestamp] = total_power
 
             print "Payload", payload
 
@@ -165,6 +180,123 @@ def real_time_data_access(request):
             print "[RealTimeDataException Occurred]::", e
             return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
                                 content_type="application/json")
+
+
+@csrf_exempt
+def real_time_past_data(request):
+    """
+    Receives first real-time data access request for plots
+    """
+
+    try:
+        if request.method == 'GET':
+            return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
+
+        if request.method == 'POST':
+
+            payload = json.loads(request.body)
+            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+
+            dev_id = payload['dev_id']
+            print "Requested by:", dev_id
+
+            # Check if it is a registered user
+            is_user = user_exists(dev_id)
+            if not is_user:
+                return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
+                                    content_type="application/json")
+            else:
+                apt_no = is_user.apt_no
+                print "Apartment Number:", apt_no
+
+            # Get power data
+            minutes = 30
+            end_time = time.time()
+            start_time = end_time - 60 * minutes
+
+            s_time = timestamp_to_str(start_time, date_format)
+            e_time = timestamp_to_str(end_time, date_format)
+            data_df_list = get_meter_data_for_time_slice(apt_no, s_time, e_time)
+
+            # Creation of the payload
+            payload = {}
+            if len(data_df_list) > 1:
+                # Combine the power and light streams
+                df = combine_streams(data_df_list)
+            else:
+                df = data_df_list[0].copy()
+
+            for idx in df.index:
+                payload[df.ix[idx]['time']] = df.ix[idx]['power']
+
+            payload_body = {}
+            for key in sorted(payload.iterkeys()):
+                payload_body[key] = payload[key]
+
+            print "Payload Size:", len(payload_body)
+            # print "Payload", json.dumps(payload_body, indent=4)
+
+            return HttpResponse(json.dumps(payload_body), content_type="application/json")
+
+    except Exception, e:
+            print "[RealTimePastDataException Occurred]::", e
+            return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
+                                content_type="application/json")
+
+
+"""
+Reassigning Inferences API
+"""
+
+
+@csrf_exempt
+def reassign_inference(request):
+    """
+    Receives the ground truth validation report with corrected labels
+    """
+    try:
+        if request.method == 'GET':
+            return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
+
+        if request.method == 'POST':
+            payload = json.loads(request.body)
+            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+            print payload
+
+            dev_id = payload['dev_id']
+
+            # Check if it is a registered user
+            user = user_exists(dev_id)
+            if not user:
+                return HttpResponse(json.dumps(REASSIGN_UNSUCCESSFUL),
+                                    content_type="application/json")
+            else:
+                apt_no = user.apt_no
+                print "Apartment Number:", apt_no
+
+            print "\nCorrecting inferences.."
+            options = payload['options']
+
+            # Reassign the specified activity and update the db
+            status = correct_inference(user, options)
+
+            payload = {}
+            payload['status'] = status
+
+            print "\nSending status for correction of inferences.."
+
+            return HttpResponse(json.dumps(payload),
+                                content_type="application/json")
+
+    except Exception, e:
+            print "[ReassignInferenceException Occurred]::", e
+            return HttpResponse(json.dumps(REASSIGN_UNSUCCESSFUL),
+                                content_type="application/json")
+
+
+"""
+Training API
+"""
 
 
 @csrf_exempt
@@ -230,6 +362,9 @@ def training_data(request):
             print "[TrainingDataException Occurred]::", e
             return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
                                 content_type="application/json")
+"""
+Registration API
+"""
 
 
 @csrf_exempt
@@ -307,6 +442,7 @@ def register_device(request):
                 # Store user
                 r.reg_id = reg_id
                 r.name = user_name
+                r.is_active = True
                 r.modified_date = dt.datetime.fromtimestamp(time.time())
                 r.save()
                 print "Registration updated"
