@@ -85,11 +85,11 @@ CELERYBEAT_SCHEDULE = {
         'task': 'tasks.send_validation_report',
         'schedule': timedelta(seconds=60 * 60),
     },
-    'send-notification-every-hour': {
-        'task': 'tasks.send_wastage_notification',
-        'schedule': timedelta(seconds=60 * 45),
-        'args': (1102),
-    },
+    # 'send-notification-every-hour': {
+    #     'task': 'energylenserver.tasks.send_wastage_notification',
+    #     'schedule': timedelta(seconds=60 * 45),
+    #     'args': (1102),
+    # },
 }
 
 
