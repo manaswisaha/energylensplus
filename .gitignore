@@ -63,3 +63,5 @@ energylenserver/backupcode/
 energylenserver/meter/old_code.py
 log.csv
 celerybeat-schedule
+energylenserver/tmp/
+energylenserver/test_code.py
