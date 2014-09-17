@@ -3,7 +3,7 @@ from energylenserver.models import functions as mod_func
 from django_pandas.io import read_frame
 
 """
-Contains helper functions
+Contains common preprocessing functions
 """
 
 
