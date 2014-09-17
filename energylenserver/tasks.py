@@ -354,8 +354,8 @@ def send_validation_report():
         users = mod_func.retrieve_users(apt_no)
 
         occupants = {}
-        for user in users:
-            occupants[user.dev_id] = user.name
+        for user_i in users:
+            occupants[user_i.dev_id] = user_i.name
 
         data_to_send['options']['activities'] = activities
         data_to_send['options']['appliances'] = appliances
