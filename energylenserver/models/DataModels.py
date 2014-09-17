@@ -13,17 +13,8 @@ Models for storing phone sensor data
 
 
 class SensorData(models.Model):
-    # id = BigAutoField(primary_key=True)
-    # r_id = models.CharField(max_length=200, primary_key=True)
     timestamp = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     dev_id = models.ForeignKey(RegisteredUsers)
-    # time = models.DateTimeField('date uploaded', auto_now_add=True)
-
-    def save_data(self, dev_id, data_list):
-        time = float(data_list[0]) / 1000.
-        self.dev_id = dev_id
-        self.timestamp = time
-        # self.r_id = str(self.timestamp) + '_' + str(self.dev_id.dev_id)
 
     class Meta:
         abstract = True
