@@ -21,8 +21,7 @@ from celery import shared_task
 
 # Imports from EnergyLens+
 from energylenserver.preprocessing import wifi
-from energylenserver.preprocessing import functions as pre_f
-from energylenserver.wifi import functions as wifi_f
+from energylenserver.core import functions as core_f
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
 from energylenserver.models import functions as mod_func
@@ -203,13 +202,8 @@ def classifyEdgeHandler(edge):
 
     # --- Preprocessing ---
     # Step 2: Determine user at home
-    user_list = wifi_f.determine_user_home_status(edge.timestamp, apt_no)
-    if len(user_list) <= 0:
-        return 'ignore', 'ignore', 'ignore'
-
-    # Step 3: Determine phone is with user
-    phone_with_user = pre_f.determine_phone_with_user(edge.timestamp, user_list)
-    if not phone_with_user:
+    user_list = core_f.determine_user_home_status(edge.timestamp, apt_no)
+    if len(user_list) == 0:
         return 'ignore', 'ignore', 'ignore'
 
     # --- Classification ---

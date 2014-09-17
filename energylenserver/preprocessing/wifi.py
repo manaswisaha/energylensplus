@@ -1,17 +1,17 @@
-# Script to convert labeled phone Wifi test data into the desired form
-# Format::
-# Location Fingerprint: <time, rssi1, rssi2, rssi3,..., rssiN, location>
-# Number of RSSI features: number of unique SSID:MACs seen in the data
-# Operations done:
-#	1.
-#
 # Author: Manaswi Saha
-# Date: August 7, 2014
+# Date: August 27, 2014
 
 import pandas as pd
 
 
 def format_data(ip_df):
+    """
+    Script to convert labeled phone Wifi test data into the desired form
+    Format::
+    Location Fingerprint: <time, rssi1, rssi2, rssi3,..., rssiN, location>
+    Number of RSSI features: number of unique SSID:MACs seen in the data
+
+    """
 
     # print "Number of records before preprocessing:" + str(len(ip_df))
 

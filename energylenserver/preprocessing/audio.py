@@ -6,9 +6,10 @@ Author: Manaswi Saha
 import pandas as pd
 
 
-# Separate out individual records
-
 def format_data(df):
+    """
+    Separate out individual records
+    """
 
     columns = ['time', 'value', 'label', 'location']
 

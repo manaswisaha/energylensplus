@@ -48,3 +48,10 @@ def determine_user_home_status(event_time, apt_no):
             user_list.append(user_id)
 
     return user_list
+
+
+def determine_phone_with_user(event_time, user_list):
+    """
+    Determines if the phone is with the user_list
+    """
+    return True
