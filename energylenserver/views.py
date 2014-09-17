@@ -256,7 +256,7 @@ def import_from_file(filename, csvfile):
     if sensor_name != 'rawaudio':
         try:
             df_csv = pd.read_csv(filepath)
-            t = df_csv.time
+            t = df_csv.label
         except Exception, e:
             if str(e) == "Passed header=0 but only 0 lines in file":
                 print "[Exception]:: Creation of dataframe failed! No lines found in the file!"
@@ -293,7 +293,7 @@ def upload_data(request):
             print "File received:", filename
 
             # TEMPORARY CODE
-            users = determine_user_home_status(time.time() - 40, 1002)
+            users = determine_user_home_status(time.time() - 120, 1002)
             print "Users at home for apt no. 1002", users
 
             # Store in the database
