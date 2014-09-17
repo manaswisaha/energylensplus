@@ -1,3 +1,7 @@
+REGISTRATION_API = "device/register/"
+UPLOAD_DATA_API = "data/upload/"
+UPLOAD_STATS_API = "stats/upload/"
+
 PERSONAL_ENERGY_API = "energy/personal/"
 DISAGG_ENERGY_API = "energy/disaggregated/"
 ENERGY_WASTAGE_REPORT_API = "energy/wastage/report/"

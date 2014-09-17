@@ -222,22 +222,30 @@ Upload API
 """
 
 
-def import_from_file(filename, csvfile):
+def determine_user(filename):
     """
-    Imports the CSV file into appropriate db model
+    Determines existence of user based on dev_id
     """
-    print "File size:", csvfile.size
-
     # Find the sensor from the filename and choose appropriate table
     filename_l = filename.split('_')
     device_id = int(filename_l[0])
 
     # Check if it is a registered user
     is_user = user_exists(device_id)
-    if not is_user:
+    return is_user
+
+
+def import_from_file(filename, csvfile):
+    """
+    Imports the CSV file into appropriate db model
+    """
+    print "File size:", csvfile.size
+
+    filename_l = filename.split('_')
+
+    user = determine_user(filename)
+    if not user:
         return False
-    else:
-        user = is_user
 
     training_status = False
 
@@ -248,7 +256,8 @@ def import_from_file(filename, csvfile):
     print "Sensor:", sensor_name
 
     # Save file in a temporary location
-    new_filename = 'data_file_' + sensor_name + '_' + str(user.dev_id) + '.csv'
+    new_filename = ('data_file_' + sensor_name + '_' + str(
+        user.dev_id) + '_' + time.ctime(time.time()) + '.csv')
     path = default_storage.save(new_filename, ContentFile(csvfile.read()))
     filepath = os.path.join(settings.MEDIA_ROOT, path)
 
@@ -307,6 +316,47 @@ def upload_data(request):
     except Exception, e:
 
         print "[UploadDataException Occurred]::", e
+        return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
+
+
+@csrf_exempt
+def upload_stats(request):
+    """
+    Receives the uploaded notification CSV files and stores them in the database
+    """
+
+    try:
+        if request.method == 'GET':
+            return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
+
+        if request.method == 'POST':
+            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+
+            payload = request.FILES
+            file_container = payload['uploadedfile']
+            filename = str(file_container.name)
+            csvfile = file_container
+            print "File received:", filename
+
+            # --- Saving file in the database ---
+            # Check if it is a registered user
+            user = determine_user(filename)
+            if not user:
+                return False
+
+            # Save file in a temporary location
+            new_filename = ('stats_screenlog_' + str(
+                user.dev_id) + '_' + time.ctime(time.time()) + '.csv')
+            path = default_storage.save(new_filename, ContentFile(csvfile.read()))
+            filepath = os.path.join(settings.MEDIA_ROOT, path)
+
+            # Store in the database
+            UsageLogScreens.save_stats(user, filepath)
+            return HttpResponse(json.dumps(UPLOAD_SUCCESS), content_type="application/json")
+
+    except Exception, e:
+
+        print "[UploadStatsException Occurred]::", e
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 """

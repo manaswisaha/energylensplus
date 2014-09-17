@@ -150,6 +150,8 @@ class EnergyUsageLog(models.Model):
     Stores energy usage for each user for every activity
     """
     activity_id = models.ForeignKey(ActivityLog)
+    start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     usage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
 
@@ -164,6 +166,8 @@ class EnergyWastageLog(models.Model):
     Stores energy wastage for each user for every activity
     """
     activity_id = models.ForeignKey(ActivityLog)
+    start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     wastage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
 
@@ -192,6 +196,9 @@ class EnergyWastageNotif(models.Model):
 Models for maintaining usage stats for the mobile application
 """
 
+import os
+from django.db import connection
+
 
 class UsageLogScreens(models.Model):
 
@@ -200,10 +207,26 @@ class UsageLogScreens(models.Model):
     """
     dev_id = models.ForeignKey(RegisteredUsers)
     time_of_day = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
-    tod_time = models.DateTimeField('edge time')
     screen_name = models.CharField(
         max_length=50, blank=True, null=False)
     time_of_stay = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
+
+    def save_stats(self, user, filename):
+        """
+        Inserts csv into the database directly
+        """
+        try:
+            cursor = connection.cursor()
+
+            cursor.execute("LOAD DATA LOCAL INFILE %s INTO TABLE UsageLogScreens"
+                           " FIELDS TERMINATED BY ',' IGNORE 1 LINES "
+                           "(@timestamp, screen_name, @tos) "
+                           "SET time_of_day = @timestamp/1000.0, "
+                           "time_of_stay = @tos/1000, "
+                           "dev_id_id = " + str(user.dev_id), [filename])
+            os.remove(filename)
+        except Exception, e:
+            print "[SaveStatsException] UsageLogScreens::" + str(e)
 
     class Meta:
         db_table = 'UsageLogScreens'
@@ -220,6 +243,23 @@ class UsageLogNotifs(models.Model):
     notif_id = models.CharField(
         max_length=50, blank=True, null=False)
     seen_at = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
+
+    def save_stats(self, user, filename):
+        """
+        Inserts csv into the database directly
+        """
+        try:
+            cursor = connection.cursor()
+
+            cursor.execute("LOAD DATA LOCAL INFILE %s INTO TABLE UsageLogNotifs"
+                           " FIELDS TERMINATED BY ',' IGNORE 1 LINES "
+                           "(@timestamp, notif_id, @seen_at) "
+                           "SET received_at = @timestamp/1000.0, "
+                           "seen_at = @seen_at/1000.0, "
+                           "dev_id_id = " + str(user.dev_id), [filename])
+            os.remove(filename)
+        except Exception, e:
+            print "[SaveStatsException] UsageLogNotifs::" + str(e)
 
     class Meta:
         db_table = 'UsageLogNotifs'
