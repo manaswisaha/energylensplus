@@ -13,7 +13,7 @@ from meter.smap import *
 from functions import *
 from energylenserver.api.reassign import *
 from energylenserver.tasks import phoneDataHandler
-from wifi.functions import determine_user_home_status
+from energylenserver.core import functions as core_f
 
 import os
 import sys
@@ -293,7 +293,7 @@ def upload_data(request):
             print "File received:", filename
 
             # TEMPORARY CODE
-            users = determine_user_home_status(time.time() - 120, 1002)
+            users = core_f.determine_user_home_status(time.time() - 60, 1002)
             print "Users at home for apt no. 1002", users
 
             # Store in the database

@@ -182,7 +182,8 @@ def edgeHandler(edge):
     else:
         chain = classifyEdgeHandler.s(edge) | determineWastageHandler.s()
     chain()
-    print "Classification Pipeline ended!"
+    print("Classification Pipeline ended for edge: [%s] :: %d" % (
+        time.ctime(edge.timestamp), edge.magnitude))
 
 """
 Invokes the EnergyLens+ core algorithm
@@ -192,7 +193,7 @@ Invokes the EnergyLens+ core algorithm
 @shared_task
 def classifyEdgeHandler(edge):
     """
-    Consumes smart meter edges and phone data to give out 'who', 'what', 'where' and 'when''
+    Consumes smart meter edges and phone data to give out 'who', 'what', 'where' and 'when'
     :param edge:
     :return "where", what" and "who" labels:
     """
