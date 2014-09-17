@@ -11,6 +11,7 @@ from models.DataModels import *
 from meter.functions import *
 from meter.smap import *
 from functions import *
+from energylenserver.preprocessing import wifi
 from energylenserver.api.reassign import *
 from energylenserver.tasks import phoneDataHandler
 from energylenserver.core import functions as core_f
@@ -239,13 +240,15 @@ def import_from_file(filename, csvfile):
     """
     Imports the CSV file into appropriate db model
     """
-    print "File size:", csvfile.size
 
     filename_l = filename.split('_')
 
     user = determine_user(filename)
     if not user:
         return False
+
+    print "User:", user.name
+    print "File size:", csvfile.size
 
     training_status = False
 
@@ -266,6 +269,21 @@ def import_from_file(filename, csvfile):
         try:
             df_csv = pd.read_csv(filepath)
             t = df_csv.label
+
+            # --Preprocess records before storing--
+            if sensor_name == 'wifi':
+                df_csv = wifi.format_data(df_csv)
+
+                if df_csv is False:
+                    os.remove(filepath)
+                    print("[DataFileFormatIncorrect] "
+                          "Incorrect wifi file sent. Upload not successful!")
+                    return False
+
+                # Create temp wifi csv file
+                os.remove(filepath)
+                df_csv.to_csv(filepath, index=False)
+
         except Exception, e:
             if str(e) == "Passed header=0 but only 0 lines in file":
                 print "[Exception]:: Creation of dataframe failed! No lines found in the file!"

@@ -20,7 +20,6 @@ from multiprocessing.managers import BaseManager
 from celery import shared_task
 
 # Imports from EnergyLens+
-from energylenserver.preprocessing import wifi
 from energylenserver.core import functions as core_f
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
@@ -92,13 +91,6 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
         except Exception, e:
             print "[InsertDataException]!::", str(e)
             os.remove(filepath)
-            return
-
-    # --Preprocess records before storing--
-    if sensor_name == 'wifi':
-        df_csv = wifi.format_data(df_csv)
-        if df_csv is False:
-            print "[Error] Incorrect file sent. Upload not successful!"
             return
 
     # Remove rows with 'Infinity' in MFCCs created
