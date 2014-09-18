@@ -203,10 +203,10 @@ class MessageClient:
             activity_name = options['activity_name']
 
             activities = disaggregated_energy(user.dev_id, activity_name, start_time, end_time)
-            appliances = retrieve_metadata(apt_no)
+            # appliances = retrieve_metadata(apt_no)
 
             data_to_send['options']['activities'] = activities
-            data_to_send['options']['appliances'] = appliances
+            # data_to_send['options']['appliances'] = appliances
 
             print "\nSending diaggregated energy data.."
 
