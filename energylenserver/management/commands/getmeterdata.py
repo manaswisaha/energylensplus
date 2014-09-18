@@ -75,7 +75,11 @@ class Client:
         self.conn.setopt(pycurl.WRITEFUNCTION, self.on_receive)
         self.conn.setopt(pycurl.POST, 1)
         self.conn.setopt(pycurl.POSTFIELDS, payload)
-        self.conn.perform()
+        try:
+            self.conn.perform()
+        except KeyboardInterrupt:
+            print "\n\nInterrupted by user, shutting down.."
+            sys.exit(0)
 
     def create_file(self, filename):
 
