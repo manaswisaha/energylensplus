@@ -258,7 +258,7 @@ class Command(BaseCommand):
             print "\nPayload:\n", "[" + payload + "]"
 
             # Open persistent HTTP connection to sMAP
-            client = Client()
+            Client()
         except KeyboardInterrupt:
             print "\n\nInterrupted by user, shutting down.."
             sys.exit(0)
