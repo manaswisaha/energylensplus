@@ -1,6 +1,21 @@
 """
-Retrieves real-time meter data and passes it on the edge detection
-component
+[PRODUCER] Generates meter data for the consumer
+
+Script to process streaming data from smap
+and pass them to the edge_detection API on the EnergyLens+ Server
+
+Things done:
+    1. Retrieve meter data from smap db using republish API
+    2. Store data on the disk
+    3. Detect edges and store them
+
+
+Input: apt number list
+Output: csv file with timestamped power values
+Format: <timestamp, power>
+
+Author: Manaswi Saha
+Date: 27th Aug 2014
 """
 import os
 import sys
@@ -184,6 +199,10 @@ class Command(BaseCommand):
     help = "Retrieves real-time meter data from the sMap server"
 
     def handle(self, *args, **options):
+        """
+        Retrieves real-time meter data and passes it on the edge detection
+        component
+        """
 
         global dst_folder, apt_no_list, payload, uuid_list
 
