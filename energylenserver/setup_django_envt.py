@@ -6,7 +6,7 @@ import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 energyplus_path = BASE_DIR
-energylenserver_path = (energyplus_path + '/energylenserver')
+energylenserver_path = os.path.join(energyplus_path, 'energylenserver')
 
 if energyplus_path not in sys.path:
     sys.path.insert(1, energyplus_path)
