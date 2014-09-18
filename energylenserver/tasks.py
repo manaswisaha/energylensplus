@@ -20,7 +20,7 @@ from multiprocessing.managers import BaseManager
 from celery import shared_task
 
 # Imports from EnergyLens+
-from energylenserver.core import functions as core_f
+from energylenserver.core import classifier
 from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
 from energylenserver.models import functions as mod_func
@@ -193,18 +193,25 @@ def classifyEdgeHandler(edge):
     print("Apt.No.:: %d Classify edge of type: '%s' : [%s] :: %d" % (
         apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude))
 
+    # Defining event window
+    p_window = 60  # window for each side of the event time (in seconds)
+
+    event_time = edge.timestamp
+    start_time = event_time - p_window
+    end_time = event_time + p_window
+
     # --- Preprocessing ---
     # Step 2: Determine user at home
-    user_list = core_f.determine_user_home_status(edge.timestamp, apt_no)
+    user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
     if len(user_list) == 0:
         return 'ignore', 'ignore', 'ignore'
 
     # --- Classification ---
     # Step 1: Determine location for every user
-    location = classify_location(edge.timestamp, user_list)
+    location = classifier.classify_location(event_time, start_time, end_time, user_list)
 
     # Step 2: Determine appliance for every user
-    appliance = clasify_sound(edge.timestamp, user_list)
+    appliance = classifier.clasify_sound(edge.timestamp, user_list)
 
     # Step 3: Determine user based on location, appliance and metadata
     user = determine_user(location, appliance, user_list)

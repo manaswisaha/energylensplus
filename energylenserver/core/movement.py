@@ -12,12 +12,12 @@ import csv
 import math
 import pandas as pd
 import numpy as np
+
 from sklearn.svm import SVC
 from sklearn import tree
-# from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classification_report
-#from Accelerometer.plot_classified import plot_classified
 
 THRESHOLD = 8.9
 

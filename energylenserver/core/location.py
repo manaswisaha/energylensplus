@@ -1,36 +1,24 @@
-# Script to localize a user using k-NN algorithm
-# Assumptions:
-# 	1. Averaged over one second
-# Author: Manaswi Saha
-# Updated on: Sep 27, 2013
-
+"""
+Localize a user using k-NN algorithm
+Author: Manaswi Saha
+Updated on: Sep 18, 2014
+"""
 
 import csv
-import sys
 import pandas as pd
 import numpy as np
+
 # from sklearn.neighbors import KNeighborsClassifier
 # from sklearn.metrics import confusion_matrix
 # from sklearn.metrics import classification_report
-#
-# import plot_confusion_matrix as pltcm
-from CONFIGURATION import WIFI_THRESHOLD
-# import summarize as sm
+
+from constants import WIFI_THRESHOLD
+from energylenserver.models import functions as mod_func
+from django_pandas.io import read_frame
 
 import warnings
 
 warnings.filterwarnings('ignore')
-
-# Script to convert labeled phone Wifi test data into the desired form
-# Format::
-# Location Fingerprint: <time, rssi1, rssi2, rssi3,..., rssiN, location>
-# Number of RSSI features: number of unique SSID:MACs seen in the data
-# Operations done:
-#	1. Averaging over a second
-#	2. Conversion to proper format
-#
-# Author: Manaswi Saha
-# Date: August 30, 2013
 
 
 def wifi_location(test_csv):

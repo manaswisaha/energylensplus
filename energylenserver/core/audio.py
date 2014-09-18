@@ -13,8 +13,8 @@ import csv
 import sys
 import pandas as pd
 import numpy as np
-from audio_param import *
-import MFCC as MFCC
+from constants import *
+# import MFCC as MFCC
 
 from sklearn.svm import SVC
 from sklearn import tree
@@ -127,7 +127,8 @@ def extract_features(csvfile, dataset_type, apt_no, idx):
         label = np.array(df_i.label)[0]  # label
 
         """
-        Preprocessing: framing, windowing, filtering
+        Preprocessing:
+            framing, windowing, filtering
 
         """
         # Parameters (defined in audio_param.py)
@@ -152,7 +153,7 @@ def extract_features(csvfile, dataset_type, apt_no, idx):
             frame = x[f * FRAME_SHIFT: f * FRAME_SHIFT + FRAME_LEN] * WINDOW
 
             """
-            Feature Extraction (frame level):
+            Feature Extraction(frame level):
             ZCR, Spectral {Entropy, Energy, Flux, Rolloff, Centroid}
             RMS, Energy, MFCC(13)
 
@@ -176,7 +177,8 @@ def extract_features(csvfile, dataset_type, apt_no, idx):
     # print feature_vec
 
     """
-    Output: Creation of feature vector for every frame
+    Output:
+        Creation of feature vector for every frame
     to be fed to the classifier with a label
 
     """
@@ -196,7 +198,6 @@ def extract_features(csvfile, dataset_type, apt_no, idx):
             print e
 
     return feat_csv
-
 
 """
 Classify Sound event for the data in the given time slice

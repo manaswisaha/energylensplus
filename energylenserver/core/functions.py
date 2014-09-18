@@ -8,7 +8,7 @@ Contains common preprocessing functions
 """
 
 
-def determine_user_home_status(event_time, apt_no):
+def determine_user_home_status(start_time, end_time, apt_no):
     """
     Determines if user is at home by seeing if the WiFi AP is visible
     within the event time window
@@ -17,11 +17,6 @@ def determine_user_home_status(event_time, apt_no):
     :return list of users at home:
     """
     user_list = []
-
-    p_window = 60  # window for each side of the event time (in seconds)
-
-    start_time = event_time - p_window
-    end_time = event_time + p_window
 
     try:
         occupants = mod_func.retrieve_users(apt_no)
