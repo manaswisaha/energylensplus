@@ -320,8 +320,9 @@ def upload_data(request):
             print "File received:", filename
 
             # TEMPORARY CODE
-            users = core_f.determine_user_home_status(time.time() - 60, 1002)
-            print "Users at home for apt no. 1002", users
+            apt_no = 103
+            users = core_f.determine_user_home_status(time.time() - 60, apt_no)
+            print("Users at home for apt no. %d:%s" % (apt_no, users))
 
             # Store in the database
             if(import_from_file(filename, csvfile)):
