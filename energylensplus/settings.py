@@ -60,9 +60,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'energylensplus',
-        'USER': 'root',
+        'USER': 'manaswi',
         'PASSWORD': 'research',
-        'HOST': '127.0.0.1',
+        'HOST': '198.168.1.38',
         'OPTIONS': {
             'local_infile': 1,
         }

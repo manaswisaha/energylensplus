@@ -45,7 +45,7 @@ class AccessPoints(models.Model):
     apt_no = models.IntegerField()
     macid = models.CharField(max_length=200, )
     ssid = models.CharField(max_length=200)
-    home_ap = models.BooleanField()
+    home_ap = models.BooleanField(default=False)
 
     def __unicode__(self):
         return self.ssid + "-" + self.macid
