@@ -16,11 +16,11 @@ sudo apt-get install mysql-server
 # Install python libraries with Django web framework
 pip install -r requirements.txt
 
-database_name = $1
+#database_name = $1
 
 # Create database
-mysql -u root -p -e "create database ".$database_name;
+#mysql -u root -p -e "create database ".$database_name;
 
 # Create tables
-python manage.py sql energylenserver
-python manage.py syncdb
+#python manage.py sql energylenserver
+#python manage.py syncdb
