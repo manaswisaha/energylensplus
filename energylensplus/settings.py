@@ -62,7 +62,7 @@ DATABASES = {
         'NAME': 'energylensplus',
         'USER': 'manaswi',
         'PASSWORD': 'research',
-        'HOST': '198.168.1.38',
+        'HOST': '192.168.1.38',
         'OPTIONS': {
             'local_infile': 1,
         }
