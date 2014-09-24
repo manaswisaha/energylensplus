@@ -47,7 +47,7 @@ STREAM_URL = "http://energy.iiitd.edu.in:9106/republish"
 
 
 # Participating apartments
-apt_no_list = ['103', '1003']
+apt_no_list = ['101', '1003', '1002']
 uuid_list = []
 payload = ""
 
