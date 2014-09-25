@@ -135,6 +135,9 @@ def meterDataHandler(df, file_path):
     edges_df = detect_and_filter_edges(df)
     # Store edges into db
 
+    if len(edges_df) == 0:
+        return
+
     # For the detected edge, store edge and call classification pipeline task
     for idx in edges_df.index:
         edge = edges_df.ix[idx]
