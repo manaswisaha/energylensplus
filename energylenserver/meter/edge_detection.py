@@ -30,6 +30,8 @@ def detect_and_filter_edges(df):
     edges_df = detect_edges(df)
     filter_unmon_appl_edges(edges_df)
 
+    return edges_df
+
 
 def detect_edges_from_meters(streams_df):
     """
