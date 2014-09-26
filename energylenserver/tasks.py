@@ -20,14 +20,21 @@ from multiprocessing.managers import BaseManager
 from celery import shared_task
 
 # Imports from EnergyLens+
-from energylenserver.core import classifier
-from energylenserver.models.DataModels import *
 from energylenserver.models.models import *
+from energylenserver.models.DataModels import *
+
+from energylenserver.core import classifier
+from energylenserver.core import functions as core_f
+
 from energylenserver.models import functions as mod_func
-from energylenserver.meter.edge_detection import detect_and_filter_edges
+
+from energylenserver.meter import edge_detection
+
 from energylenserver.gcmxmppclient.messages import create_message
-from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API, GROUND_TRUTH_NOTIF_API
+
 from energylenserver.api import reporting as rpt
+
+from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API, GROUND_TRUTH_NOTIF_API
 
 
 # Global variables
@@ -132,7 +139,7 @@ def meterDataHandler(df, file_path):
     print "Detecting Edges for UUID:: " + uuid
 
     # -- Detect Edge --
-    edges_df = detect_and_filter_edges(df)
+    edges_df = edge_detection.detect_and_filter_edges(df)
     # Store edges into db
 
     if len(edges_df) == 0:
@@ -188,7 +195,8 @@ Invokes the EnergyLens+ core algorithm
 @shared_task
 def classifyEdgeHandler(edge):
     """
-    Consumes smart meter edges and phone data to give out 'who', 'what', 'where' and 'when'
+    Consumes smart meter edges and phone data to give out 'who',
+    'what', 'where' and 'when'
     :param edge:
     :return "where", what" and "who" labels:
     """
@@ -211,7 +219,8 @@ def classifyEdgeHandler(edge):
 
     # --- Classification ---
     # Step 1: Determine location for every user
-    location = classifier.classify_location(event_time, start_time, end_time, user_list)
+    location = classifier.classify_location(event_time,
+                                            start_time, end_time, user_list)
 
     # Step 2: Determine appliance for every user
     appliance = classifier.clasify_sound(edge.timestamp, user_list)
@@ -228,12 +237,14 @@ def classifyEdgeHandler(edge):
     else:
         event_type = "OFF"
 
-    print("[%s] :: Determined labels: %s %s %s" % (time.ctime(edge.timestamp), who, where, what))
+    print("[%s] :: Determined labels: %s %s %s" %
+         (time.ctime(edge.timestamp), who, where, what))
 
     # Create a record in the Event Log with edge id
     # and store who what where labels
     event = EventLog(edge_id=edge, event_time=edge.timestamp,
-                     location=where, appliance=what, dev_id=who, event_type=event_type)
+                     location=where, appliance=what, dev_id=who,
+                     event_type=event_type)
     event.save()
 
     return who, what, where, event
