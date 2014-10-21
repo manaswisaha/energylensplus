@@ -452,7 +452,7 @@ def real_time_past_data(request):
             print "\n[POST Request Received] -", sys._getframe().f_code.co_name
 
             dev_id = payload['dev_id']
-            minutes = 10  # int(payload['minutes'])
+            minutes = int(payload['minutes'])
             print "Requested by:", dev_id
 
             # Check if it is a registered user
