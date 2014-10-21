@@ -213,9 +213,9 @@ def training_data(request):
 
     except Exception, e:
 
-            print "[TrainingDataException Occurred]::", e
-            return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
-                                content_type="application/json")
+        print "[TrainingDataException Occurred]::", e
+        return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
+                            content_type="application/json")
 
 
 """
@@ -431,9 +431,9 @@ def real_time_data_access(request):
 
     except Exception, e:
 
-            print "[RealTimeDataException Occurred]::", e
-            return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
-                                content_type="application/json")
+        print "[RealTimeDataException Occurred]::", e
+        return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
+                            content_type="application/json")
 
 
 @csrf_exempt
@@ -452,6 +452,7 @@ def real_time_past_data(request):
             print "\n[POST Request Received] -", sys._getframe().f_code.co_name
 
             dev_id = payload['dev_id']
+            minutes = 10  # int(payload['minutes'])
             print "Requested by:", dev_id
 
             # Check if it is a registered user
@@ -464,13 +465,16 @@ def real_time_past_data(request):
                 print "Apartment Number:", apt_no
 
             # Get power data
-            minutes = 30
             end_time = time.time()
             start_time = end_time - 60 * minutes
 
             s_time = timestamp_to_str(start_time, date_format)
             e_time = timestamp_to_str(end_time, date_format)
             data_df_list = get_meter_data_for_time_slice(apt_no, s_time, e_time)
+
+            if len(data_df_list) == 0:
+                print "No data to send"
+                return HttpResponse(json.dumps({}), content_type="application/json")
 
             # Creation of the payload
             payload = {}
@@ -484,6 +488,7 @@ def real_time_past_data(request):
                 payload[df.ix[idx]['time']] = df.ix[idx]['power']
 
             payload_body = {}
+            # Sorting payload
             for key in sorted(payload.iterkeys()):
                 payload_body[key] = payload[key]
 
@@ -493,9 +498,9 @@ def real_time_past_data(request):
             return HttpResponse(json.dumps(payload_body), content_type="application/json")
 
     except Exception, e:
-            print "[RealTimePastDataException Occurred]::", e
-            return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
-                                content_type="application/json")
+        print "[RealTimePastDataException Occurred]::", e
+        return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
+                            content_type="application/json")
 
 
 """
@@ -543,9 +548,9 @@ def reassign_inference(request):
                                 content_type="application/json")
 
     except Exception, e:
-            print "[ReassignInferenceException Occurred]::", e
-            return HttpResponse(json.dumps(REASSIGN_UNSUCCESSFUL),
-                                content_type="application/json")
+        print "[ReassignInferenceException Occurred]::", e
+        return HttpResponse(json.dumps(REASSIGN_UNSUCCESSFUL),
+                            content_type="application/json")
 
 
 @csrf_exempt
@@ -562,9 +567,9 @@ def test_function_structure(request):
             pass
     except Exception, e:
 
-            print "[TrainingDataException Occurred]::", e
-            return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
-                                content_type="application/json")
+        print "[TrainingDataException Occurred]::", e
+        return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
+                            content_type="application/json")
 
 
 @csrf_exempt

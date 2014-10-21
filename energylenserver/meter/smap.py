@@ -58,6 +58,7 @@ def get_latest_power_data(apt_no):
 
     lpower = 0
 
+    # For two meters
     if len(payload_body) > 1:
         readings = payload_body[0]['Readings']
         time_1 = readings[0][0]
@@ -67,11 +68,11 @@ def get_latest_power_data(apt_no):
         time_2 = readings[0][0]
         lpower = readings[0][1]
 
-        timestamp = max(time_1, time_2) / 1000
+        timestamp = max(time_1, time_2)
 
         # Handling power outages where meter data may not be the latest
         if abs(time_1 - time_2) > 2:
-            time_low = min(time_1, time_2) / 1000
+            time_low = min(time_1, time_2)
             now_time = time.time()
 
             if abs(now_time - time_low) > 3:
@@ -80,6 +81,7 @@ def get_latest_power_data(apt_no):
                 elif time_low == time_2:
                     lpower = 0
 
+    # For a single meter
     else:
         readings = payload_body[0]['Readings']
         timestamp = readings[0][0]
@@ -111,10 +113,12 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
     # print "Payload:", payload
 
     meters = retrieve_meter_info(apt_no)
+    print meters
 
     streams = []
     meter_type = []
-    for i in range(0, len(payload)):
+    l_meters = range(0, len(payload))
+    for i in l_meters:
         uuid = payload[i]['uuid']
 
         # Get meter type based on uuid
@@ -127,9 +131,13 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
         streams.append(np.array(payload[i]['Readings']))
     # print "Streams:", streams
 
-    df = [pd.DataFrame({'time': readings[:, 0] / 1000, 'power': readings[:, 1],
-                        'type': [meter_type[i]] * len(readings)}, columns=['time', 'power', 'type'])
-          for i, readings in enumerate(streams)]
+    if len(streams[0]) > 0:
+
+        df = [pd.DataFrame({'time': readings[:, 0], 'power': readings[:, 1],
+                            'type': [meter_type[i]] * len(readings)},
+              columns=['time', 'power', 'type']) for i, readings in enumerate(streams)]
+    else:
+        df = []
 
     return df
 

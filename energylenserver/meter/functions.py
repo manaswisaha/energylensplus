@@ -179,23 +179,54 @@ def combine_streams(df):
     stream1_df = df[0]
     stream2_df = df[1]
 
+    stream1_df['time'] = (stream1_df['time'] / 1000).astype('int')
+    stream2_df['time'] = (stream2_df['time'] / 1000).astype('int')
+
+    print stream1_df.head()
+    print stream2_df.head()
+
     start_time = min(stream1_df.ix[0]['time'], stream2_df.ix[0]['time'])
-    end_time = min(stream1_df.ix[stream1_df.index[-1]][
-                   'time'], stream2_df.ix[stream2_df.index[-1]]['time'])
+    end_time = max(stream1_df.ix[stream1_df.index[-1]]['time'],
+                   stream2_df.ix[stream2_df.index[-1]]['time'])
+    print "ST:", start_time, "ET:", end_time
 
     time_values = range(start_time, end_time + 1)
     n_time_values = len(time_values)
+    print "Total values", n_time_values
 
-    df_1 = pd.DataFrame({'time': time_values, 'power': [0] * n_time_values})
-    df_2 = pd.DataFrame({'time': time_values, 'power': [0] * n_time_values})
+    stream1 = dict(zip(stream1_df.time, stream1_df.power))
+    stream2 = dict(zip(stream2_df.time, stream2_df.power))
 
-    for df in [stream1_df, stream2_df]:
-        print df
+    # print "Stream1", stream1
+    # print "Stream2", stream2
 
-    for df in data_df_list:
-        for idx in df.index:
-            try:
-                val = payload[df.ix[idx]['time']]
-                payload[df.ix[idx]['time']] = val + df.ix[idx]['power']
-            except KeyError:
-                payload[df.ix[idx]['time']] = df.ix[idx]['power']
+    stream1_new = dict(zip(time_values, [np.NaN] * n_time_values))
+    stream2_new = dict(zip(time_values, [np.NaN] * n_time_values))
+    for t in time_values:
+        if t in stream1:
+            stream1_new[t] = stream1[t]
+        if t in stream2:
+            stream2_new[t] = stream2[t]
+
+    # Sorting dictionaries
+    streams = [pd.DataFrame(columns=['time', 'power'])] * 2
+    for i, stream in enumerate([stream1_new, stream2_new]):
+        for key in sorted(stream.iterkeys()):
+            stream[key] = stream[key]
+
+        streams[i] = pd.DataFrame(stream.items(), columns=['time', 'power'])
+        streams[i].fillna(method='pad', inplace=True)
+        streams[i].fillna(method='bfill', inplace=True)
+        print "Stream", i, ":\n", streams[i].head(10)
+
+    # Combining Streams
+    comb_stream_df = pd.DataFrame({'time': time_values, 'power': [0] * n_time_values},
+                                  columns=['time', 'power'])
+    comb_stream_df['time'] = comb_stream_df['time'] * 1000
+    for idx in comb_stream_df.index:
+        comb_stream_df.ix[idx]['power'] = streams[0].ix[idx]['power'] + streams[1].ix[idx]['power']
+
+    comb_stream_df.sort('time', inplace=True)
+    print "Combined Stream:\n", comb_stream_df.head(20)
+
+    return comb_stream_df
