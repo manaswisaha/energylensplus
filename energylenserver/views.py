@@ -319,18 +319,6 @@ def upload_data(request):
             csvfile = file_container
             print "File received:", filename
 
-            # -----TEMPORARY CODE-----
-            # Defining event window
-            p_window = 60  # window for each side of the event time (in seconds)
-
-            event_time = time.time() - 60
-            start_time = event_time - p_window
-            end_time = event_time + p_window
-            apt_no = 101
-            users = core_f.determine_user_home_status(start_time, end_time, apt_no)
-            print("Users at home for apt no. %d:%s" % (apt_no, users))
-            # --------------------------
-
             # Store in the database
             if(import_from_file(filename, csvfile)):
                 return HttpResponse(json.dumps(UPLOAD_SUCCESS), content_type="application/json")

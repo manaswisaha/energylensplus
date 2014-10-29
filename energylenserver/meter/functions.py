@@ -53,6 +53,7 @@ def training_compute_power(apt_no, start_time, end_time):
     e_time = end_time + winmax
     e_time = timestamp_to_str(e_time, date_format)
 
+    '''
     # ---Temp code----START
     # Test Edge 1- Light
     s_time = "2014-08-20T17:34:04"
@@ -73,6 +74,7 @@ def training_compute_power(apt_no, start_time, end_time):
     s_time = "2014-08-20T17:43:07"
     e_time = "2014-08-20T17:44:11"
     # ---Temp code----END
+    '''
 
     # Retrieve power data from smap server for both meters
     # between <start_time> and <end_time>
