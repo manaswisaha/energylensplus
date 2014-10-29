@@ -69,4 +69,3 @@ django_app_output
 update_repo.sh
 energylenserver/get_meter_data.py
 energylenserver/management/commands/startgcmserver.py
-logs/
