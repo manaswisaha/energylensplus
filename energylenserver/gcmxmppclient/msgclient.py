@@ -140,7 +140,6 @@ class MessageClient:
         control messages from the CCS
         """
 
-        self.prev_req_time = time.time()
         try:
             now_time = "[" + time.ctime(time.time()) + "]"
             print now_time, "Received Upstream Message"
@@ -164,6 +163,9 @@ class MessageClient:
                 # Indicates it is a control message
                 elif msg['message_type'] == "control":
                     self.handle_control_message(msg)
+
+            self.prev_req_time = time.time()
+
         except Exception, e:
             print "[GCMCLIENT EXCEPTION]: UpMessageHandler ::", e
 
@@ -184,7 +186,10 @@ class MessageClient:
 
         print "Handling request message.."
         print "Time elapsed from the start:", (time.time() - self.start_time)
-        print "Time elapsed from the last request:", (time.time() - self.prev_req_time)
+        if self.prev_req_time is not None:
+            print "Time elapsed from the last request:", (time.time() - self.prev_req_time)
+        else:
+            print "First request"
 
         # Get User Details
         user = determine_user(reg_id)
