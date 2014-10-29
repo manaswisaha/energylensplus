@@ -188,11 +188,11 @@ def combine_streams(df):
     start_time = min(stream1_df.ix[0]['time'], stream2_df.ix[0]['time'])
     end_time = max(stream1_df.ix[stream1_df.index[-1]]['time'],
                    stream2_df.ix[stream2_df.index[-1]]['time'])
-    print "ST:", start_time, "ET:", end_time
+    # print "ST:", start_time, "ET:", end_time
 
     time_values = range(start_time, end_time + 1)
     n_time_values = len(time_values)
-    print "Total values", n_time_values
+    # print "Total values", n_time_values
 
     stream1 = dict(zip(stream1_df.time, stream1_df.power))
     stream2 = dict(zip(stream2_df.time, stream2_df.power))
@@ -217,7 +217,7 @@ def combine_streams(df):
         streams[i] = pd.DataFrame(stream.items(), columns=['time', 'power'])
         streams[i].fillna(method='pad', inplace=True)
         streams[i].fillna(method='bfill', inplace=True)
-        print "Stream", i, ":\n", streams[i].head(10)
+        # print "Stream", i, ":\n", streams[i].head(10)
 
     # Combining Streams
     comb_stream_df = pd.DataFrame({'time': time_values, 'power': [0] * n_time_values},
@@ -227,6 +227,6 @@ def combine_streams(df):
         comb_stream_df.ix[idx]['power'] = streams[0].ix[idx]['power'] + streams[1].ix[idx]['power']
 
     comb_stream_df.sort('time', inplace=True)
-    print "Combined Stream:\n", comb_stream_df.head(20)
+    # print "Combined Stream:\n", comb_stream_df.head(20)
 
     return comb_stream_df

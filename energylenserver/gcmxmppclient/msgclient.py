@@ -42,6 +42,8 @@ class MessageClient:
         self.pong = 0
         self.unacked_messages_quota = 100
         self.unacked_messages_counter = 0
+        self.start_time = time.time()
+        self.prev_req_time = None
 
         """
         Maintain a queue of all the unACKed sent messages
@@ -121,12 +123,24 @@ class MessageClient:
         except Exception, e:
             print "[GCMCLIENT EXCEPTION] SendMessage:", e
 
+    # Doesn't make sense -- alter
+    def resend_queued_messages(self):
+        """
+        Send queued ACK/NACK messages to the device
+        """
+
+        while (self.unacked_messages_counter > 0 and
+               self.unacked_messages_counter < self.unacked_messages_quota):
+            print "Resend some unACKed messages..."
+            self.send_message(self.sent_queue.pop()["message"])
+
     def receive_upstream_message(self, session, message):
         """
         Handles upstream message from the mobile device or
         control messages from the CCS
         """
 
+        self.prev_req_time = time.time()
         try:
             now_time = "[" + time.ctime(time.time()) + "]"
             print now_time, "Received Upstream Message"
@@ -153,17 +167,6 @@ class MessageClient:
         except Exception, e:
             print "[GCMCLIENT EXCEPTION]: UpMessageHandler ::", e
 
-    # Doesn't make sense -- alter
-    def resend_queued_messages(self):
-        """
-        Send queued ACK/NACK messages to the device
-        """
-
-        while (self.unacked_messages_counter > 0 and
-               self.unacked_messages_counter < self.unacked_messages_quota):
-            print "Resend some unACKed messages..."
-            self.send_message(self.sent_queue.pop()["message"])
-
     def handle_request_message(self, message):
 
         reg_id = message['from']
@@ -179,11 +182,17 @@ class MessageClient:
         data_to_send['api'] = api
         data_to_send['options'] = {}
 
+        print "Handling request message.."
+        print "Time elapsed from the start:", (time.time() - self.start_time)
+        print "Time elapsed from the last request:", (time.time() - self.prev_req_time)
+
         # Get User Details
         user = determine_user(reg_id)
         if not user:
             return False
         apt_no = user.apt_no
+
+        print "Determined user successfully!"
 
         if api == PERSONAL_ENERGY_API or api == ENERGY_WASTAGE_REPORT_API:
             # API: personal_energy
