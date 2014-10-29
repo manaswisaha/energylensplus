@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Managing EnergyLensPlus processes
+
+#Get the command option
+arg=$1
+
+if [ "$arg" = 'start' ]; then
+
+	echo "Starting EnergyLensPlus Server..." 
+	echo ${ELENSERVER}
+	# if [ -f $brokerServerFile ]; then
+	# 	echo "SensorAct Application has already started"
+	# else
+	# 	#start sensoractbroker
+	# 	if [ -f $brokerlogfile ]; then
+	# 		cp $brokerlogfile $brokerlogfile.`date +%s`
+	# 		play start ${SENSORACTBROKER_HOME}
+	# 	else
+	# 		echo 'Initiating Broker'
+	# 		play start ${SENSORACTBROKER_HOME}
+	# 	fi
+		
+	# 	#start vpds
+	# 	if [ -f $vpdslogfile ]; then
+	# 		cp $vpdslogfile $vpdslogfile.`date +%s`
+	# 		play start ${SENSORACT_HOME}
+	# 	else
+	# 		echo 'Initiating VPDS'
+	# 		play start ${SENSORACT_HOME}
+	# 	fi
+	
+	# 	#start sensoractapp
+	# 	if [ -f $applogfile ]; then
+	# 		cp $applogfile $applogfile.`date +%s`
+	# 		play start ${SENSORACTAPP_HOME}
+	# 	else
+	# 		echo 'Initiating SensorAct Application'
+	# 		play start ${SENSORACTAPP_HOME}
+	# 	fi		
+	# fi
+	
+elif [ "$arg" = 'stop' ]; then
+	echo "Stopping application.."
+	
+elif [ "$arg" = 'restart' ]; then
+	echo "Restarting application.."
+	
+elif [ "$arg" = 'update' ]; then
+	echo "Updating Application..."	
+
+elif [ "$arg" = 'status' ]; then
+	if [ -f $brokerServerFile ]; then
+		echo "SensorAct Application has already started"
+	else
+		echo "SensorAct Application has not been started. To start, type:"
+		echo -e '\t source sensoract start'
+	fi
+else
+	echo 'Wrong command. Please type in this format-> source sensoract <start|stop|update|restart|find|status|repair|viewkey|gethostip|sethostip>'
+fi
