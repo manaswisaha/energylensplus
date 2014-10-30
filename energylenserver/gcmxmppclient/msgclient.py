@@ -28,7 +28,11 @@ from energylenserver.models.functions import retrieve_metadata, mark_not_active
 from gcmxmppclient.messages import create_message, create_control_message
 from gcmxmppclient.settings import *
 
-from energylenserver.constants import *
+from energylenserver.common_imports import *
+
+# Enable Logging
+logger = logging.getLogger('energylensplus_gcm')
+
 
 """
 Main XMPP Message Client
@@ -57,7 +61,7 @@ class MessageClient:
 
         # Connect to Google server
         if not self.connect_to_gcm_server():
-            print "Authentication failed! Try again!"
+            logger.error("Authentication failed! Try again!")
             sys.exit(1)
 
     def connect_to_gcm_server(self):
@@ -65,7 +69,7 @@ class MessageClient:
         Create a persistent XMPP connection to Google CCS Server
         """
         if self.client is None:
-            print "Not connected"
+            logger.debug("Not connected")
             self.client = xmpp.Client(SERVER, debug=['socket'])
             self.client.connect(server=(SERVER, PORT), secure=1, use_srv=False)
             auth = self.client.auth(USERNAME, PASSWORD)
@@ -118,10 +122,10 @@ class MessageClient:
                 a class, list etc. or something.
                 '''
                 # Introduce a delay using exponential backoff
-                print "NEED TO STOP SENDING MESSAGES"
+                logger.warn("NEED TO STOP SENDING MESSAGES")
                 pass
         except Exception, e:
-            print "[GCMCLIENT EXCEPTION] SendMessage:", e
+            logger.error("[GCMCLIENT EXCEPTION] SendMessage:%s", e)
 
     # Doesn't make sense -- alter
     def resend_queued_messages(self):
@@ -131,7 +135,7 @@ class MessageClient:
 
         while (self.unacked_messages_counter > 0 and
                self.unacked_messages_counter < self.unacked_messages_quota):
-            print "Resend some unACKed messages..."
+            logger.debug("Resend some unACKed messages...")
             self.send_message(self.sent_queue.pop()["message"])
 
     def receive_upstream_message(self, session, message):
@@ -142,7 +146,7 @@ class MessageClient:
 
         try:
             now_time = "[" + time.ctime(time.time()) + "]"
-            print now_time, "Received Upstream Message"
+            logger.debug("%s Received Upstream Message", now_time)
             gcm = message.getTags('gcm')
             if gcm:
                 gcm_json = gcm[0].getData()
@@ -167,7 +171,7 @@ class MessageClient:
             self.prev_req_time = time.time()
 
         except Exception, e:
-            print "[GCMCLIENT EXCEPTION]: UpMessageHandler ::", e
+            logger.debug("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
 
     def handle_request_message(self, message):
 
@@ -184,12 +188,13 @@ class MessageClient:
         data_to_send['api'] = api
         data_to_send['options'] = {}
 
-        print "Handling request message.."
-        print "Time elapsed from the start:", (time.time() - self.start_time)
+        logger.debug("Handling request message..")
+        logger.debug("Time elapsed from the start:%s", (time.time() - self.start_time))
         if self.prev_req_time is not None:
-            print "Time elapsed from the last request:", (time.time() - self.prev_req_time)
+            logger.debug(
+                "Time elapsed from the last request:%s", (time.time() - self.prev_req_time))
         else:
-            print "First request"
+            logger.debug("First request")
 
         # Get User Details
         user = determine_user(reg_id)
@@ -197,7 +202,7 @@ class MessageClient:
             return False
         apt_no = user.apt_no
 
-        print "Determined user successfully!"
+        logger.debug("Determined user successfully!")
 
         if api == PERSONAL_ENERGY_API or api == ENERGY_WASTAGE_REPORT_API:
             # API: personal_energy
@@ -208,7 +213,7 @@ class MessageClient:
             options = get_energy_report(user.dev_id, api, start_time, end_time)
             data_to_send['options'] = options
 
-            print "\nSending data for", api
+            logger.debug("\nSending data for:  %s", api)
 
         elif api == DISAGG_ENERGY_API:
             # API: disaggregated_energy
@@ -222,7 +227,7 @@ class MessageClient:
             data_to_send['options']['activities'] = activities
             # data_to_send['options']['appliances'] = appliances
 
-            print "\nSending diaggregated energy data.."
+            logger.debug("Sending diaggregated energy data..")
 
         # To be used only for testing purposes
         elif api == GROUND_TRUTH_NOTIF_API:
@@ -233,21 +238,21 @@ class MessageClient:
             data_to_send['options']['activities'] = activities
             data_to_send['options']['appliances'] = appliances
 
-            print "\nSending ground truth report.."
+            logger.debug("Sending ground truth report..")
 
         elif api == REASSIGN_INFERENCE_API:
-            print "\nCorrecting inferences.."
+            logger.debug("Correcting inferences..")
 
             # Reassign the specified activity and update the db
             status = correct_inference(user, options)
             data_to_send['options'] = {'status': status}
 
-            # print "Data to send:\n", json.dumps(data_to_send, indent=4)
-            print "\nSending status for correction of inferences.."
+            # logger.debug ("Data to send:\n", json.dumps(data_to_send, indent=4))
+            logger.debug("Sending status for correction of inferences..")
 
         # May not use the following APIs
         elif api == ENERGY_COMPARISON_API:
-            print "\nSending comparison energy data.."
+            logger.debug("Sending comparison energy data..")
 
         # Send a response back based on the api request
         if 'from' in message:
@@ -266,19 +271,19 @@ class MessageClient:
         self.pong += 1
 
         # Acknowledge the incoming message immediately.
-        print "\nSending ACK back to user:"
+        logger.debug("Sending ACK back to user:")
         ack = create_control_message(message['from'], 'ack', message['message_id'])
         self.send_message(ack)
 
         # Determine message type - request or response
         data = message['data']
         if 'msg_type' in data:
-            print "\nProcessing request/response from the user:\n", data
+            logger.debug("Processing request/response from the user:%s", data)
             msg_type = data['msg_type']
             # Request messages:
             if msg_type == "request":
                 sent_status = self.handle_request_message(message)
-                print "Message sent status:", sent_status
+                logger.debug("Message sent status:%s", sent_status)
             elif msg_type == "response":
                 self.handle_response_message(message)
         else:
@@ -286,7 +291,7 @@ class MessageClient:
             # Queue a response back to the server.
             if 'from' in message:
                 # Send a dummy echo response back to the app that sent the upstream message.
-                print "\nSending pong message back.."
+                logger.debug("Sending pong message back..")
                 message = create_message(message['from'], {'pong': self.pong, 'ping': 100})
                 self.send_message(message)
 
@@ -299,9 +304,9 @@ class MessageClient:
         msg_id = message['message_id']
         reg_id = message['from']
         now_time = "[" + time.ctime(time.time()) + "]"
-        print now_time, "Received ACK"
-        print "MessageID:", msg_id
-        # print "1 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4)
+        logger.debug("%s Received ACK", now_time)
+        logger.debug("MessageID:%s", msg_id)
+        # logger.debug ("1 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4))
         if msg_id in self.sent_queue and self.sent_queue[msg_id]["reg_id"] == reg_id:
 
             # Remove message from the unACKed message queue
@@ -314,7 +319,7 @@ class MessageClient:
             if len_queue > 0:
                 # Resend some messages in the queue
                 self.resend_queued_messages()
-            print "3 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4)
+            logger.debug ("3 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4))
             """
 
     def handle_nack(self, message):
@@ -326,44 +331,44 @@ class MessageClient:
 
         # Handle different error codes
         if error == "BAD_ACK":
-            print "BAD_ACK"
+            logger.error("BAD_ACK")
 
         elif error == "BAD_REGISTRATION":
-            print "BAD_REGISTRATION request received"
+            logger.error("BAD_REGISTRATION request received")
             # Mark the registration as "not active" in the database
             if mark_not_active(message["from"]):
-                print "Successfully marked not active"
+                logger.debug("Successfully marked not active")
             else:
-                print "Successfully marked active"
+                logger.debug("Successfully marked active")
 
         elif error == "CONNECTION_DRAINING":
-            print "CONNECTION_DRAINING"
+            logger.error("CONNECTION_DRAINING")
 
         elif error == "DEVICE_UNREGISTERED":
-            print "DEVICE_UNREGISTERED. \nDeleting record"
+            logger.error("DEVICE_UNREGISTERED. \nDeleting record")
             # Mark the registration as "not active" in the database
             if mark_not_active(message["from"]):
-                print "Successfully marked not active"
+                logger.debug("Successfully marked not active")
             else:
-                print "Successfully marked active"
+                logger.debug("Successfully marked active")
 
         elif error == "INTERNAL_SERVER_ERROR":
-            print "INTERNAL_SERVER_ERROR"
+            logger.error("INTERNAL_SERVER_ERROR")
 
         elif error == "INVALID_JSON":
-            print "INVALID_JSON"
+            logger.error("INVALID_JSON")
 
         elif error == "QUOTA_EXCEEDED":
-            print "QUOTA_EXCEEDED"
+            logger.error("QUOTA_EXCEEDED")
 
         elif error == "SERVICE_UNAVAILABLE":
             # Start exponential backoff with an intial delay of 1 second
-            print "SERVICE_UNAVAILABLE"
+            logger.error("SERVICE_UNAVAILABLE")
 
     def handle_control_message(self, message):
         # Connection about to close from the CCS
         if message['control_type'] == 'CONNECTION_DRAINING':
             # Open a new connection keeping the old connection open
             if not self.connect_to_gcm_server():
-                print "Authentication failed! Try again!"
+                logger.debug("Authentication failed! Try again!")
                 sys.exit(1)
