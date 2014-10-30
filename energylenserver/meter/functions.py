@@ -184,9 +184,6 @@ def combine_streams(df):
     stream1_df['time'] = (stream1_df['time'] / 1000).astype('int')
     stream2_df['time'] = (stream2_df['time'] / 1000).astype('int')
 
-    print stream1_df.head()
-    print stream2_df.head()
-
     start_time = min(stream1_df.ix[0]['time'], stream2_df.ix[0]['time'])
     end_time = max(stream1_df.ix[stream1_df.index[-1]]['time'],
                    stream2_df.ix[stream2_df.index[-1]]['time'])
