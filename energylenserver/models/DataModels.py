@@ -6,6 +6,10 @@ from django.db import models
 from django.db import connection
 
 from models import RegisteredUsers
+import logging
+
+# Enable Logging
+logger = logging.getLogger('energylensplus_celery')
 
 """
 Models for storing phone sensor data
@@ -45,9 +49,9 @@ class AcclData(SensorData):
                                               " label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               "dev_id_id = " + str(user.dev_id), [filename])
-            print "Number of records inserted: " + str(records_inserted)
+            logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
-            print "[FileSaveException] AcclData::" + str(e)
+            logger.error("[FileSaveException] AcclData::%s", str(e))
         os.remove(filename)
 
     class Meta(SensorData.Meta):
@@ -88,9 +92,9 @@ class WiFiData(SensorData):
                                               " FIELDS TERMINATED BY ',' IGNORE 1 LINES "
                                               "(timestamp, macid, ssid, rssi, label) "
                                               "SET dev_id_id = " + str(user.dev_id), [filename])
-            print "Number of records inserted: " + str(records_inserted)
+            logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
-            print "[FileSaveException] WiFiData::" + str(e)
+            logger.error("[FileSaveException] WiFiData::%s", str(e))
         os.remove(filename)
 
     class Meta(SensorData.Meta):
@@ -132,9 +136,9 @@ class RawAudioData(SensorData):
                                               " (@timestamp, value, label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               "dev_id_id = " + str(user.dev_id), [filename])
-            print "Number of records inserted: " + str(records_inserted)
+            logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
-            print "[FileSaveException] RawAudioData::" + str(e)
+            logger.error("[FileSaveException] RawAudioData::%s", str(e))
         os.remove(filename)
 
     class Meta(SensorData.Meta):
@@ -187,9 +191,9 @@ class MFCCFeatureSet(SensorData):
                                               "mfcc11, mfcc12, mfcc13, label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
-            print "Number of records inserted: " + str(records_inserted)
+            logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
-            print "[FileSaveException] MFCCFeatureSet::" + str(e)
+            logger.error("[FileSaveException] MFCCFeatureSet::%s", str(e))
         os.remove(filename)
 
     class Meta(SensorData.Meta):
@@ -230,9 +234,9 @@ class LightData(SensorData):
                                               "(@timestamp, value, label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
-            print "Number of records inserted: " + str(records_inserted)
+            logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
-            print "[FileSaveException] LightData::" + str(e)
+            logger.error("[FileSaveException] LightData::%s", str(e))
         os.remove(filename)
 
     class Meta(SensorData.Meta):
@@ -276,9 +280,9 @@ class MagData(SensorData):
                                               "label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
-            print "Number of records inserted: " + str(records_inserted)
+            logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
-            print "[FileSaveException] MagData::" + str(e)
+            logger.error("[FileSaveException] MagData::%s", str(e))
         os.remove(filename)
 
     class Meta(SensorData.Meta):

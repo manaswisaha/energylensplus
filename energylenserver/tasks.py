@@ -43,6 +43,7 @@ from energylenserver.common_imports import *
 
 # Enable Logging
 logger = logging.getLogger('energylensplus_celery')
+meter_logger = logging.getLogger('energylensplus_meterdata')
 
 
 # Global variables
@@ -96,15 +97,14 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     :return upload status:
     """
 
-    now_time = "[" + time.ctime(time.time()) + "]"
-    logger.debug(" %s FILE:: %s", now_time, filename)
+    logger.debug("FILE:: %s", filename)
 
     # Create a dataframe for preprocessing
     if sensor_name != 'rawaudio':
         try:
             df_csv = pd.read_csv(filepath)
         except Exception, e:
-            logger.debug("[InsertDataException]!::%s", str(e))
+            logger.error("[InsertDataException]::%s", str(e))
             os.remove(filepath)
             return
 
@@ -114,7 +114,7 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
             df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
 
     if sensor_name != 'rawaudio':
-        logger.debug("Total number of records to insert: %s", str(len(df_csv)))
+        logger.debug("Total number of records to insert: %d", len(df_csv))
 
         # Remove NAN timestamps
         df_csv.dropna(subset=[0], inplace=True)
@@ -133,7 +133,8 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     model[0]().insert_records(user, filepath, model[1])
 
     now_time = "[" + time.ctime(time.time()) + "]"
-    logger.debug(" %s Successful Upload for %s %s !!\n", now_time, sensor_name, filename)
+    logger.debug(" %s Successful Upload for %s %s !!", now_time, sensor_name, filename)
+    send_wastage_notification(1201)
 
 
 @shared_task
@@ -144,7 +145,7 @@ def meterDataHandler(df, file_path):
 
     meter_uuid_folder = os.path.dirname(file_path)
     uuid = meter_uuid_folder.split('/')[-1]
-    logger.debug("Detecting Edges for UUID:: %s", uuid)
+    meter_logger.debug("Detecting Edges for UUID:: %s", uuid)
 
     # -- Detect Edge --
     edges_df = edge_detection.detect_and_filter_edges(df)
@@ -172,13 +173,13 @@ def meterDataHandler(df, file_path):
                                curr_power=edge.curr_power, meter=meter)
                 edge_r.save()
 
-                logger.debug("Edge for UUID: %s at [%s] of mag %d", uuid, time.ctime(
+                meter_logger.debug("Edge for UUID: %s at [%s] of mag %d", uuid, time.ctime(
                     edge['time']), str(edge['magnitude']))
 
                 # Initiate classification pipeline
                 edgeHandler(edge_r)
         except Exception, e:
-            logger.error("[EdgeSaveException]:: %s", str(e))
+            meter_logger.error("[EdgeSaveException]:: %s", str(e))
 
 
 def edgeHandler(edge):

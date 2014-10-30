@@ -1,12 +1,16 @@
 from energylenserver.models.functions import *
 
+# Enable Logging
+import logging
+logger = logging.getLogger('energylensplus_django')
+
 
 def correct_inference(user, parameters):
     """
     Reassigns an activity with the given parameters
     """
 
-    print "Reassign called for:", user.name
+    logger.debug("Reassign called for:%s", user.name)
 
     try:
         # Unbundle request
@@ -19,18 +23,18 @@ def correct_inference(user, parameters):
             time_of_stay = activity['time_of_stay']
             to_occupant_dev_id = activity['to_occupant']
 
-            print "\nActivityID:", act_id
-            print "True Appliance", true_appl
-            print "True Location", true_loc
-            print "Accuracy Status:", incorrect
-            print "Time of stay:", time_of_stay
-            print "To Occupant:", to_occupant_dev_id
+            logger.debug("\nActivityID:%s", act_id)
+            logger.debug("True Appliance%s", true_appl)
+            logger.debug("True Location%s", true_loc)
+            logger.debug("Accuracy Status:%s", incorrect)
+            logger.debug("Time of stay:%s", time_of_stay)
+            logger.debug("To Occupant:%s", to_occupant_dev_id)
 
             # Update activity
             # if incorrect and len(true_appl) > 0 and len(true_loc) > 0:
             #     update_activities(act_id, true_appl, true_loc)
     except Exception as e:
-        print "[ReassignInferenceException]:: " + str(e)
+        logger.error("[ReassignInferenceException]:: " + str(e))
         return False
 
     return True

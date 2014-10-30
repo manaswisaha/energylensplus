@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Establishing connection with the running gcmserver
-        print "Waiting for requests from the Google Server..."
+        logger.info("Waiting for requests from the Google Server...")
         try:
             ClientManager.register('get_client')
             ClientManager.register('get_msg_client')

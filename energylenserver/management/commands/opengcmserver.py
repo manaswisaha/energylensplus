@@ -6,7 +6,6 @@ Django server running simultaneously
 
 """
 import sys
-import time
 import threading
 from multiprocessing.managers import BaseManager
 
@@ -14,7 +13,7 @@ from multiprocessing.managers import BaseManager
 from django.core.management.base import BaseCommand
 
 from energylenserver.gcmxmppclient.msgclient import MessageClient
-from energylenserver.common_imports import *
+import logging
 
 # Enable Logging
 logger = logging.getLogger('energylensplus_gcm')
@@ -71,6 +70,7 @@ class Command(BaseCommand):
             try:
                 # manager.run_server_forever(server, client, msg_client)
                 self.stdout.write("--------------------------------------------")
+                import time
                 while True:
                     t1 = time.time()
                     self.stdout.write("Start time for while loop:: %s" % time.ctime(t1))

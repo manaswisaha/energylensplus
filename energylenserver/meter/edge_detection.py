@@ -14,6 +14,9 @@ import pandas as pd
 from filters import *
 from energylenserver.common_imports import *
 
+# Enable Logging
+logger = logging.getLogger('energylensplus_meterdata')
+
 # Global variables
 stars = 30
 
@@ -42,9 +45,9 @@ def detect_edges_from_meters(streams_df):
         first_idx = df_i.index[0]
         stream_type = df_i.ix[first_idx]['type']
 
-        print "Detecting Edges for Stream:", stream_type
+        logger.debug("Detecting Edges for Stream:%s", stream_type)
         stream_edges[stream_type] = detect_edges(df_i)
-        # print "Stream edges:\n", stream_edges
+        # logger.debug("Stream edges:\n", stream_edges
     return stream_edges
 
 
@@ -64,7 +67,7 @@ def detect_edges(df):
             rise_edges.append(edge)
         elif edge_type == "falling":
             fall_edges.append(edge)
-        # print "Edge: " + str(edge)
+        # logger.debug("Edge: " + str(edge)
 
     # --Storing edges in a df--
     rise_df = pd.DataFrame(columns=['index', 'time',
@@ -140,7 +143,8 @@ def check_if_edge(df, index, power_stream):
     #     print("prev={0} curr={1} next={2}".format(prev, curr, next))
     #     print("curr_next_diff::{0}  prev_curr_diff::{1}".format(curr_next_diff, prev_curr_diff))
 
-    # print "[" + t.ctime(time) + "] currnextnextDIFF:" + str(math.fabs(curr_nextnext_diff))
+    # logger.debug("[" + t.ctime(time) + "] currnextnextDIFF:" + str(math.fabs(curr_nextnext_diff))
+
     # Removes spikes
     if math.fabs(curr_nextnext_diff) < thresmin:
         # print("[{0} currnextnext:{1} curr_nextnext_diff:{2}".format(
@@ -150,10 +154,10 @@ def check_if_edge(df, index, power_stream):
     # Rising Edge
     if (curr_nextwin_diff >= thresmin and prev_curr_diff <= 5 and curr_next_diff > prev_curr_diff):
 
-        print("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
-        print("prev={0} curr={1} next={2}".format(prev, curr, next))
-        print("curr_next_diff::{0}  prev_curr_diff::{1} curr_nextnext_diff::{2}".
-              format(curr_next_diff, prev_curr_diff, math.fabs(curr_nextnext_diff)))
+        logger.debug("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
+        logger.debug("prev={0} curr={1} next={2}".format(prev, curr, next))
+        logger.debug("curr_next_diff::{0}  prev_curr_diff::{1} curr_nextnext_diff::{2}".
+                     format(curr_next_diff, prev_curr_diff, math.fabs(curr_nextnext_diff)))
 
         edge_type = "rising"
 
@@ -161,10 +165,16 @@ def check_if_edge(df, index, power_stream):
             # Storing the rising edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
                    curr_nextwin_diff, "type": edge_type, "curr_power": curr}
-            # print "Missing Sample: edge at [" + t.ctime(time) + "]" + json.dumps(row)
+            # logger.debug("Missing Sample: edge at [" + t.ctime(time) + "]" + json.dumps(row)
+            return edge_type, row
+        if curr_next_diff >= thresmin:
+            # Storing the rising edge e_i = (time_i, mag_i)
+            row = {"index": i, "time": time, "magnitude":
+                   curr_nextwin_diff, "type": edge_type, "curr_power": curr}
+            # logger.debug("Missing Sample: edge at [" + t.ctime(time) + "]" + json.dumps(row)
             return edge_type, row
         else:
-            # print "Rise: None of the conditions satisfied:: [" + t.ctime(time) + "]"
+            # logger.debug("Rise: None of the conditions satisfied:: [" + t.ctime(time) + "]"
             pass
 
     # Falling Edge
@@ -172,28 +182,28 @@ def check_if_edge(df, index, power_stream):
           and ((curr_next_diff != 0 and prev_curr_diff != 0) or (curr_next_diff > prev_curr_diff))
           and math.fabs(curr_prevwin_diff) < thresmin and curr_next_diff > thresmin):
 
-        print("Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
-        print("prev={0} curr={1} next={2}".format(prev, curr, next))
-        print("curr_next_diff::{0} prev_curr_diff::{1} curr_prevwin_diff::{2}".
-              format(curr_next_diff, prev_curr_diff,
-                     curr_prevwin_diff))
+        logger.debug("Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
+        logger.debug("prev={0} curr={1} next={2}".format(prev, curr, next))
+        logger.debug("curr_next_diff::{0} prev_curr_diff::{1} curr_prevwin_diff::{2}".
+                     format(curr_next_diff, prev_curr_diff,
+                            curr_prevwin_diff))
 
         edge_type = "falling"
         if curr_next_diff < thresmin or curr_next_diff > thresmin:
             # Storing the falling edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
                    curr_nextwin_diff, "type": edge_type, "curr_power": curr}
-            # print "Falling Edge2: edge at [" + t.ctime(time) + "]" + json.dumps(row)
+            # logger.debug("Falling Edge2: edge at [" + t.ctime(time) + "]" + json.dumps(row)
             return edge_type, row
 
         if prev_missing_sample is True or next_missing_sample is True:
             # Storing the falling edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
                    curr_nextwin_diff, "type": edge_type, "curr_power": curr}
-            # print "Falling Edge1: edge at [" + t.ctime(time) + "]" + json.dumps(row)
+            # logger.debug("Falling Edge1: edge at [" + t.ctime(time) + "]" + json.dumps(row)
             return edge_type, row
 
         else:
-            # print "Fall: None of the conditions satisfied: [" + t.ctime(time) + "]"
+            # logger.debug("Fall: None of the conditions satisfied: [" + t.ctime(time) + "]"
             pass
     return "Not an edge", {}

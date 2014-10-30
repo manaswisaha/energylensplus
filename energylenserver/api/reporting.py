@@ -7,6 +7,11 @@ from numpy import random
 from constants import PERSONAL_ENERGY_API, ENERGY_WASTAGE_REPORT_API
 from energylenserver.models.functions import *
 
+
+# Enable Logging
+import logging
+logger = logging.getLogger('energylensplus_gcm')
+
 """
 Helper Functions
 """
@@ -55,14 +60,14 @@ def get_energy_report(reg_id, api, start_time, end_time):
         end_time_str = end_time.split(" ")
         if end_time_str[2] == "hours":
             no_of_hours = int(end_time_str[1])
-            print "Number of hours:", no_of_hours
+            logger.debug("Number of hours:%d", no_of_hours)
     end_time = time.time()
     start_time = end_time - no_of_hours * 3600
 
     # Temp code
     # usage_list = [1000, 1030, 1100, 4500, 2300, 5500, 3200, 2100, 5500, 6000, 3000, 7800]
     usage_list = random.randint(1000, size=no_of_hours)
-    print "Energy Usage", usage_list
+    logger.debug("Energy Usage:%s", usage_list)
 
     total_usage = sum(usage_list)
     perc_list = constrained_sum_sample_pos(4, 100)
@@ -76,7 +81,7 @@ def get_energy_report(reg_id, api, start_time, end_time):
         # if activities:
             # usage_entries = retrieve_usage_entries(activities.keys())
             # hourly_usage = determine_hourly_usage(no_of_hours, activities, usage_entries)
-            # print "Detected Activities:\n " + activities
+            # logger.debug "Detected Activities:\n " + activities
 
         # Temp code
         options['total_consumption'] = total_usage
@@ -159,7 +164,7 @@ def disaggregated_energy(reg_id, activity_name, start_time, end_time):
         end_time_str = end_time.split(" ")
         if end_time_str[2] == "hours":
             no_of_hours = int(end_time_str[1])
-            print "Number of hours:", no_of_hours
+            logger.debug("Number of hours:%d", no_of_hours)
             end_time = time.time()
             start_time = end_time - no_of_hours * 3600
 

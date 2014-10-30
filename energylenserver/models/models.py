@@ -1,5 +1,9 @@
 from django.db import models
 
+# Enable Logging
+import logging
+logger = logging.getLogger('energylensplus_django')
+
 """
 Models for the rest of the application
 """
@@ -226,7 +230,7 @@ class UsageLogScreens(models.Model):
                            "dev_id_id = " + str(user.dev_id), [filename])
             os.remove(filename)
         except Exception, e:
-            print "[SaveStatsException] UsageLogScreens::" + str(e)
+            logger.error("[SaveStatsException] UsageLogScreens::%s", str(e))
 
     class Meta:
         db_table = 'UsageLogScreens'
@@ -259,7 +263,7 @@ class UsageLogNotifs(models.Model):
                            "dev_id_id = " + str(user.dev_id), [filename])
             os.remove(filename)
         except Exception, e:
-            print "[SaveStatsException] UsageLogNotifs::" + str(e)
+            logger.error("[SaveStatsException] UsageLogNotifs::%s", str(e))
 
     class Meta:
         db_table = 'UsageLogNotifs'
