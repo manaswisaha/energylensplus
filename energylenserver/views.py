@@ -73,14 +73,14 @@ def register_device(request):
             home_ap = payload['home_ap']
             other_ap = payload['other_ap']
 
-            logger.debug("\n--User Registration Details--")
-            logger.debug("RegID:%s", reg_id)
-            logger.debug("Username:%s", user_name)
-            logger.debug("Email ID:%s", email_id)
-            logger.debug("Device ID:%s", dev_id)
-            logger.debug("Apartment Number:%s", apt_no)
-            logger.debug("Home AP:%s", home_ap)
-            logger.debug("Other APs:%s", other_ap)
+            logger.debug("--User Registration Details--")
+            logger.debug("RegID: %s", reg_id)
+            logger.debug("Username: %s", user_name)
+            logger.debug("Email ID: %s", email_id)
+            logger.debug("Device ID: %s", dev_id)
+            logger.debug("Apartment Number: %s", apt_no)
+            logger.debug("Home AP: %s", home_ap)
+            logger.debug("Other APs: %s", other_ap)
 
             if apt_no.isdigit():
 

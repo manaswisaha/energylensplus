@@ -32,16 +32,19 @@ if [ "$arg" = 'start' ]; then
    exit 2             		# and fail ($0 is name of command).
    fi
 
-   # Managing log files
-   cp $default_logfile ${HOME}"logs/old_logs/django"_`date +%F_%T`".log"
-   cp $main_logfile ${HOME}"logs/old_logs/energylens"_`date +%F_%T`".log"
-   cp $gcm_logfile ${HOME}"logs/old_logs/gcmserver"_`date +%F_%T`".log"
-   cp $celery_logfile ${HOME}"logs/old_logs/celery"_`date +%F_%T`".log"
-   cp $meterdata_logfile ${HOME}"logs/old_logs/meter_data"_`date +%F_%T`".log"
-   cd $HOME"logs/"
-   ls *.log
-   rm *.log
-   cd $HOME
+    # Managing log files
+    cd $HOME"logs/"
+    no_of_log_files=$(ls -1 *.log | wc -l)
+    echo $no_of_log_files
+    if [ $no_of_log_files = 5 ]; then
+	   cp $default_logfile ${HOME}"logs/old_logs/django"_`date +%F_%T`".log"
+	   cp $main_logfile ${HOME}"logs/old_logs/energylens"_`date +%F_%T`".log"
+	   cp $gcm_logfile ${HOME}"logs/old_logs/gcmserver"_`date +%F_%T`".log"
+	   cp $celery_logfile ${HOME}"logs/old_logs/celery"_`date +%F_%T`".log"
+	   cp $meterdata_logfile ${HOME}"logs/old_logs/meter_data"_`date +%F_%T`".log"
+	   rm *.log
+	fi
+    cd $HOME
 
 	echo "Starting EnergyLensPlus Server..."
 
