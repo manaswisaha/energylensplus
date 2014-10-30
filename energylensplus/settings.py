@@ -60,10 +60,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'energylensplus',
-        'HOST': '192.168.1.38',
-        'USER': 'manaswi',
-        # 'USER': 'root',
-        # 'HOST': '127.0.0.1',
+        # 'HOST': '192.168.1.38',
+        # 'USER': 'manaswi',
+        'USER': 'root',
+        'HOST': '127.0.0.1',
         'PASSWORD': 'research',
         'OPTIONS': {
             'local_infile': 1,
@@ -77,11 +77,11 @@ LOGGING = {
     'formatters':
     {
         'verbose': {
-            'format': "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+            'format': "[%(asctime)s] %(levelname)s [%(module)s:%(lineno)s] %(message)s",
             'datefmt': "%d/%b/%Y %H:%M:%S"
         },
         'simple': {
-            'format': '[%(asctime)s] %(levelname)s %(message)s',
+            'format': '[%(asctime)s] %(levelname)s [%(module)s:%(lineno)s] %(message)s',
             'datefmt': "%d/%b/%Y %H:%M:%S"
         },
     },
@@ -89,13 +89,57 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/django.log'),
+            'formatter': 'simple'
+        },
+        'main_django': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'logs/energylens.log'),
-            'formatter': 'verbose'
+            'formatter': 'simple'
+        },
+        'gcmserver': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/gcmserver.log'),
+            'formatter': 'simple'
+        },
+        'meter_data': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/meter_data.log'),
+            'formatter': 'simple'
+        },
+        'celery': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/celery.log'),
+            'formatter': 'simple'
         },
     },
     'loggers': {
-        'django': {
+        'django.request': {
             'handlers': ['file'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+        'energylensplus_django': {
+            'handlers': ['main_django'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+        'energylensplus_gcm': {
+            'handlers': ['gcmserver'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+        'energylensplus_meterdata': {
+            'handlers': ['meter_data'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+        'energylensplus_celery': {
+            'handlers': ['celery'],
             'propagate': True,
             'level': 'DEBUG',
         },

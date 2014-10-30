@@ -19,22 +19,30 @@ from multiprocessing.managers import BaseManager
 
 from celery import shared_task
 
-# Imports from EnergyLens+
+"""
+Imports from EnergyLens+
+"""
+# DB Imports
 from energylenserver.models.models import *
 from energylenserver.models.DataModels import *
-
-from energylenserver.core import classifier
-from energylenserver.core import functions as core_f
-
 from energylenserver.models import functions as mod_func
 
+# Core Algo imports
+from energylenserver.core import classifier
+from energylenserver.core import functions as core_f
 from energylenserver.meter import edge_detection
 
+# GCM Client imports
 from energylenserver.gcmxmppclient.messages import create_message
 
+# Reporting API imports
 from energylenserver.api import reporting as rpt
 
-from energylenserver.constants import ENERGY_WASTAGE_NOTIF_API, GROUND_TRUTH_NOTIF_API
+# Common imports
+from energylenserver.common_imports import *
+
+# Enable Logging
+logger = logging.getLogger('energylensplus_celery')
 
 
 # Global variables
@@ -89,14 +97,14 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     """
 
     now_time = "[" + time.ctime(time.time()) + "]"
-    print now_time + " FILE:: " + filename
+    logger.debug(" %s FILE:: %s", now_time, filename)
 
     # Create a dataframe for preprocessing
     if sensor_name != 'rawaudio':
         try:
             df_csv = pd.read_csv(filepath)
         except Exception, e:
-            print "[InsertDataException]!::", str(e)
+            logger.debug("[InsertDataException]!::%s", str(e))
             os.remove(filepath)
             return
 
@@ -106,7 +114,7 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
             df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
 
     if sensor_name != 'rawaudio':
-        print "Total number of records to insert: " + str(len(df_csv))
+        logger.debug("Total number of records to insert: %s", str(len(df_csv)))
 
         # Remove NAN timestamps
         df_csv.dropna(subset=[0], inplace=True)
@@ -125,7 +133,7 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     model[0]().insert_records(user, filepath, model[1])
 
     now_time = "[" + time.ctime(time.time()) + "]"
-    print now_time + " Successful Upload for " + sensor_name + " " + filename + "!!\n"
+    logger.debug(" %s Successful Upload for %s %s !!\n", now_time, sensor_name, filename)
 
 
 @shared_task
@@ -136,7 +144,7 @@ def meterDataHandler(df, file_path):
 
     meter_uuid_folder = os.path.dirname(file_path)
     uuid = meter_uuid_folder.split('/')[-1]
-    print "Detecting Edges for UUID:: " + uuid
+    logger.debug("Detecting Edges for UUID:: %s", uuid)
 
     # -- Detect Edge --
     edges_df = edge_detection.detect_and_filter_edges(df)
@@ -164,27 +172,27 @@ def meterDataHandler(df, file_path):
                                curr_power=edge.curr_power, meter=meter)
                 edge_r.save()
 
-                print("Edge for UUID: " + uuid + " at [" + time.ctime(edge['time']) + "] of mag "
-                      + str(edge['magnitude']))
+                logger.debug("Edge for UUID: %s at [%s] of mag %d", uuid, time.ctime(
+                    edge['time']), str(edge['magnitude']))
 
                 # Initiate classification pipeline
                 edgeHandler(edge_r)
         except Exception, e:
-            print "[EdgeSaveException]:: " + str(e)
+            logger.error("[EdgeSaveException]:: %s", str(e))
 
 
 def edgeHandler(edge):
     """
     Starts the classification pipeline and relays edges based on edge type
     """
-    print "Starting the Classification pipeline.."
+    logger.debug("Starting the Classification pipeline..")
     if edge.type == "falling":
         chain = classifyEdgeHandler.s(
             edge) | findTimeSliceHandler.s() | determineWastageHandler.s()
     else:
         chain = classifyEdgeHandler.s(edge) | determineWastageHandler.s()
     chain()
-    print("Classification Pipeline ended for edge: [%s] :: %d" % (
+    logger.debug("Classification Pipeline ended for edge: [%s] :: %d", (
         time.ctime(edge.timestamp), edge.magnitude))
 
 """
@@ -201,7 +209,7 @@ def classifyEdgeHandler(edge):
     :return "where", what" and "who" labels:
     """
     apt_no = edge.meter.apt_no
-    print("Apt.No.:: %d Classify edge of type: '%s' : [%s] :: %d" % (
+    logger.debug("Apt.No.:: %d Classify edge of type: '%s' : [%s] :: %d", (
         apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude))
 
     # Defining event window
@@ -237,8 +245,8 @@ def classifyEdgeHandler(edge):
     else:
         event_type = "OFF"
 
-    print("[%s] :: Determined labels: %s %s %s" %
-         (time.ctime(edge.timestamp), who, where, what))
+    logger.debug("[%s] :: Determined labels: %s %s %s" %
+                 (time.ctime(edge.timestamp), who, where, what))
 
     # Create a record in the Event Log with edge id
     # and store who what where labels
@@ -263,7 +271,7 @@ def findTimeSliceHandler(result_labels):
     :return when:
     """
     who, what, where, event = result_labels
-    print("Determines activity duration: [%s] :: %s" % (
+    logger.debug("Determines activity duration: [%s] :: %s" % (
         time.ctime(edge.timestamp), str(edge.magnitude)))
 
     if who == 'ignore' and what == 'ignore' and where == 'ignore':
@@ -271,9 +279,8 @@ def findTimeSliceHandler(result_labels):
     time.sleep(2)
     start_time = time.ctime(edge.timestamp - 10)
     end_time = time.ctime(edge.timestamp)
-    print("[" + time.ctime(edge.timestamp) + "] :: Time slice for activity: "
-          + who + " uses " + what + " in " + where + " during " + start_time + " and " + end_time)
-
+    logger.debug("[%s] :: Time slice for activity: %s uses %s in %s during %s and %s",
+                 time.ctime(edge.timestamp), who, what, where, start_time, end_time)
     return start_time, end_time, event
 
 """
@@ -294,9 +301,9 @@ def determineWastageHandler(result_labels):
     who, what, where, event = result_labels
     reg_id = ''  # Get regid based on the who value
 
-    print("Determines energy wastage:: [%s] :: %s" % (
+    logger.debug("Determines energy wastage:: [%s] :: %s" % (
         time.ctime(edge.timestamp), str(edge.magnitude)))
-    print "Activity: " + who + " in " + where + " uses " + what
+    logger.debug("Activity: %s in %s uses %s", who, where, what)
     # Call module that determines energy wastage
     time.sleep(2)
 
@@ -310,7 +317,7 @@ def determineWastageHandler(result_labels):
         inform_user.delay(edge, reg_id, message_to_send)
         pass
 
-    print "Wastage Determined: " + str(energy_wasted)
+    logger.debug("Wastage Determined: %s", str(energy_wasted))
 
     return energy_wasted
 
@@ -323,7 +330,7 @@ def apportion_energy():
 
     :return: energy usage
     """
-    print "Apportioning energy.."
+    logger.debug("Apportioning energy..")
 
 
 """
@@ -336,11 +343,11 @@ def send_validation_report():
     """
     Sends a ground truth validation report to all the users
     """
-    print "Sending periodic validation report.."
+    logger.debug("Sending periodic validation report..")
     # Get all the users
     users = mod_func.get_all_users()
     if users is False:
-        print "No users that are active"
+        logger.debug("No users that are active")
         return
     for user in users:
         reg_id = user.reg_id
@@ -374,7 +381,7 @@ def send_validation_report():
         # Send the message to all the users
         client.send_message(message)
 
-        print "Sending report for:: " + user.name
+        logger.debug("Sending report for:: %s", user.name)
 
 
 @shared_task
@@ -388,7 +395,7 @@ def send_wastage_notification(apt_no):
     # Get all the users in the apt_no where wastage was detected
     users = mod_func.retrieve_users(apt_no)
     if users is False:
-        print "No users that are active"
+        logger.debug("No users that are active")
         return
     # Create notification for active users
     for user in users:
@@ -409,7 +416,7 @@ def send_wastage_notification(apt_no):
         # Send the message to all the users
         client.send_message(message)
 
-        print "Sending wastage notification for:: " + user.name
+        logger.debug("Sending wastage notification for:: %s", user.name)
 
 
 @shared_task
@@ -418,11 +425,11 @@ def inform_user(edge, reg_id, message_to_send):
     Informs the user by sending a notification to the phone
     :return message:
     """
-    print "Sending message:: [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
+    logger.debug("Sending message:: [%s] :: %s", time.ctime(edge.timestamp), str(edge.magnitude))
     # Call module that sends message
     message = create_message(reg_id, message_to_send)
     client.send_message(message)
-    print "Message Sent [" + time.ctime(edge.timestamp) + "] :: " + str(edge.magnitude)
+    logger.debug("Message Sent [%s]::", time.ctime(edge.timestamp), str(edge.magnitude))
 
 """
 Test Task
@@ -431,7 +438,7 @@ Test Task
 
 @shared_task
 def send_msg(reg_id):
-    print "Sending Message [" + time.ctime(time.time()) + "]"
+    logger.debug("Sending Message at [%s]", time.ctime(time.time()))
     message_to_send = {}
     message_to_send['msg_type'] = 'response'
     message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
@@ -439,36 +446,36 @@ def send_msg(reg_id):
     message_to_send['options']['message'] = 'Please turn off the Light in the Bedroom'
     message = create_message(reg_id, message_to_send)
     client.send_message(message)
-    print "Message Sent [" + time.ctime(time.time()) + "]"
+    logger.debug("Message Sent at [%s]", time.ctime(time.time()))
 
 
 '''
 Test Tasks
 @shared_task
 def test_task(x):
-    print "X=" + str(x)
+    logger.debug("X=" + str(x)
     relay(x)
 
 
 def relay(x):
-    print "Called relay"
+    logger.debug("Called relay"
     chain = add.s(x, 10) | mul.s(1001)
     chain()
 
 @shared_task
 def add(x,y):
-    print "Called Add"
-    print "x="+ str(x) + " y=" + str(y)
+    logger.debug("Called Add"
+    logger.debug("x="+ str(x) + " y=" + str(y)
     z = x+y
     return x,y,z
 
 @shared_task
 def mul(s, n):
-    print "Called mul"
+    logger.debug("Called mul"
     print n
     print s
     (x,y,z) = s
-    print "x="+ str(x) + " y=" + str(y) + " z=" + str(z)
+    logger.debug("x="+ str(x) + " y=" + str(y) + " z=" + str(z)
     w = x * y * z
-    print "W=" + w
+    logger.debug("W=" + w
 '''

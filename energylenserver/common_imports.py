@@ -1,7 +1,8 @@
 import logging
 from constants import *
 
-# Enable Logging
-logger = logging.getLogger('energylensplus')
-# logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.INFO)
+
+def logger_test():
+    logger = logging.getLogger(__name__)
+    logger.debug("Added Logger")
+    logger.info("Info message")

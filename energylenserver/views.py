@@ -5,7 +5,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
 
-from constants import *
+from common_imports import *
 from models.models import *
 from models.DataModels import *
 from meter.functions import *
@@ -14,7 +14,6 @@ from functions import *
 from energylenserver.preprocessing import wifi
 from energylenserver.api.reassign import *
 from energylenserver.tasks import phoneDataHandler
-from energylenserver.core import functions as core_f
 
 import os
 import sys
@@ -22,6 +21,10 @@ import json
 import time
 import pandas as pd
 import datetime as dt
+
+
+# Enable Logging
+logger = logging.getLogger('energylensplus_django')
 
 """
 Helper functions
@@ -36,7 +39,7 @@ def user_exists(device_id):
         dev_id = RegisteredUsers.objects.get(dev_id__exact=device_id)
         return dev_id
     except RegisteredUsers.DoesNotExist, e:
-        print "[UserDoesNotExistException Occurred] No registration found!:: ", e
+        logger.error("[UserDoesNotExistException Occurred] No registration found!:: %s", e)
         return False
 
 """
@@ -50,18 +53,17 @@ def register_device(request):
     Receives the registration requests from the mobile devices and
     stores user-device and meter details in the database
     """
-    print "Request received:", request.method
 
     try:
         if request.method == 'GET':
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
-            print "\n[POST Request Received]"
+            logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
 
             # print request.body
             payload = json.loads(request.body)
-            print "POST Payload:\n", payload
+            logger.debug("POST Payload:\n%s", payload)
 
             reg_id = payload['registration_id']
             user_name = payload['user_name']
@@ -71,14 +73,14 @@ def register_device(request):
             home_ap = payload['home_ap']
             other_ap = payload['other_ap']
 
-            print "\n--User Registration Details--"
-            print "RegID:", reg_id
-            print "Username:", user_name
-            print "Email ID:", email_id
-            print "Device ID:", dev_id
-            print "Apartment Number:", apt_no
-            print "Home AP:", home_ap
-            print "Other APs:", other_ap
+            logger.debug("\n--User Registration Details--")
+            logger.debug("RegID:%s", reg_id)
+            logger.debug("Username:%s", user_name)
+            logger.debug("Email ID:%s", email_id)
+            logger.debug("Device ID:%s", dev_id)
+            logger.debug("Apartment Number:%s", apt_no)
+            logger.debug("Home AP:%s", home_ap)
+            logger.debug("Other APs:%s", other_ap)
 
             if apt_no.isdigit():
 
@@ -87,7 +89,7 @@ def register_device(request):
 
                 apt_no = int(apt_no)
                 user_count = RegisteredUsers.objects.filter(apt_no__exact=apt_no).count()
-                print "Number of users registered for", apt_no, ":", user_count
+                logger.debug("Number of users registered for %d:%s", apt_no, user_count)
                 if user_count == 0:
                     # Get meter information for the apt_no for the apartment
                     meters = get_meter_info(apt_no)
@@ -103,7 +105,7 @@ def register_device(request):
                             meter_uuid=meter_uuid, meter_type=meter_type, apt_no=apt_no)
                         minfo_record.save()
 
-                print "Home AP:", home_ap
+                logger.debug("Home AP:%s", home_ap)
 
                 try:
                     AccessPoints.objects.filter(apt_no__exact=apt_no).delete()
@@ -118,11 +120,11 @@ def register_device(request):
                             apt_no=apt_no, macid=ap['macid'], ssid=ap['ssid'], home_ap=False)
                         ap_record.save()
                 except Exception, e:
-                    print("[APSaveException]::%s" % (e))
+                    logger.error("[APSaveException]::%s" % (e))
 
             try:
                 r = RegisteredUsers.objects.get(dev_id__exact=dev_id)
-                print "Registration with device ID", r.dev_id, "exists"
+                logger.debug("Registration with device ID %s exists", r.dev_id)
                 # Store user
                 r.reg_id = reg_id
                 r.name = user_name
@@ -131,21 +133,21 @@ def register_device(request):
                     r.apt_no = apt_no
                 r.modified_date = dt.datetime.fromtimestamp(time.time())
                 r.save()
-                print "Registration updated"
+                logger.debug("Registration updated")
             except RegisteredUsers.DoesNotExist, e:
 
                 # Store user
                 user = RegisteredUsers(
                     dev_id=dev_id, reg_id=reg_id, apt_no=apt_no, name=user_name, email_id=email_id)
                 user.save()
-                print "Registration successful"
+                logger.debug("Registration successful")
             return HttpResponse(json.dumps(REGISTRATION_SUCCESS),
                                 content_type="application/json")
 
     except Exception, e:
 
-        print "[DeviceRegistrationException Occurred]::", e
-        print "Registration unsuccessful"
+        logger.error("Registration unsuccessful")
+        logger.error("[DeviceRegistrationException Occurred]::%s", e)
         return HttpResponse(json.dumps(REGISTRATION_UNSUCCESSFUL), content_type="application/json")
 
 """
@@ -166,7 +168,7 @@ def training_data(request):
 
         if request.method == 'POST':
             payload = json.loads(request.body)
-            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+            logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
             print payload
 
             dev_id = payload['dev_id']
@@ -182,29 +184,30 @@ def training_data(request):
                                     content_type="application/json")
             else:
                 apt_no = user.apt_no
-                print "Apartment Number:", apt_no
+                logger.debug("Apartment Number:%d", apt_no)
 
             # Compute Power
             power = training_compute_power(apt_no, start_time, end_time)
-            print "Computed Power::", power
+            logger.debug("Computed Power::%f", power)
 
             # See if entry exists for appliance-location combination
             # Update power value if it exists
             try:
                 r = Metadata.objects.get(apt_no__exact=apt_no, location__exact=location,
                                          appliance__exact=appliance)
-                print "Metadata with entry:", r.apt_no, r.appliance, r.location, "exists"
+                logger.debug(
+                    "Metadata with entry:%d %s %s exists", r.apt_no, r.appliance, r.location)
                 # Update power
                 r.power = power
                 r.save()
-                print "Metadata record updated"
+                logger.debug("Metadata record updated")
             except Metadata.DoesNotExist, e:
 
                 # Store metadata
                 user = Metadata(
                     apt_no=apt_no, appliance=appliance, location=location, power=power)
                 user.save()
-                print "Metadata creation successful"
+                logger.debug("Metadata creation successful")
 
             payload = {}
             payload['power'] = power
@@ -213,7 +216,7 @@ def training_data(request):
 
     except Exception, e:
 
-        print "[TrainingDataException Occurred]::", e
+        logger.error("[TrainingDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -247,8 +250,8 @@ def import_from_file(filename, csvfile):
     if not user:
         return False
 
-    print "User:", user.name
-    print "File size:", csvfile.size
+    logger.debug("User: %s", user.name)
+    logger.debug("File size: %s", csvfile.size)
 
     training_status = False
 
@@ -256,7 +259,7 @@ def import_from_file(filename, csvfile):
     if sensor_name == "Training":
         sensor_name = filename_l[3]
         training_status = True
-    print "Sensor:", sensor_name
+    logger.debug("Sensor:%s", sensor_name)
 
     # Save file in a temporary location
     new_filename = ('data_file_' + sensor_name + '_' + str(
@@ -276,8 +279,8 @@ def import_from_file(filename, csvfile):
 
                 if df_csv is False:
                     os.remove(filepath)
-                    print("[DataFileFormatIncorrect] "
-                          "Incorrect wifi file sent. Upload not successful!")
+                    logger.error("[DataFileFormatIncorrect] "
+                                 "Incorrect wifi file sent. Upload not successful!")
                     return False
 
                 # Create temp wifi csv file
@@ -286,11 +289,12 @@ def import_from_file(filename, csvfile):
 
         except Exception, e:
             if str(e) == "Passed header=0 but only 0 lines in file":
-                print "[Exception]:: Creation of dataframe failed! No lines found in the file!"
+                logger.error(
+                    "[Exception]:: Creation of dataframe failed! No lines found in the file!")
                 os.remove(filepath)
                 return False
             else:
-                print "[DataFileFormatIncorrect] Header missing!::", str(e)
+                logger.error("[DataFileFormatIncorrect] Header missing!::%s", str(e))
                 os.remove(filepath)
                 return False
 
@@ -311,13 +315,13 @@ def upload_data(request):
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
-            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+            logger.info("[POST Request Received] - %s" % sys._getframe().f_code.co_name)
 
             payload = request.FILES
             file_container = payload['uploadedfile']
             filename = str(file_container.name)
             csvfile = file_container
-            print "File received:", filename
+            logger.debug("File received:%s", filename)
 
             # Store in the database
             if(import_from_file(filename, csvfile)):
@@ -329,7 +333,7 @@ def upload_data(request):
 
     except Exception, e:
 
-        print "[UploadDataException Occurred]::", e
+        logger.error("[UploadDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 
@@ -338,20 +342,19 @@ def upload_stats(request):
     """
     Receives the uploaded notification CSV files and stores them in the database
     """
-    print "Upload stats called"
 
     try:
         if request.method == 'GET':
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
-            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+            logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
 
             payload = request.FILES
             file_container = payload['uploadedfile']
             filename = str(file_container.name)
             csvfile = file_container
-            print "File received:", filename
+            logger.debug("File received:%s", filename)
 
             # --- Saving file in the database ---
             # Check if it is a registered user
@@ -371,7 +374,7 @@ def upload_stats(request):
 
     except Exception, e:
 
-        print "[UploadStatsException Occurred]::", e
+        logger.error("[UploadStatsException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 """
@@ -393,10 +396,10 @@ def real_time_data_access(request):
 
             # TODO: Get apt_no from the db based on the IMEI number
             payload = json.loads(request.body)
-            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+            logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
 
             dev_id = payload['dev_id']
-            print "Requested by:", dev_id
+            logger.debug("Requested by:%s", dev_id)
 
             # Check if it is a registered user
             is_user = user_exists(dev_id)
@@ -405,7 +408,7 @@ def real_time_data_access(request):
                                     content_type="application/json")
             else:
                 apt_no = is_user.apt_no
-                print "Apartment Number:", apt_no
+                logger.debug("Apartment Number:%d", apt_no)
 
             # Get power data
             timestamp, total_power = get_latest_power_data(apt_no)
@@ -413,13 +416,13 @@ def real_time_data_access(request):
             payload = {}
             payload[timestamp] = total_power
 
-            print "Payload", payload
+            logger.debug("Payload: %s", payload)
 
             return HttpResponse(json.dumps(payload), content_type="application/json")
 
     except Exception, e:
 
-        print "[RealTimeDataException Occurred]::", e
+        logger.error("[RealTimeDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -437,11 +440,12 @@ def real_time_past_data(request):
         if request.method == 'POST':
 
             payload = json.loads(request.body)
-            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
+            logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
 
             dev_id = payload['dev_id']
             minutes = int(payload['minutes'])
-            print "Requested by:", dev_id
+            logger.debug("Requested by:%d", dev_id)
+            logger.debug("For %d minutes", minutes)
 
             # Check if it is a registered user
             is_user = user_exists(dev_id)
@@ -450,7 +454,7 @@ def real_time_past_data(request):
                                     content_type="application/json")
             else:
                 apt_no = is_user.apt_no
-                print "Apartment Number:", apt_no
+                logger.debug("Apartment Number:%s", apt_no)
 
             # Get power data
             end_time = time.time()
@@ -461,7 +465,7 @@ def real_time_past_data(request):
             data_df_list = get_meter_data_for_time_slice(apt_no, s_time, e_time)
 
             if len(data_df_list) == 0:
-                print "No data to send"
+                logger.debug("No data to send")
                 return HttpResponse(json.dumps({}), content_type="application/json")
 
             # Creation of the payload
@@ -480,13 +484,13 @@ def real_time_past_data(request):
             for key in sorted(payload.iterkeys()):
                 payload_body[key] = payload[key]
 
-            print "Payload Size:", len(payload_body)
-            # print "Payload", json.dumps(payload_body, indent=4)
+            logger.debug("Payload Size:%s", len(payload_body))
+            # logger.debug("Payload", json.dumps(payload_body, indent=4)
 
             return HttpResponse(json.dumps(payload_body), content_type="application/json")
 
     except Exception, e:
-        print "[RealTimePastDataException Occurred]::", e
+        logger.error("[RealTimePastDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -507,8 +511,7 @@ def reassign_inference(request):
 
         if request.method == 'POST':
             payload = json.loads(request.body)
-            print "\n[POST Request Received] -", sys._getframe().f_code.co_name
-            print payload
+            logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
 
             dev_id = payload['dev_id']
 
@@ -519,9 +522,9 @@ def reassign_inference(request):
                                     content_type="application/json")
             else:
                 apt_no = user.apt_no
-                print "Apartment Number:", apt_no
+                logger.debug("Apartment Number:%s", apt_no)
 
-            print "\nCorrecting inferences.."
+            logger.debug("\nCorrecting inferences..")
             options = payload['options']
 
             # Reassign the specified activity and update the db
@@ -530,13 +533,13 @@ def reassign_inference(request):
             payload = {}
             payload['status'] = status
 
-            print "\nSending status for correction of inferences.."
+            logger.debug("\nSending status for correction of inferences..")
 
             return HttpResponse(json.dumps(payload),
                                 content_type="application/json")
 
     except Exception, e:
-        print "[ReassignInferenceException Occurred]::", e
+        logger.error("[ReassignInferenceException Occurred]::", e)
         return HttpResponse(json.dumps(REASSIGN_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -555,7 +558,7 @@ def test_function_structure(request):
             pass
     except Exception, e:
 
-        print "[TrainingDataException Occurred]::", e
+        logger.error("[TrainingDataException Occurred]::", e)
         return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
                             content_type="application/json")
 

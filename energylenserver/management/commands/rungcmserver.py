@@ -10,6 +10,10 @@ from multiprocessing.managers import BaseManager
 
 # Django imports
 from django.core.management.base import BaseCommand
+from energylenserver.common_imports import *
+
+# Enable Logging
+logger = logging.getLogger('energylensplus_gcm')
 
 
 class ClientManager(BaseManager):
@@ -35,11 +39,11 @@ class Command(BaseCommand):
                 # Restore connection if connection broken
                 if not client.isConnected():
                     if not msg_client.connect_to_gcm_server():
-                        self.stdout.write("Authentication failed! Try again!")
+                        logger.error("Authentication failed! Try again!")
                         sys.exit(1)
         except KeyboardInterrupt:
-            self.stdout.write("\n\nInterrupted by user, shutting down..")
+            logger.error("\n\nInterrupted by user, shutting down..")
             sys.exit(0)
         except Exception, e:
-            self.stdout.write("[RunGCMServerException] %s" % str(e))
+            logger.error("[RunGCMServerException] %s" % str(e))
             sys.exit(1)

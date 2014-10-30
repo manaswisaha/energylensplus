@@ -34,11 +34,14 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 
 # EnergyLens+ imports
+from energylenserver.common_imports import *
 from energylenserver.functions import *
-from energylenserver.constants import *
 from energylenserver.meter.smap import get_meter_info
 from energylenserver.tasks import meterDataHandler
 
+
+# Enable Logging
+logger = logging.getLogger('energylensplus_meterdata')
 
 TIMEZONE = 'Asia/Kolkata'
 
@@ -47,7 +50,7 @@ STREAM_URL = "http://energy.iiitd.edu.in:9106/republish"
 
 
 # Participating apartments
-apt_no_list = ['101', '1003', '1002']
+apt_no_list = ['1201']  # , '101', '1003', '1002']
 uuid_list = []
 payload = ""
 
@@ -59,7 +62,7 @@ class Client:
 
     def __init__(self):
 
-        print "\n[Initializing Client...]"
+        logger.debug("[Initializing Client...]")
 
         global uuid_list, payload
 
@@ -78,7 +81,7 @@ class Client:
         try:
             self.conn.perform()
         except KeyboardInterrupt:
-            print "\n\nInterrupted by user, shutting down.."
+            logger.error("\n\nInterrupted by user, shutting down..")
             sys.exit(0)
 
     def create_file(self, filename):
@@ -89,7 +92,6 @@ class Client:
                 writer.writerow(["time", "power"])
 
     def write_to_file(self, filename, data):
-        print "Writing.."
 
         with open(filename, "a+") as myfile:
             writer = csv.writer(myfile)
@@ -102,11 +104,11 @@ class Client:
             if data.strip():
                 try:
                     readings = json.loads(data)
-                    print "Readings:\n", readings
+                    logger.debug("Readings: \n%s", readings)
                 except ValueError:
                     # Log error
                     filename = os.path.join(settings.BASE_DIR, "/logs/meterdata.csv")
-                    print "Invalid JSON string passed. Ignoring data:", data
+                    logger.debug("Invalid JSON string passed. Ignoring data:%s", data)
                     string_to_log = ["[" + time.ctime(time.time()) + "]", str(data)]
                     self.write_to_file(filename, string_to_log)
                     return
@@ -128,7 +130,7 @@ class Client:
                         filename = (timestamp_to_str(time.time(),
                                                      "%d-%m-%Y_%H:%M:%S") + ".csv")
                         file_path = os.path.join(dst_folder + uuid + "/", filename)
-                        print "File Path:\n", file_path
+                        logger.debug("File Path:\n\t%s", file_path)
                         self.create_file(file_path)
                         self.current_file[uuid] = file_path
                         self.write_to_file(file_path, record)
@@ -139,12 +141,12 @@ class Client:
                         self.write_to_file(file_path, record)
 
                         if msg_count == 2 * winmin + 1:
-                            print "\n[DETECT EDGES]..."
+                            logger.debug("[Detecting edges]...")
                             # Reset current file and msg count for the uuid
                             self.msg_count[uuid] = 0
                             self.current_file[uuid] = ""
 
-                            print "File Path:\n", file_path
+                            # logger.debug("File Path:\n\t", file_path)
 
                             prev_file = ""
                             curr_file = os.path.basename(file_path)
@@ -156,7 +158,7 @@ class Client:
 
                             # -- Retrieve values from previous file --
                             folder_listing = sorted(os.listdir(meter_uuid_folder))
-                            print "Files", folder_listing
+                            # logger.debug("Files: %s", folder_listing)
                             for the_file in folder_listing:
                                 if the_file.startswith("prev_"):
                                     prev_file = the_file
@@ -168,22 +170,20 @@ class Client:
                                 # Use the last few values for edge detection
                                 df_prev = df_prev.ix[df_prev.index[1:]]
 
-                                df_len = len(df)
+                                # df_len = len(df)
                                 # Combine prev file with the current one
                                 df = pd.concat([df_prev, df]).sort("time")
                                 df = df.reset_index(drop=True)
                                 df['act_time'] = [dt.datetime.fromtimestamp(val) for val in df.time]
 
-                                print "TOGETHER:\n", df
-
-                                print "Length:", len(df_prev), df_len, len(df)
+                                # logger.debug("Length:%d %d %d", len(df_prev), df_len, len(df))
                                 del df['act_time']
 
                                 # Delete previous file
                                 try:
                                     os.unlink(prev_file)
                                 except Exception, e:
-                                    print e
+                                    logger.error("%s", e)
 
                             # -- Buffer current file --
                             # For use in the next task, rename it with prev_<filename>
@@ -195,7 +195,7 @@ class Client:
                             meterDataHandler.delay(df, file_path)
 
         except KeyboardInterrupt:
-            print "\n\nInterrupted by user, shutting down.."
+            logger.error("\n\nInterrupted by user, shutting down..")
             sys.exit(0)
 
 
@@ -217,19 +217,19 @@ class Command(BaseCommand):
 
             # Delete existing directories inside data/meter folder
             import shutil
-            print "\nDeleting files from the old run.."
+            logger.debug("Deleting files from the old run..")
             folder_listing = os.listdir(dst_folder)
             for d in folder_listing:
                 d = os.path.join(dst_folder, d)
                 shutil.rmtree(d)
 
-            print "Getting UUIDs for all apartment meters.."
+            logger.debug("Getting UUIDs for all apartment meters..")
 
             # Retrieve uuids for the apartment numbers
             for apt_no in apt_no_list:
-                print "Apartment:", apt_no
+                logger.debug("Apartment: %s", apt_no)
                 meter_list = get_meter_info(apt_no)
-                print "Meters:\n", meter_list
+                logger.debug("Meters:\n %s", meter_list)
                 for meter in meter_list:
                     meter_uuid = meter['uuid']
                     uuid_list.append(meter_uuid)
@@ -239,9 +239,9 @@ class Command(BaseCommand):
                         folder = dst_folder + meter_uuid + "/"
                         if not os.path.exists(folder):
                             os.makedirs(folder)
-                            print "Folder created:", folder
+                            logger.debug("Folder created: %s", folder)
                     except OSError, e:
-                        print "[DirectoryCreationError]", e
+                        logger.error("[DirectoryCreationError]::%s", e)
                         sys.exit(1)
 
             # Create Payload
@@ -255,14 +255,14 @@ class Command(BaseCommand):
                     payload += " or Metadata/Extra/FlatNumber = "
                 else:
                     payload += ")"
-            print "\nPayload:\n", "[" + payload + "]"
+            logger.debug("Payload:\n [%s]", payload)
 
             # Open persistent HTTP connection to sMAP
             Client()
         except KeyboardInterrupt:
-            print "\n\nInterrupted by user, shutting down.."
+            logger.error("\n\nInterrupted by user, shutting down..")
             sys.exit(0)
 
         except Exception, e:
-            self.stdout.write("GetMeterDataException] %s" % str(e))
+            logger.error("GetMeterDataException] %s" % str(e))
             sys.exit(1)
