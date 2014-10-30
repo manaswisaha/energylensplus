@@ -279,7 +279,7 @@ class MessageClient:
         # Determine message type - request or response
         data = message['data']
         if 'msg_type' in data:
-            self.logger.debug("Processing request/response from the user:%s", data)
+            self.logger.debug("Processing request/response for api:%s", data['api'])
             msg_type = data['msg_type']
             # Request messages:
             if msg_type == "request":

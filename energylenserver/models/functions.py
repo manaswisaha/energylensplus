@@ -6,6 +6,12 @@ from models import *
 from DataModels import *
 from energylenserver.constants import DISAGG_ENERGY_API
 
+# Enable Logging
+import logging
+default_logger = logging.getLogger(__name__)
+main_logger = logging.getLogger('energylensplus_django')
+celery_logger = logging.getLogger('energylensplus_celery')
+
 """
 Global variables
 """

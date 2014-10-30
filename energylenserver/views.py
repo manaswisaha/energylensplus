@@ -169,7 +169,6 @@ def training_data(request):
         if request.method == 'POST':
             payload = json.loads(request.body)
             logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
-            print payload
 
             dev_id = payload['dev_id']
             start_time = payload['start_time']

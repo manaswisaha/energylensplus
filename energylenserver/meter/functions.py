@@ -8,12 +8,10 @@ from edge_detection import *
 from constants import *
 from energylenserver.functions import *
 
+# Enable Logging
+import logging
+logger = logging.getLogger('energylensplus_django')
 
-# sys.path.insert(1, '/home/manaswi/EnergyLensPlusCode/energylensplus')
-# print "SYSPATH", sys.path
-
-# import os
-# os.environ['DJANGO_SETTINGS_MODULE'] = "energylensplus.settings"
 
 # Global variables
 date_format = "%Y-%m-%dT%H:%M:%S"
@@ -33,7 +31,7 @@ def training_compute_power(apt_no, start_time, end_time):
     Computes the power consumption in the given time interval
     """
 
-    print "\nComputing power for training data..."
+    logger.debug("Computing power for training data...")
     power = np.random.randn()
 
     # TODO: Measure the difference between time of the phone with the meter data
@@ -80,7 +78,7 @@ def training_compute_power(apt_no, start_time, end_time):
     # between <start_time> and <end_time>
     streams_df = get_meter_data_for_time_slice(apt_no, s_time, e_time)
 
-    # print "Streams:", streams_df
+    # logger.debug ("Streams:%s", streams_df)
 
     # Contains start and end edges list from both meters
     edge_list = []
@@ -89,10 +87,12 @@ def training_compute_power(apt_no, start_time, end_time):
     for i, edge_time in enumerate([start_time, end_time]):
 
         # Temp code -- START
+        '''
         if i == 0:
-            print "\n[For rising edge (ON)]"
+            logger.debug("[For rising edge (ON)]")
         else:
-            print "\n[For falling edge (OFF)]"
+            logger.debug("[For falling edge (OFF)]")
+        '''
         # Temp code -- END
 
         # Add a window around the event edges
@@ -100,19 +100,19 @@ def training_compute_power(apt_no, start_time, end_time):
         s_time = edge_time - winmax - 5
         e_time = edge_time + winmax + 5
 
-        # print "Start time:", s_time
-        # print "End time:", e_time
+        # logger.debug ("Start time:%s", s_time)
+        # logger.debug ("End time:%s", e_time)
 
         # For checking the edge, filter df to include data only in the window of <winmax> seconds
         # around the event time
         streams_df_new = [df[(df.time >= s_time) &
                              (df.time <= e_time)]
                           for df in streams_df]
-        # print "NewStreams:\n", streams_df_new
+        # logger.debug ("NewStreams:\n%s", streams_df_new)
 
         # Detect edges for both meters
         edge_list.append(detect_edges_from_meters(streams_df_new))
-    # print "Edges_i:\n", edge_list
+    # logger.debug ("Edges_i:\n%s", edge_list)
 
     # ---Accumulate start/end edges from each meter---
     meter_edges_list = [{}]
@@ -153,7 +153,7 @@ def training_compute_power(apt_no, start_time, end_time):
                 power_df = power_df[power_df.magnitude < 0]
                 meter_edges_list[l_ix]["end"] = power_df
 
-    # print "\nEdges:\n", meter_edges_list
+    # logger.debug ("\nEdges:%s", meter_edges_list)
 
     # ---Determine in which meter, edge was detected and computer power---
     for meter_edges in meter_edges_list:
@@ -167,9 +167,9 @@ def training_compute_power(apt_no, start_time, end_time):
             end_mag = math.fabs(end_df.ix[end_df.index[0]]["magnitude"])
             # Compute power
             power = compute_power(start_mag, end_mag)
-            print "Power consumed:", power
+            logger.debug("Power consumed:%s", power)
         elif start_len > 1 and end_len > 1:
-            print "CONFUSION!!"
+            logger.debug("CONFUSION!!")
     return power
 
 
@@ -187,17 +187,17 @@ def combine_streams(df):
     start_time = min(stream1_df.ix[0]['time'], stream2_df.ix[0]['time'])
     end_time = max(stream1_df.ix[stream1_df.index[-1]]['time'],
                    stream2_df.ix[stream2_df.index[-1]]['time'])
-    # print "ST:", start_time, "ET:", end_time
+    # logger.debug ("ST:%s ET:%s", start_time, end_time)
 
     time_values = range(start_time, end_time + 1)
     n_time_values = len(time_values)
-    # print "Total values", n_time_values
+    # logger.debug ("Total values: %d ", n_time_values)
 
     stream1 = dict(zip(stream1_df.time, stream1_df.power))
     stream2 = dict(zip(stream2_df.time, stream2_df.power))
 
-    # print "Stream1", stream1
-    # print "Stream2", stream2
+    # logger.debug ("Stream1 %s", stream1)
+    # logger.debug ("Stream2 %s", stream2)
 
     stream1_new = dict(zip(time_values, [np.NaN] * n_time_values))
     stream2_new = dict(zip(time_values, [np.NaN] * n_time_values))
@@ -216,7 +216,7 @@ def combine_streams(df):
         streams[i] = pd.DataFrame(stream.items(), columns=['time', 'power'])
         streams[i].fillna(method='pad', inplace=True)
         streams[i].fillna(method='bfill', inplace=True)
-        # print "Stream", i, ":\n", streams[i].head(10)
+        # logger.debug ("Stream %d :\n%s", i, streams[i].head(10))
 
     # Combining Streams
     comb_stream_df = pd.DataFrame({'time': time_values, 'power': [0] * n_time_values},
@@ -226,6 +226,6 @@ def combine_streams(df):
         comb_stream_df.ix[idx]['power'] = streams[0].ix[idx]['power'] + streams[1].ix[idx]['power']
 
     comb_stream_df.sort('time', inplace=True)
-    # print "Combined Stream:\n", comb_stream_df.head(20)
+    # logger.debug ("Combined Stream:\n %s", comb_stream_df.head(20))
 
     return comb_stream_df

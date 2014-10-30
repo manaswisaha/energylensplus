@@ -133,8 +133,7 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     model[0]().insert_records(user, filepath, model[1])
 
     now_time = "[" + time.ctime(time.time()) + "]"
-    logger.debug(" %s Successful Upload for %s %s !!", now_time, sensor_name, filename)
-    send_wastage_notification(1201)
+    logger.debug("%s Successful Upload for %s %s !!", now_time, sensor_name, filename)
 
 
 @shared_task
@@ -193,8 +192,8 @@ def edgeHandler(edge):
     else:
         chain = classifyEdgeHandler.s(edge) | determineWastageHandler.s()
     chain()
-    logger.debug("Classification Pipeline ended for edge: [%s] :: %d", (
-        time.ctime(edge.timestamp), edge.magnitude))
+    logger.debug("Classification Pipeline ended for edge: [%s] :: %d",
+                 time.ctime(edge.timestamp), edge.magnitude)
 
 """
 Invokes the EnergyLens+ core algorithm
@@ -210,7 +209,7 @@ def classifyEdgeHandler(edge):
     :return "where", what" and "who" labels:
     """
     apt_no = edge.meter.apt_no
-    logger.debug("Apt.No.:: %d Classify edge of type: '%s' : [%s] :: %d",
+    logger.debug("Apt.No.:: %d Classify edge type '%s' [%s] %d",
                  apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude)
 
     # Defining event window
