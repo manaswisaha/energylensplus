@@ -2,6 +2,9 @@
 # Date: August 27, 2014
 
 import pandas as pd
+# Enable Logging
+import logging
+logger = logging.getLogger('energylensplus_django')
 
 
 def format_data(ip_df):
@@ -16,14 +19,20 @@ def format_data(ip_df):
     # print "Number of records before preprocessing:" + str(len(ip_df))
 
     try:
+        # Clean up data
+        ip_df.time = ip_df.time.convert_objects(convert_numeric=True)
+        ip_df.rssi = ip_df.rssi.convert_objects(convert_numeric=True)
+        ip_df.dropna(inplace=True)
+
         # Convert timestamps from millisec to seconds
         ip_df[ip_df.columns[0]] = (ip_df[ip_df.columns[0]] / 1000).astype('int')
 
+        print ip_df.rssi.mean()
         # Take the mean of the rssi values based on mac and time
         mean_rssi = ip_df.groupby(['label', 'mac', 'time'])['rssi'].mean()
     except Exception, e:
-        print "[WifiFormatException]::" + str(e)
-        print "WifiDF::\n" + str(ip_df.head())
+        logger.exception("[WifiFormatException]::%s", str(e))
+        logger.debug("WifiDF::\n%s", str(ip_df.head()))
         return False
 
     # Make map of mac to ssid
