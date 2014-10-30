@@ -8,6 +8,14 @@
 HOME=`printenv ELENSERVER`
 cd $HOME
 
+#Take a backup of the existing log file
+default_logfile=${HOME}"logs/django.log"
+main_logfile=${HOME}"logs/energylens.log"
+gcm_logfile=${HOME}"logs/gcmserver.log"
+celery_logfile=${HOME}"logs/celery.log"
+meterdata_logfile=${HOME}"logs/meter_data.log"
+
+
 #Get the command option
 arg=$1
 ip=$2
@@ -23,6 +31,17 @@ if [ "$arg" = 'start' ]; then
    # so print message
    exit 2             		# and fail ($0 is name of command).
    fi
+
+   # Managing log files
+   cp $default_logfile ${HOME}"logs/old_logs/django"_`date +%F_%T`".log"
+   cp $main_logfile ${HOME}"logs/old_logs/energylens"_`date +%F_%T`".log"
+   cp $gcm_logfile ${HOME}"logs/old_logs/gcmserver"_`date +%F_%T`".log"
+   cp $celery_logfile ${HOME}"logs/old_logs/celery"_`date +%F_%T`".log"
+   cp $meterdata_logfile ${HOME}"logs/old_logs/meter_data"_`date +%F_%T`".log"
+   cd $HOME"logs/"
+   ls *.log
+   rm *.log
+   cd $HOME
 
 	echo "Starting EnergyLensPlus Server..."
 
