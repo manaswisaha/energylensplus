@@ -2,60 +2,68 @@
 
 # Managing EnergyLensPlus processes
 
+# TODO: Add process specific start/stop commands
+
+# Change to the repository directory
+HOME=`printenv ELENSERVER`
+cd $HOME
+
 #Get the command option
 arg=$1
+ip=$2
 
 if [ "$arg" = 'start' ]; then
 
-	echo "Starting EnergyLensPlus Server..." 
-	echo ${ELENSERVER}
-	# if [ -f $brokerServerFile ]; then
-	# 	echo "SensorAct Application has already started"
-	# else
-	# 	#start sensoractbroker
-	# 	if [ -f $brokerlogfile ]; then
-	# 		cp $brokerlogfile $brokerlogfile.`date +%s`
-	# 		play start ${SENSORACTBROKER_HOME}
-	# 	else
-	# 		echo 'Initiating Broker'
-	# 		play start ${SENSORACTBROKER_HOME}
-	# 	fi
-		
-	# 	#start vpds
-	# 	if [ -f $vpdslogfile ]; then
-	# 		cp $vpdslogfile $vpdslogfile.`date +%s`
-	# 		play start ${SENSORACT_HOME}
-	# 	else
-	# 		echo 'Initiating VPDS'
-	# 		play start ${SENSORACT_HOME}
-	# 	fi
+   if [ $# -ne 2 ]
+   # "$#" is number of parameters- here we test
+   # whether it is not equal to two
+   then
+   echo "Command Error: No IP Address entered"
+   echo "Usage: energylens start <ip_addr>"	# not two parameters
+   # so print message
+   exit 2             		# and fail ($0 is name of command).
+   fi
+
+	echo "Starting EnergyLensPlus Server..."
+
+	# Start GCM Server
+	python manage.py opengcmserver > "logs/gcmserver.log"&
+	python manage.py rungcmserver &
+
+	# Start Celery
+	celery -A energylensplus worker -l info -B  > "logs/celery.log"&
 	
-	# 	#start sensoractapp
-	# 	if [ -f $applogfile ]; then
-	# 		cp $applogfile $applogfile.`date +%s`
-	# 		play start ${SENSORACTAPP_HOME}
-	# 	else
-	# 		echo 'Initiating SensorAct Application'
-	# 		play start ${SENSORACTAPP_HOME}
-	# 	fi		
-	# fi
+	# Start Django Server
+	python manage.py runserver $ip > "logs/django.log" &
+	
+	# Start Meter data collection service
+	python manage.py getmeterdata > "logs/meter_data.log" &
 	
 elif [ "$arg" = 'stop' ]; then
-	echo "Stopping application.."
+	echo "Stopping EnergyLensPlus Server.."
+
+	# Stop Django Commands
+	kill -9 `ps aux | grep "python manage.py" | grep -v grep | awk '{print $2}'`
+
+	# Stop celery
+	kill -9 `ps aux | grep "celery" | grep -v grep | awk '{print $2}'`
 	
+
 elif [ "$arg" = 'restart' ]; then
-	echo "Restarting application.."
+	echo "Restarting EnergyLensPlus Server.."
 	
 elif [ "$arg" = 'update' ]; then
-	echo "Updating Application..."	
+	echo "Updating EnergyLensPlus Server..."
+	git pull	
 
 elif [ "$arg" = 'status' ]; then
-	if [ -f $brokerServerFile ]; then
-		echo "SensorAct Application has already started"
-	else
-		echo "SensorAct Application has not been started. To start, type:"
-		echo -e '\t source sensoract start'
-	fi
+	pwd
+	# if [ -f $brokerServerFile ]; then
+	# 	echo "EnergyLensPlus Server has already started"
+	# else
+	# 	echo "EnergyLensPlus Server has not been started. To start, type:"
+	# 	echo -e '\t source sensoract start'
+	# fi
 else
-	echo 'Wrong command. Please type in this format-> source sensoract <start|stop|update|restart|find|status|repair|viewkey|gethostip|sethostip>'
+	echo 'Wrong command. Please type in this format-> source sensoract <start|stop|update|restart|status>'
 fi
