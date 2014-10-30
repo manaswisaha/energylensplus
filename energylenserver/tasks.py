@@ -174,7 +174,7 @@ def meterDataHandler(df, file_path):
                 edge_r.save()
 
                 meter_logger.debug("Edge for UUID: %s at [%s] of mag %d", uuid, time.ctime(
-                    edge['time']), str(edge['magnitude']))
+                    edge['time']), edge['magnitude'])
 
                 # Initiate classification pipeline
                 edgeHandler(edge_r)
@@ -210,8 +210,8 @@ def classifyEdgeHandler(edge):
     :return "where", what" and "who" labels:
     """
     apt_no = edge.meter.apt_no
-    logger.debug("Apt.No.:: %d Classify edge of type: '%s' : [%s] :: %d", (
-        apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude))
+    logger.debug("Apt.No.:: %d Classify edge of type: '%s' : [%s] :: %d",
+                 apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude)
 
     # Defining event window
     p_window = 60  # window for each side of the event time (in seconds)
@@ -232,7 +232,7 @@ def classifyEdgeHandler(edge):
                                             start_time, end_time, user_list)
 
     # Step 2: Determine appliance for every user
-    appliance = classifier.clasify_sound(edge.timestamp, user_list)
+    appliance = classifier.classify_sound(edge.timestamp, user_list)
 
     # Step 3: Determine user based on location, appliance and metadata
     user = determine_user(location, appliance, user_list)
