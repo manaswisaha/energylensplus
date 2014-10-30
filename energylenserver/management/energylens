@@ -28,6 +28,7 @@ if [ "$arg" = 'start' ]; then
 
 	# Start GCM Server
 	python manage.py opengcmserver &
+	sleep 5
 	python manage.py rungcmserver &
 
 	# Start Celery
