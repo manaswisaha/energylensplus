@@ -71,6 +71,40 @@ DATABASES = {
     }
 }
 
+# Logger Settings
+LOGGING = {
+    'version': 1,
+    'formatters':
+    {
+        'verbose': {
+            'format': "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+            'datefmt': "%d/%b/%Y %H:%M:%S"
+        },
+        'simple': {
+            'format': '[%(asctime)s] %(levelname)s %(message)s',
+            'datefmt': "%d/%b/%Y %H:%M:%S"
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/energylens.log'),
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+        'energylenserver': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+        },
+    }
+}
 
 # For File Handling
 MEDIA_ROOT = os.path.join(BASE_DIR, 'energylenserver/tmp/')
@@ -81,6 +115,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'energylenserver/tmp/')
 # CELERY_RESULT_BACKEND = 'amqp'
 CELERY_ACCEPT_CONTENT = ['pickle', 'json']
 
+'''
 from datetime import timedelta
 CELERYBEAT_SCHEDULE = {
     'send-report-every-hour': {
@@ -93,7 +128,7 @@ CELERYBEAT_SCHEDULE = {
     #     'args': (1102),
     # },
 }
-
+'''
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/
