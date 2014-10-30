@@ -47,7 +47,7 @@ def determine_user(reg_id):
         user = RegisteredUsers.objects.get(reg_id=reg_id)
     except RegisteredUsers.DoesNotExist, e:
         print("[UserDoesNotExistException Occurred] No registration found! for %d::%s " %
-             (reg_id, str(e)))
+              (reg_id, str(e)))
         return False
 
     return user
@@ -90,7 +90,23 @@ def mark_not_active(reg_id):
         user.save()
     except RegisteredUsers.DoesNotExist, e:
         print("[UserDoesNotExistException Occurred] No registration found! for %d::%s " %
-             (reg_id, str(e)))
+              (reg_id, str(e)))
+        return False
+
+    return True
+
+
+def delete_user(reg_id):
+    """
+    Deletes the User
+    Uses: When BAD Registration response is received
+    """
+    try:
+        user = RegisteredUsers.objects.get(reg_id=reg_id)
+        user.delete()
+    except RegisteredUsers.DoesNotExist, e:
+        print("[UserDoesNotExistException Occurred] No registration found! for %d::%s " %
+              (reg_id, str(e)))
         return False
 
     return True
@@ -138,7 +154,7 @@ def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list
         model = MODEL_MAP[sensor_name]
 
     print("Getting data between %s and %s for dev_id: %s" %
-         (time.ctime(start_time), time.ctime(end_time), dev_id_list))
+          (time.ctime(start_time), time.ctime(end_time), dev_id_list))
     # Get data
     try:
         if dev_id_list == "all":
