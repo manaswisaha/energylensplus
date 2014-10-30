@@ -27,17 +27,17 @@ if [ "$arg" = 'start' ]; then
 	echo "Starting EnergyLensPlus Server..."
 
 	# Start GCM Server
-	python manage.py opengcmserver > "logs/gcmserver.log"&
+	python manage.py opengcmserver &
 	python manage.py rungcmserver &
 
 	# Start Celery
-	celery -A energylensplus worker -l info -B  > "logs/celery.log"&
+	celery -A energylensplus worker -l info -B  &
 	
 	# Start Django Server
-	python manage.py runserver $ip > "logs/django.log" &
+	python manage.py runserver $ip &
 	
 	# Start Meter data collection service
-	python manage.py getmeterdata > "logs/meter_data.log" &
+	python manage.py getmeterdata &
 	
 elif [ "$arg" = 'stop' ]; then
 	echo "Stopping EnergyLensPlus Server.."
