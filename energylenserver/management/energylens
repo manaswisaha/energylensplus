@@ -35,7 +35,6 @@ if [ "$arg" = 'start' ]; then
     # Managing log files
     cd $HOME"logs/"
     no_of_log_files=$(ls -1 *.log | wc -l)
-    echo $no_of_log_files
     if [ $no_of_log_files = 5 ]; then
 	   cp $default_logfile ${HOME}"logs/old_logs/django"_`date +%F_%T`".log"
 	   cp $main_logfile ${HOME}"logs/old_logs/energylens"_`date +%F_%T`".log"
