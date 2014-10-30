@@ -340,7 +340,12 @@ class MessageClient:
             print "CONNECTION_DRAINING"
 
         elif error == "DEVICE_UNREGISTERED":
-            print "DEVICE_UNREGISTERED"
+            print "DEVICE_UNREGISTERED. \nDeleting record"
+            # Mark the registration as "not active" in the database
+            if mark_not_active(message["from"]):
+                print "Successfully marked not active"
+            else:
+                print "Successfully marked active"
 
         elif error == "INTERNAL_SERVER_ERROR":
             print "INTERNAL_SERVER_ERROR"
