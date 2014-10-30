@@ -48,6 +48,7 @@ class MessageClient:
         self.unacked_messages_counter = 0
         self.start_time = time.time()
         self.prev_req_time = None
+        self.logger = logger
 
         """
         Maintain a queue of all the unACKed sent messages
@@ -122,10 +123,10 @@ class MessageClient:
                 a class, list etc. or something.
                 '''
                 # Introduce a delay using exponential backoff
-                logger.warn("NEED TO STOP SENDING MESSAGES")
+                self.logger.warn("NEED TO STOP SENDING MESSAGES")
                 pass
         except Exception, e:
-            logger.error("[GCMCLIENT EXCEPTION] SendMessage:%s", e)
+            self.logger.error("[GCMCLIENT EXCEPTION] SendMessage:%s", e)
 
     # Doesn't make sense -- alter
     def resend_queued_messages(self):
@@ -135,7 +136,7 @@ class MessageClient:
 
         while (self.unacked_messages_counter > 0 and
                self.unacked_messages_counter < self.unacked_messages_quota):
-            logger.debug("Resend some unACKed messages...")
+            self.logger.debug("Resend some unACKed messages...")
             self.send_message(self.sent_queue.pop()["message"])
 
     def receive_upstream_message(self, session, message):
@@ -146,7 +147,7 @@ class MessageClient:
 
         try:
             now_time = "[" + time.ctime(time.time()) + "]"
-            logger.debug("%s Received Upstream Message", now_time)
+            self.logger.debug("%s Received Upstream Message", now_time)
             gcm = message.getTags('gcm')
             if gcm:
                 gcm_json = gcm[0].getData()
@@ -171,7 +172,7 @@ class MessageClient:
             self.prev_req_time = time.time()
 
         except Exception, e:
-            logger.debug("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
+            self.logger.debug("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
 
     def handle_request_message(self, message):
 
@@ -188,13 +189,13 @@ class MessageClient:
         data_to_send['api'] = api
         data_to_send['options'] = {}
 
-        logger.debug("Handling request message..")
-        logger.debug("Time elapsed from the start:%s", (time.time() - self.start_time))
+        self.logger.debug("Handling request message..")
+        self.logger.debug("Time elapsed from the start:%s", (time.time() - self.start_time))
         if self.prev_req_time is not None:
-            logger.debug(
+            self.logger.debug(
                 "Time elapsed from the last request:%s", (time.time() - self.prev_req_time))
         else:
-            logger.debug("First request")
+            self.logger.debug("First request")
 
         # Get User Details
         user = determine_user(reg_id)
@@ -202,7 +203,7 @@ class MessageClient:
             return False
         apt_no = user.apt_no
 
-        logger.debug("Determined user successfully!")
+        self.logger.debug("Determined user successfully!")
 
         if api == PERSONAL_ENERGY_API or api == ENERGY_WASTAGE_REPORT_API:
             # API: personal_energy
@@ -213,7 +214,7 @@ class MessageClient:
             options = get_energy_report(user.dev_id, api, start_time, end_time)
             data_to_send['options'] = options
 
-            logger.debug("\nSending data for:  %s", api)
+            self.logger.debug("Sending data for:  %s", api)
 
         elif api == DISAGG_ENERGY_API:
             # API: disaggregated_energy
@@ -227,7 +228,7 @@ class MessageClient:
             data_to_send['options']['activities'] = activities
             # data_to_send['options']['appliances'] = appliances
 
-            logger.debug("Sending diaggregated energy data..")
+            self.logger.debug("Sending diaggregated energy data..")
 
         # To be used only for testing purposes
         elif api == GROUND_TRUTH_NOTIF_API:
@@ -238,21 +239,21 @@ class MessageClient:
             data_to_send['options']['activities'] = activities
             data_to_send['options']['appliances'] = appliances
 
-            logger.debug("Sending ground truth report..")
+            self.logger.debug("Sending ground truth report..")
 
         elif api == REASSIGN_INFERENCE_API:
-            logger.debug("Correcting inferences..")
+            self.logger.debug("Correcting inferences..")
 
             # Reassign the specified activity and update the db
             status = correct_inference(user, options)
             data_to_send['options'] = {'status': status}
 
-            # logger.debug ("Data to send:\n", json.dumps(data_to_send, indent=4))
-            logger.debug("Sending status for correction of inferences..")
+            # self.logger.debug ("Data to send:\n", json.dumps(data_to_send, indent=4))
+            self.logger.debug("Sending status for correction of inferences..")
 
         # May not use the following APIs
         elif api == ENERGY_COMPARISON_API:
-            logger.debug("Sending comparison energy data..")
+            self.logger.debug("Sending comparison energy data..")
 
         # Send a response back based on the api request
         if 'from' in message:
@@ -271,19 +272,19 @@ class MessageClient:
         self.pong += 1
 
         # Acknowledge the incoming message immediately.
-        logger.debug("Sending ACK back to user:")
+        self.logger.debug("Sending ACK back to user")
         ack = create_control_message(message['from'], 'ack', message['message_id'])
         self.send_message(ack)
 
         # Determine message type - request or response
         data = message['data']
         if 'msg_type' in data:
-            logger.debug("Processing request/response from the user:%s", data)
+            self.logger.debug("Processing request/response from the user:%s", data)
             msg_type = data['msg_type']
             # Request messages:
             if msg_type == "request":
                 sent_status = self.handle_request_message(message)
-                logger.debug("Message sent status:%s", sent_status)
+                self.logger.debug("Message sent status:%s", sent_status)
             elif msg_type == "response":
                 self.handle_response_message(message)
         else:
@@ -291,7 +292,7 @@ class MessageClient:
             # Queue a response back to the server.
             if 'from' in message:
                 # Send a dummy echo response back to the app that sent the upstream message.
-                logger.debug("Sending pong message back..")
+                self.logger.debug("Sending pong message back..")
                 message = create_message(message['from'], {'pong': self.pong, 'ping': 100})
                 self.send_message(message)
 
@@ -304,9 +305,9 @@ class MessageClient:
         msg_id = message['message_id']
         reg_id = message['from']
         now_time = "[" + time.ctime(time.time()) + "]"
-        logger.debug("%s Received ACK", now_time)
-        logger.debug("MessageID:%s", msg_id)
-        # logger.debug ("1 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4))
+        self.logger.debug("%s Received ACK", now_time)
+        self.logger.debug("MessageID:%s", msg_id)
+        # self.logger.debug ("1 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4))
         if msg_id in self.sent_queue and self.sent_queue[msg_id]["reg_id"] == reg_id:
 
             # Remove message from the unACKed message queue
@@ -319,7 +320,7 @@ class MessageClient:
             if len_queue > 0:
                 # Resend some messages in the queue
                 self.resend_queued_messages()
-            logger.debug ("3 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4))
+            self.logger.debug ("3 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4))
             """
 
     def handle_nack(self, message):
@@ -331,44 +332,44 @@ class MessageClient:
 
         # Handle different error codes
         if error == "BAD_ACK":
-            logger.error("BAD_ACK")
+            self.logger.error("BAD_ACK")
 
         elif error == "BAD_REGISTRATION":
-            logger.error("BAD_REGISTRATION request received")
+            self.logger.error("BAD_REGISTRATION request received")
             # Mark the registration as "not active" in the database
             if mark_not_active(message["from"]):
-                logger.debug("Successfully marked not active")
+                self.logger.debug("Successfully marked not active")
             else:
-                logger.debug("Successfully marked active")
+                self.logger.debug("Successfully marked active")
 
         elif error == "CONNECTION_DRAINING":
-            logger.error("CONNECTION_DRAINING")
+            self.logger.error("CONNECTION_DRAINING")
 
         elif error == "DEVICE_UNREGISTERED":
-            logger.error("DEVICE_UNREGISTERED. \nDeleting record")
+            self.logger.error("DEVICE_UNREGISTERED. \nDeleting record")
             # Mark the registration as "not active" in the database
             if mark_not_active(message["from"]):
-                logger.debug("Successfully marked not active")
+                self.logger.debug("Successfully marked not active")
             else:
-                logger.debug("Successfully marked active")
+                self.logger.debug("Successfully marked active")
 
         elif error == "INTERNAL_SERVER_ERROR":
-            logger.error("INTERNAL_SERVER_ERROR")
+            self.logger.error("INTERNAL_SERVER_ERROR")
 
         elif error == "INVALID_JSON":
-            logger.error("INVALID_JSON")
+            self.logger.error("INVALID_JSON")
 
         elif error == "QUOTA_EXCEEDED":
-            logger.error("QUOTA_EXCEEDED")
+            self.logger.error("QUOTA_EXCEEDED")
 
         elif error == "SERVICE_UNAVAILABLE":
             # Start exponential backoff with an intial delay of 1 second
-            logger.error("SERVICE_UNAVAILABLE")
+            self.logger.error("SERVICE_UNAVAILABLE")
 
     def handle_control_message(self, message):
         # Connection about to close from the CCS
         if message['control_type'] == 'CONNECTION_DRAINING':
             # Open a new connection keeping the old connection open
             if not self.connect_to_gcm_server():
-                logger.debug("Authentication failed! Try again!")
+                self.logger.debug("Authentication failed! Try again!")
                 sys.exit(1)
