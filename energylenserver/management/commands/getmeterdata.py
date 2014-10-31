@@ -19,6 +19,7 @@ Date: 27th Aug 2014
 """
 import os
 import sys
+import subprocess
 
 import csv
 import json
@@ -57,6 +58,9 @@ payload = ""
 # Destination Folder for the output files
 dst_folder = 'data/meter/'
 
+# Process number
+p_no = 0
+
 
 class Client:
 
@@ -64,7 +68,8 @@ class Client:
 
         logger.debug("[Initializing Client...]")
 
-        global uuid_list, payload
+        global uuid_list, payload, p_no
+        p_no += 1
 
         self.msg_count = {}
         self.current_file = {}
@@ -264,5 +269,8 @@ class Command(BaseCommand):
             sys.exit(0)
 
         except Exception, e:
-            logger.error("GetMeterDataException] %s" % str(e))
+            logger.error("[GetMeterDataException] %s\n" % str(e))
+            # Reconnect
+            subprocess.call(["python", "manage.py", "getmeterdata", "&"])
+            logger.debug("Exiting process number: %d", p_no)
             sys.exit(1)
