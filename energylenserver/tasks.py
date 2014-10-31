@@ -151,6 +151,7 @@ def meterDataHandler(df, file_path):
     # Store edges into db
 
     if len(edges_df) == 0:
+        meter_logger.debug("No edges detected")
         return
 
     # For the detected edge, store edge and call classification pipeline task

@@ -85,6 +85,7 @@ def filter_select_maxtime_edge(df):
 
     return df
 
+
 def filter_unmon_appl_edges(df):
     """
     Filters out appliances that are not of interest
@@ -93,7 +94,8 @@ def filter_unmon_appl_edges(df):
     # --Filter out fridge--
 
     # --Filter out washing machine
-    pass
+    return df
+
 
 def filter_apt_edges(rise_df, fall_df, apt_no, etype, df_p):
 
@@ -183,7 +185,7 @@ def filter_apt_edges(rise_df, fall_df, apt_no, etype, df_p):
             diff = int(math.fabs(next_edge)) - int(now_edge)
 
             if ((now_edge < 0 and int(math.fabs(now_mag)) in range(60, 75))
-               or now_edge == 1385383788 or next_mag == 1385383788):
+                    or now_edge == 1385383788 or next_mag == 1385383788):
                 print "\nNow time", dt.datetime.fromtimestamp(now_edge)
                 print "Next time", dt.datetime.fromtimestamp(next_edge)
                 print "Now mag", now_mag, "next mag", next_mag
@@ -191,8 +193,8 @@ def filter_apt_edges(rise_df, fall_df, apt_no, etype, df_p):
 
             # Its a falling edge and magnitude is b/w 60 - 70 and previous edge was a rising edge
             if (next_mag < 0 and int(math.fabs(next_mag)) in range(60, 75)
-               and now_edge > 0 and diff in range(20, 30)
-               and int(now_mag * 0.1) == int(math.fabs(next_mag) * 0.1)):
+                    and now_edge > 0 and diff in range(20, 30)
+                    and int(now_mag * 0.1) == int(math.fabs(next_mag) * 0.1)):
                 # Removing both edges
                 rise_idx_list.append(idx)
                 fall_idx_list.append(edge_index[i + 1])

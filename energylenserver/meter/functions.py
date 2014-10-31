@@ -16,11 +16,6 @@ logger = logging.getLogger('energylensplus_django')
 # Global variables
 date_format = "%Y-%m-%dT%H:%M:%S"
 
-"""
-TODO:
-1. Measure the difference between the time between phone and meter
-"""
-
 
 def compute_power(start_mag, end_mag):
     return (start_mag + end_mag) / 2
@@ -34,15 +29,27 @@ def training_compute_power(apt_no, start_time, end_time):
     logger.debug("Computing power for training data...")
     power = np.random.randn()
 
-    # TODO: Measure the difference between time of the phone with the meter data
+    # ------
+    # Retrieve data from the server
+    # ------
+    start_time = int(start_time) / 1000
+    end_time = int(end_time) / 1000
+
+    logger.debug("Orig:: ST: %s ET:%s", timestamp_to_str(
+        start_time, date_format), timestamp_to_str(end_time, date_format))
+
+    '''
+    # --- Negligible time difference ---
+    # Measure the difference between time of the phone with the meter data
     # Once measured, set the global variable in the constants
     # For now, taking it as 5 seconds
     time_diff = -5  # If phone is ahead, subtract from the time sent
     time_diff = 5  # If phone is behind, add to the time sent
+    '''
 
     # Convert time to seconds and add/subtract the difference time
-    start_time = int(start_time) / 1000 + time_diff
-    end_time = int(end_time) / 1000 + time_diff
+    # start_time = int(start_time) / 1000 + time_diff
+    # end_time = int(end_time) / 1000 + time_diff
 
     # Add a window to the given event time duration
     s_time = start_time - winmax
@@ -51,39 +58,33 @@ def training_compute_power(apt_no, start_time, end_time):
     e_time = end_time + winmax
     e_time = timestamp_to_str(e_time, date_format)
 
-    '''
-    # ---Temp code----START
-    # Test Edge 1- Light
-    s_time = "2014-08-20T17:34:04"
-    e_time = "2014-08-20T17:37:39"
-
-    # Test Edge 2- Light
-    s_time = "2014-08-20T17:43:17"
-    e_time = "2014-08-20T17:44:01"
-
-    start_time = str_to_timestamp(s_time, date_format)
-    end_time = str_to_timestamp(e_time, date_format)
-
-    # Test Edge 1- Light
-    s_time = "2014-08-20T17:33:54"
-    e_time = "2014-08-20T17:37:49"
-
-    # Test Edge 2- Light
-    s_time = "2014-08-20T17:43:07"
-    e_time = "2014-08-20T17:44:11"
-    # ---Temp code----END
-    '''
-
     # Retrieve power data from smap server for both meters
     # between <start_time> and <end_time>
-    streams_df = get_meter_data_for_time_slice(apt_no, s_time, e_time)
+    if apt_no == 1201:
+        time.sleep(6)
+    streams_df_list = get_meter_data_for_time_slice(apt_no, s_time, e_time)
 
-    # logger.debug ("Streams:%s", streams_df)
+    if len(streams_df_list) == 0:
+        # Sufficient training data not present
+        power = 0
+        logger.debug("Insufficient training data!")
+        return power
+
+    '''
+    # Temp Code -- START
+    meter_df = streams_df_list[0]
+    logger.debug("Meter ST: %s", timestamp_to_str(meter_df.ix[0]['time'], date_format))
+    logger.debug("Meter ET: %s", timestamp_to_str(
+        meter_df.ix[meter_df.index[-1]]['time'], date_format))
+    # Temp Code -- END
+    '''
 
     # Contains start and end edges list from both meters
     edge_list = []
 
-    # ---Detect start/end edges for both meters---
+    # -------
+    # Detect start/end edges for both meters
+    # -------
     for i, edge_time in enumerate([start_time, end_time]):
 
         # Temp code -- START
@@ -100,21 +101,22 @@ def training_compute_power(apt_no, start_time, end_time):
         s_time = edge_time - winmax - 5
         e_time = edge_time + winmax + 5
 
-        # logger.debug ("Start time:%s", s_time)
-        # logger.debug ("End time:%s", e_time)
+        # logger.debug("Start time: %s", s_time)
+        # logger.debug("End time: %s", e_time)
 
         # For checking the edge, filter df to include data only in the window of <winmax> seconds
         # around the event time
-        streams_df_new = [df[(df.time >= s_time) &
-                             (df.time <= e_time)]
-                          for df in streams_df]
-        # logger.debug ("NewStreams:\n%s", streams_df_new)
+        streams_df_new = [df[(df.time >= s_time) & (df.time <= e_time)]
+                          for df in streams_df_list]
+        # logger.debug("NewStreams:\n%s", streams_df_new)
 
         # Detect edges for both meters
         edge_list.append(detect_edges_from_meters(streams_df_new))
-    # logger.debug ("Edges_i:\n%s", edge_list)
+    # logger.debug("Edges_i:\n%s", edge_list)
 
-    # ---Accumulate start/end edges from each meter---
+    # -------
+    # Accumulate start/end edges from each meter
+    # -------
     meter_edges_list = [{}]
     edge_dict = edge_list[0]
     if len(edge_dict.keys()) == 2:
@@ -153,9 +155,17 @@ def training_compute_power(apt_no, start_time, end_time):
                 power_df = power_df[power_df.magnitude < 0]
                 meter_edges_list[l_ix]["end"] = power_df
 
-    # logger.debug ("\nEdges:%s", meter_edges_list)
+    # logger.debug("Edges: \n%s", meter_edges_list)
 
-    # ---Determine in which meter, edge was detected and computer power---
+    if len(meter_edges_list) == 0:
+        # No edges detected
+        power = 0
+        logger.debug("No activity in the given time period!")
+        return power
+
+    # -------
+    # Determine in which meter, edge was detected and compute power
+    # -------
     for meter_edges in meter_edges_list:
         start_df = meter_edges["start"]
         end_df = meter_edges["end"]
@@ -169,6 +179,7 @@ def training_compute_power(apt_no, start_time, end_time):
             power = compute_power(start_mag, end_mag)
             logger.debug("Power consumed:%s", power)
         elif start_len > 1 and end_len > 1:
+            # Compare based on the power magnitude
             logger.debug("CONFUSION!!")
     return power
 
@@ -181,8 +192,8 @@ def combine_streams(df):
     stream1_df = df[0]
     stream2_df = df[1]
 
-    stream1_df['time'] = (stream1_df['time'] / 1000).astype('int')
-    stream2_df['time'] = (stream2_df['time'] / 1000).astype('int')
+    stream1_df['time'] = (stream1_df['time']).astype('int')
+    stream2_df['time'] = (stream2_df['time']).astype('int')
 
     start_time = min(stream1_df.ix[0]['time'], stream2_df.ix[0]['time'])
     end_time = max(stream1_df.ix[stream1_df.index[-1]]['time'],
@@ -221,7 +232,7 @@ def combine_streams(df):
     # Combining Streams
     comb_stream_df = pd.DataFrame({'time': time_values, 'power': [0] * n_time_values},
                                   columns=['time', 'power'])
-    comb_stream_df['time'] = comb_stream_df['time'] * 1000
+    # comb_stream_df['time'] = comb_stream_df['time'] * 1000
     for idx in comb_stream_df.index:
         comb_stream_df.ix[idx]['power'] = streams[0].ix[idx]['power'] + streams[1].ix[idx]['power']
 

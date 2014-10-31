@@ -63,7 +63,7 @@ def register_device(request):
 
             # print request.body
             payload = json.loads(request.body)
-            logger.debug("POST Payload:\n%s", payload)
+            # logger.debug("POST Payload:\n%s", payload)
 
             reg_id = payload['registration_id']
             user_name = payload['user_name']
@@ -215,7 +215,7 @@ def training_data(request):
 
     except Exception, e:
 
-        logger.error("[TrainingDataException Occurred]::%s", e)
+        logger.exception("[TrainingDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -444,7 +444,7 @@ def real_time_past_data(request):
             dev_id = payload['dev_id']
             minutes = int(payload['minutes'])
             logger.debug("Requested by:%d", dev_id)
-            logger.debug("For %d minutes", minutes)
+            logger.debug("For %d minute(s)", minutes)
 
             # Check if it is a registered user
             is_user = user_exists(dev_id)

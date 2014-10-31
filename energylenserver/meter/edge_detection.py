@@ -31,7 +31,7 @@ def detect_and_filter_edges(df):
     :return edges:
     """
     edges_df = detect_edges(df)
-    filter_unmon_appl_edges(edges_df)
+    edges_df = filter_unmon_appl_edges(edges_df)
 
     return edges_df
 
@@ -42,12 +42,14 @@ def detect_edges_from_meters(streams_df):
     """
     stream_edges = {}
     for i, df_i in enumerate(streams_df):
+        if len(df_i.index) == 0:
+            continue
         first_idx = df_i.index[0]
         stream_type = df_i.ix[first_idx]['type']
 
         logger.debug("Detecting Edges for Stream:%s", stream_type)
         stream_edges[stream_type] = detect_edges(df_i)
-        # logger.debug("Stream edges:\n", stream_edges
+        # logger.debug("Stream edges:\n%s", stream_edges)
     return stream_edges
 
 
