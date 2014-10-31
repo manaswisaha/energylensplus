@@ -172,7 +172,8 @@ class MessageClient:
             self.prev_req_time = time.time()
 
         except Exception, e:
-            self.logger.debug("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
+            self.logger.error("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
+            self.logger.exception("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
 
     def handle_request_message(self, message):
 
@@ -284,7 +285,7 @@ class MessageClient:
             # Request messages:
             if msg_type == "request":
                 sent_status = self.handle_request_message(message)
-                self.logger.debug("Message sent status:%s", sent_status)
+                self.logger.debug("Message sent status:%s\n", sent_status)
             elif msg_type == "response":
                 self.handle_response_message(message)
         else:
@@ -305,8 +306,8 @@ class MessageClient:
         msg_id = message['message_id']
         reg_id = message['from']
         now_time = "[" + time.ctime(time.time()) + "]"
-        self.logger.debug("%s Received ACK", now_time)
-        self.logger.debug("MessageID:%s", msg_id)
+        self.logger.debug("Received ACK")
+        self.logger.debug("MessageID:%s\n", msg_id)
         # self.logger.debug ("1 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4))
         if msg_id in self.sent_queue and self.sent_queue[msg_id]["reg_id"] == reg_id:
 
