@@ -154,7 +154,8 @@ def check_if_edge(df, index, power_stream):
         return "Not an edge", {}
 
     # Rising Edge
-    if (curr_nextwin_diff >= thresmin and prev_curr_diff <= 5 and curr_next_diff > prev_curr_diff):
+    if ((curr_nextwin_diff >= thresmin or curr_next_diff >= thresmin)
+            and prev_curr_diff <= 5 and curr_next_diff > prev_curr_diff):
 
         logger.debug("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
         logger.debug("prev={0} curr={1} next={2}".format(prev, curr, next))
