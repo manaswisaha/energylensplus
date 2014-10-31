@@ -41,7 +41,12 @@ if [ "$arg" = 'start' ]; then
 	   cp $gcm_logfile ${HOME}"logs/old_logs/gcmserver"_`date +%F_%T`".log"
 	   cp $celery_logfile ${HOME}"logs/old_logs/celery"_`date +%F_%T`".log"
 	   cp $meterdata_logfile ${HOME}"logs/old_logs/meter_data"_`date +%F_%T`".log"
-	   rm *.log
+	   
+	   cat /dev/null > $default_logfile
+	   cat /dev/null > $main_logfile
+	   cat /dev/null > $gcm_logfile
+	   cat /dev/null > $celery_logfile
+	   cat /dev/null > $meterdata_logfile
 	fi
     cd $HOME
 
