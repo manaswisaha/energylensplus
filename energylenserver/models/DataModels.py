@@ -9,7 +9,7 @@ from models import RegisteredUsers
 import logging
 
 # Enable Logging
-logger = logging.getLogger('energylensplus_celery')
+logger = logging.getLogger('energylensplus_django')
 
 """
 Models for storing phone sensor data
@@ -49,7 +49,7 @@ class AcclData(SensorData):
                                               " label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               "dev_id_id = " + str(user.dev_id), [filename])
-            logger.debug("Number of records inserted: %d", records_inserted)
+            # logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
             logger.error("[FileSaveException] AcclData::%s", str(e))
         os.remove(filename)
@@ -92,7 +92,7 @@ class WiFiData(SensorData):
                                               " FIELDS TERMINATED BY ',' IGNORE 1 LINES "
                                               "(timestamp, macid, ssid, rssi, label) "
                                               "SET dev_id_id = " + str(user.dev_id), [filename])
-            logger.debug("Number of records inserted: %d", records_inserted)
+            # logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
             logger.error("[FileSaveException] WiFiData::%s", str(e))
         os.remove(filename)
@@ -136,7 +136,7 @@ class RawAudioData(SensorData):
                                               " (@timestamp, value, label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               "dev_id_id = " + str(user.dev_id), [filename])
-            logger.debug("Number of records inserted: %d", records_inserted)
+            # logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
             logger.error("[FileSaveException] RawAudioData::%s", str(e))
         os.remove(filename)
@@ -191,7 +191,7 @@ class MFCCFeatureSet(SensorData):
                                               "mfcc11, mfcc12, mfcc13, label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
-            logger.debug("Number of records inserted: %d", records_inserted)
+            # logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
             logger.error("[FileSaveException] MFCCFeatureSet::%s", str(e))
         os.remove(filename)
@@ -234,7 +234,7 @@ class LightData(SensorData):
                                               "(@timestamp, value, label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
-            logger.debug("Number of records inserted: %d", records_inserted)
+            # logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
             logger.error("[FileSaveException] LightData::%s", str(e))
         os.remove(filename)
@@ -280,7 +280,7 @@ class MagData(SensorData):
                                               "label, location) "
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
-            logger.debug("Number of records inserted: %d", records_inserted)
+            # logger.debug("Number of records inserted: %d", records_inserted)
         except Exception, e:
             logger.error("[FileSaveException] MagData::%s", str(e))
         os.remove(filename)

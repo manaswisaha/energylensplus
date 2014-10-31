@@ -8,8 +8,8 @@ from energylenserver.constants import DISAGG_ENERGY_API
 
 # Enable Logging
 import logging
+logger = logging.getLogger('energylensplus_django')
 default_logger = logging.getLogger(__name__)
-main_logger = logging.getLogger('energylensplus_django')
 celery_logger = logging.getLogger('energylensplus_celery')
 
 """
@@ -147,6 +147,32 @@ Sensor Data Management Model methods
 """
 
 
+def get_sensor_training_data(sensor_name, apt_no, dev_id_list):
+    """
+    Retrieves the training data based for the specified dev id list
+    for an apartment
+    """
+
+    # Set sensor data model
+    model = MODEL_MAP['Training' + sensor_name]
+
+    logger.debug("Getting data for dev_ids: %s for apt_no: %d", dev_id_list, apt_no)
+
+    # Get data
+    try:
+        data = model.objects.filter(dev_id__in=dev_id_list)
+    except model.DoesNotExist:
+        logger.error("[SensorDataDoesNotExistException Occurred]"
+                     " No training data found for the given sensor: %s",
+                     sensor_name)
+        return False
+    except Exception, e:
+        logger.error("[GetSensorDataException Occurred] %s", str(e))
+        return False
+
+    return data
+
+
 def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list):
     """
     Retrieves the sensor data based on its type and the dataset type
@@ -159,8 +185,8 @@ def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list
     else:
         model = MODEL_MAP[sensor_name]
 
-    print("Getting data between %s and %s for dev_id: %s" %
-          (time.ctime(start_time), time.ctime(end_time), dev_id_list))
+    logger.debug("Getting data between %s and %s for dev_id: %s" %
+                 (time.ctime(start_time), time.ctime(end_time), dev_id_list))
     # Get data
     try:
         if dev_id_list == "all":
@@ -171,11 +197,12 @@ def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list
                                         timestamp__gte=start_time,
                                         timestamp__lte=end_time)
     except model.DoesNotExist:
-        print("[SensorDataDoesNotExistException Occurred] No data found for the given sensor: "
-              + sensor_name)
+        logger.error("[SensorDataDoesNotExistException Occurred] "
+                     "No data found for the given sensor: %s",
+                     sensor_name)
         return False
     except Exception, e:
-        print "[GetSensorDataException Occurred] " + str(e)
+        logger.error("[GetSensorDataException Occurred] %s", str(e))
         return False
 
     return data
@@ -225,6 +252,7 @@ def retrieve_metadata(apt_no):
     except Exception, e:
         print "[GetMetadataException]:: " + DISAGG_ENERGY_API, e
 
+    '''
     # temp code
     appliances.append(
         {'location': 'Dining Room', 'appliance': 'Light'})
@@ -238,7 +266,7 @@ def retrieve_metadata(apt_no):
         {'location': 'Bedroom', 'appliance': 'Light'})
     appliances.append(
         {'location': 'Bedroom', 'appliance': 'AC'})
-
+    '''
     return appliances
 
 """
