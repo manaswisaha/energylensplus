@@ -147,7 +147,7 @@ class MessageClient:
 
         try:
             now_time = "[" + time.ctime(time.time()) + "]"
-            self.logger.debug("%s Received Upstream Message", now_time)
+            self.logger.debug("Received Upstream Message")
             gcm = message.getTags('gcm')
             if gcm:
                 gcm_json = gcm[0].getData()
@@ -203,7 +203,7 @@ class MessageClient:
             return False
         apt_no = user.apt_no
 
-        self.logger.debug("Determined user successfully!")
+        self.logger.debug("User: %s", user.name)
 
         if api == PERSONAL_ENERGY_API or api == ENERGY_WASTAGE_REPORT_API:
             # API: personal_energy
@@ -272,14 +272,14 @@ class MessageClient:
         self.pong += 1
 
         # Acknowledge the incoming message immediately.
-        self.logger.debug("Sending ACK back to user")
+        self.logger.debug("Sending ACK back to user..")
         ack = create_control_message(message['from'], 'ack', message['message_id'])
         self.send_message(ack)
 
         # Determine message type - request or response
         data = message['data']
         if 'msg_type' in data:
-            self.logger.debug("Processing request/response for api:%s", data['api'])
+            self.logger.debug("Processing request/response for api: %s", data['api'])
             msg_type = data['msg_type']
             # Request messages:
             if msg_type == "request":

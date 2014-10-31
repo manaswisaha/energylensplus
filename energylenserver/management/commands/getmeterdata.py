@@ -104,13 +104,13 @@ class Client:
             if data.strip():
                 try:
                     readings = json.loads(data)
-                    logger.debug("Readings: \n%s", readings)
+                    # logger.debug("Readings: \n%s", readings)
                 except ValueError:
                     # Log error
                     filename = os.path.join(settings.BASE_DIR, "/logs/meterdata.csv")
                     logger.debug("Invalid JSON string passed. Ignoring data:%s", data)
                     string_to_log = ["[" + time.ctime(time.time()) + "]", str(data)]
-                    self.write_to_file(filename, string_to_log)
+                    logger.debug("%s", string_to_log)
                     return
 
                 # Parse json body
@@ -130,7 +130,7 @@ class Client:
                         filename = (timestamp_to_str(time.time(),
                                                      "%d-%m-%Y_%H:%M:%S") + ".csv")
                         file_path = os.path.join(dst_folder + uuid + "/", filename)
-                        logger.debug("File Path:\n\t%s", file_path)
+                        # logger.debug("File Path:\n\t%s", file_path)
                         self.create_file(file_path)
                         self.current_file[uuid] = file_path
                         self.write_to_file(file_path, record)
