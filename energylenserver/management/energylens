@@ -9,12 +9,12 @@ ELENSHOME=`printenv ELENSERVER`
 cd $ELENSHOME
 
 #Take a backup of the existing log file
-default_logfile=${ELENSHOME}"logs/django.log"
-main_logfile=${ELENSHOME}"logs/energylens.log"
-gcm_logfile=${ELENSHOME}"logs/gcmserver.log"
-celery_logfile=${ELENSHOME}"logs/celery.log"
-worker_logfile=${ELENSHOME}"logs/energylens-worker.log"
-meterdata_logfile=${ELENSHOME}"logs/meter_data.log"
+default_logfile="$ELENSHOME/logs/django.log"
+main_logfile="$ELENSHOME/logs/energylens.log"
+gcm_logfile="$ELENSHOME/logs/gcmserver.log"
+celery_logfile="$ELENSHOME/logs/celery.log"
+worker_logfile="$ELENSHOME/logs/energylens-worker.log"
+meterdata_logfile="$ELENSHOME/logs/meter_data.log"
 
 
 #Get the command option
@@ -34,15 +34,15 @@ if [ "$arg" = 'start' ]; then
    fi
 
     # Managing log files
-    cd $ELENSHOME"logs/"
+    cd "$ELENSHOME/logs/"
     no_of_log_files=$(ls -1 *.log | wc -l)
-    if [ $no_of_log_files = 6 ]; then
-	   cp $default_logfile ${ELENSHOME}"logs/old_logs/django"_`date +%F_%T`".log"
-	   cp $main_logfile ${ELENSHOME}"logs/old_logs/energylens"_`date +%F_%T`".log"
-	   cp $gcm_logfile ${ELENSHOME}"logs/old_logs/gcmserver"_`date +%F_%T`".log"
-	   cp $celery_logfile ${ELENSHOME}"logs/old_logs/celery"_`date +%F_%T`".log"
-	   cp $meterdata_logfile ${ELENSHOME}"logs/old_logs/energylens-worker"_`date +%F_%T`".log"
-	   cp $worker_logfile ${ELENSHOME}"logs/old_logs/meter_data"_`date +%F_%T`".log"
+    if [ $no_of_log_files = 8 ]; then
+	   cp $default_logfile "$ELENSHOME/logs/old_logs/django"_`date +%F_%T`".log"
+	   cp $main_logfile "$ELENSHOME/logs/old_logs/energylens"_`date +%F_%T`".log"
+	   cp $gcm_logfile "$ELENSHOME/logs/old_logs/gcmserver"_`date +%F_%T`".log"
+	   cp $celery_logfile "$ELENSHOME/logs/old_logs/celery"_`date +%F_%T`".log"
+	   cp $meterdata_logfile "$ELENSHOME/logs/old_logs/energylens-worker"_`date +%F_%T`".log"
+	   cp $worker_logfile "$ELENSHOME/logs/old_logs/meter_data"_`date +%F_%T`".log"
 	   
 	   cat /dev/null > $default_logfile
 	   cat /dev/null > $main_logfile
@@ -67,10 +67,10 @@ if [ "$arg" = 'start' ]; then
 	# celery -A energylensplus worker -l info -B  &
 	
 	# Start Django Server
-	# python manage.py runserver $ip &
+	python manage.py runserver $ip &
 	
 	# Start Meter data collection service
-	# python manage.py getmeterdata &
+	python manage.py getmeterdata &
 	
 elif [ "$arg" = 'stop' ]; then
 	echo "Stopping EnergyLensPlus Server.."
