@@ -61,11 +61,8 @@ appserver.py
 energylenserver/data/
 energylenserver/backupcode/
 energylenserver/meter/old_code.py
-log.csv
 celerybeat-schedule
 energylenserver/tmp/
 energylenserver/test_code.py
-django_app_output
-update_repo.sh
-energylenserver/get_meter_data.py
 energylenserver/management/commands/startgcmserver.py
+logs/*.pid
