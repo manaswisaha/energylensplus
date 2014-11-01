@@ -9,8 +9,6 @@ from energylenserver.constants import DISAGG_ENERGY_API
 # Enable Logging
 import logging
 logger = logging.getLogger('energylensplus_django')
-default_logger = logging.getLogger(__name__)
-celery_logger = logging.getLogger('energylensplus_celery')
 
 """
 Global variables
@@ -52,8 +50,8 @@ def determine_user(reg_id):
     try:
         user = RegisteredUsers.objects.get(reg_id=reg_id)
     except RegisteredUsers.DoesNotExist, e:
-        print("[UserDoesNotExistException Occurred] No registration found! for %d::%s " %
-              (reg_id, str(e)))
+        logger.user("[UserDoesNotExistException Occurred] No registration found! for %s::%s",
+                    reg_id, str(e))
         return False
 
     return user
@@ -66,7 +64,7 @@ def get_all_users():
     try:
         users = RegisteredUsers.objects.filter(is_active=True)
     except Exception, e:
-        print "[GetAllUsersException Occurred]:: " + str(e)
+        logger.error("[GetAllUsersException Occurred]:: %s", str(e))
         return False
 
     return users
@@ -74,12 +72,12 @@ def get_all_users():
 
 def retrieve_users(apt_no):
     """
-    Determine all the users
+    Determine all the users of an apartment
     """
     try:
         users = RegisteredUsers.objects.filter(apt_no=apt_no)
     except Exception, e:
-        print "[GetAllUsersException Occurred]:: " + str(e)
+        logger.error("[GetAllUsersException Occurred]:: %s", str(e))
         return False
 
     return users
@@ -95,8 +93,8 @@ def mark_not_active(reg_id):
         user.is_active = False
         user.save()
     except RegisteredUsers.DoesNotExist, e:
-        print("[UserDoesNotExistException Occurred] No registration found! for %d::%s " %
-              (reg_id, str(e)))
+        logger.error("[UserDoesNotExistException Occurred] No registration found! for %d::%s",
+                     reg_id, str(e))
         return False
 
     return True
@@ -111,8 +109,8 @@ def delete_user(reg_id):
         user = RegisteredUsers.objects.get(reg_id=reg_id)
         user.delete()
     except RegisteredUsers.DoesNotExist, e:
-        print("[UserDoesNotExistException Occurred] No registration found! for %d::%s " %
-              (reg_id, str(e)))
+        logger.error("[UserDoesNotExistException Occurred] No registration found! for %d::%s",
+                     reg_id, str(e))
         return False
 
     return True
@@ -126,11 +124,11 @@ def retrieve_meter_info(apt_no):
     try:
         meter_set = MeterInfo.objects.filter(apt_no=apt_no)
     except MeterInfo.DoesNotExist:
-        print("[MeterDoesNotExistException Occurred] No meters found for the given apt no: "
-              + apt_no)
+        logger.error("[MeterDoesNotExistException Occurred] "
+                     "No meters found for the given apt no: %s", apt_no)
         return False
     except Exception, e:
-        print "[MeterInfoException Occurred] " + str(e)
+        logger.error("[MeterInfoException Occurred] %s", str(e))
         return False
 
     meters = []
@@ -220,7 +218,7 @@ def get_access_points(apt_no):
     try:
         ap = AccessPoints.objects.filter(apt_no=apt_no)
     except Exception, e:
-        print "[GetAPException Occurred]:: " + str(e)
+        logger.error("[GetAPException Occurred]:: %s", str(e))
         return False
 
     return ap
@@ -234,7 +232,7 @@ def get_home_ap(apt_no):
         home_ap = AccessPoints.objects.get(apt_no=apt_no, home_ap=True)
         return home_ap.macid
     except Exception, e:
-        print "[GetHomeAPException Occurred]:: " + str(e)
+        logger.error("[GetHomeAPException Occurred]:: %s", str(e))
         return False
 
 
@@ -245,12 +243,12 @@ def retrieve_metadata(apt_no):
     appliances = []
     try:
         records = Metadata.objects.filter(apt_no=apt_no)
-        print "Number of metadata entries: " + str(records.count())
+        logger.debug("Number of metadata entries: %s", str(records.count()))
         for r in records:
             appliances.append({'location': r.location, 'appliance': r.appliance})
 
     except Exception, e:
-        print "[GetMetadataException]:: " + DISAGG_ENERGY_API, e
+        logger.error("[GetMetadataException]:: %s", DISAGG_ENERGY_API, e)
 
     '''
     # temp code
@@ -293,16 +291,16 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
                                                  appliance=activity_name)
 
     except Exception, e:
-        print "[RetrieveActivitiesException]::", e
+        logger.error("[RetrieveActivitiesException]::", e)
 
     record_count = records.count()
-    print "Number of activities: " + record_count
+    logger.debug("Number of activities: %s", record_count)
     activities = {}
     for r in records:
         activities[r.id] = {'name': r.appliance, 'location': r.location,
                             'usage': r.power, 'start_time': r.start_time,
                             'end_time': r.end_time}
-    print "Appliances::\n " + json.dumps(activities)
+    logger.debug("Appliances::\n %s", json.dumps(activities))
 
     return activities
 
@@ -319,11 +317,11 @@ def update_activities(act_id, true_appl, true_loc):
         act_record.true_location = true_loc
         act_record.save()
     except ActivityLog.DoesNotExist:
-        print("[ActivityDoesNotExistException Occurred] No activity found with the given id: "
-              + act_id)
+        logger.debug("[ActivityDoesNotExistException Occurred] "
+                     "No activity found with the given id: %s", act_id)
         return False
     except Exception, e:
-        print "[UpdateActivitiesException]:: " + str(e)
+        logger.error("[UpdateActivitiesException]:: %s", str(e))
         return False
 
     return True
@@ -338,18 +336,18 @@ def retrieve_usage_entries(dev_id, activity_id_list):
             dev_id=dev_id, activity_id__in=activity_id_list)
 
     except EnergyUsageLog.DoesNotExist:
-        print("[UsageDoesNotExistException Occurred] No usage entries found for the given ids:: "
-              + activity_id_list)
+        logger.debug("[UsageDoesNotExistException Occurred] "
+                     "No usage entries found for the given ids:: %s", activity_id_list)
         return False
     except Exception, e:
-        print "[RetrieveUsageEntriesException]:: " + str(e)
+        logger.error("[RetrieveUsageEntriesException]:: %s", str(e))
         return False
 
     record_count = usage_entries.count()
-    print "Number of usage entries: " + record_count
+    logger.debug("Number of usage entries: %s", record_count)
     u_entries = {}
     for r in usage_entries:
         u_entries[r.id] = {'usage': r.usage}
-    print "Appliances::\n " + json.dumps(u_entries)
+    logger.debug("Appliances::\n %s", json.dumps(u_entries))
 
     return u_entries
