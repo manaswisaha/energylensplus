@@ -20,11 +20,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 SECRET_KEY = '400o5=c!o9^5rynz@!ve9n%qiqii5p2quxy4x61$6jo#d2$6_f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['.energy.iiitd.edu.in', '.192.168.1.101', '192.168.20.217']
 
 
 # Application definition
@@ -67,7 +67,8 @@ DATABASES = {
         'PASSWORD': 'research',
         'OPTIONS': {
             'local_infile': 1,
-        }
+        },
+        'CONN_MAX_AGE': None
     }
 }
 
@@ -110,10 +111,10 @@ LOGGING = {
             'filename': os.path.join(BASE_DIR, 'logs/meter_data.log'),
             'formatter': 'simple'
         },
-        'celery': {
-            'level': 'DEBUG',
+        'error': {
+            'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/celery.log'),
+            'filename': os.path.join(BASE_DIR, 'logs/error.log'),
             'formatter': 'simple'
         },
     },
@@ -138,10 +139,9 @@ LOGGING = {
             'propagate': True,
             'level': 'DEBUG',
         },
-        'energylensplus_celery': {
-            'handlers': ['celery'],
-            'propagate': True,
-            'level': 'DEBUG',
+        'energylensplus_error': {
+            'handlers': ['error'],
+            'level': 'ERROR',
         },
         'energylenserver': {
             'handlers': ['file'],
