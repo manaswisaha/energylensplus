@@ -39,6 +39,12 @@ sed -i "s#\(CELERYD_PID_FILE=\).*#\1$ELENSHOME/logs/%N.pid#g" $celery_config_fil
 sed -i "s#\(CELERYBEAT_LOG_FILE=\).*#\1$ELENSHOME/logs/beat.log#g" $celery_config_file
 sed -i "s#\(CELERYBEAT_PID_FILE=\).*#\1$ELENSHOME/logs/beat.pid#g" $celery_config_file
 
+# Assign the default user
+user=`whoami`
+sed -i "s#\(DEFAULT_USER=\).*#\1\"$user\"#g" "${ELENSHOME}/config/celery-init-script"
+sed -i "s#\(DEFAULT_USER=\).*#\1\"$user\"#g" "${ELENSHOME}/config/celerybeat-init-script"
+
+
 # 4. Copy the three files from config directory to the appropriate locations
 	# celery-config --> /etc/default/celeryd
 	# celery-init-script --> /etc/init.d/celeryd
