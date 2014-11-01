@@ -50,21 +50,21 @@ def determine_user(reg_id):
     try:
         user = RegisteredUsers.objects.get(reg_id=reg_id)
     except RegisteredUsers.DoesNotExist, e:
-        logger.user("[UserDoesNotExistException Occurred] No registration found! for %s::%s",
-                    reg_id, str(e))
+        logger.error("[UserDoesNotExistException Occurred] No registration found! :: %s",
+                     str(e))
         return False
 
     return user
 
 
-def get_all_users():
+def get_all_active_users():
     """
     Determine all the users
     """
     try:
         users = RegisteredUsers.objects.filter(is_active=True)
     except Exception, e:
-        logger.error("[GetAllUsersException Occurred]:: %s", str(e))
+        logger.error("[GetAllActiveUsersException Occurred]:: %s", str(e))
         return False
 
     return users
@@ -93,8 +93,8 @@ def mark_not_active(reg_id):
         user.is_active = False
         user.save()
     except RegisteredUsers.DoesNotExist, e:
-        logger.error("[UserDoesNotExistException Occurred] No registration found! for %d::%s",
-                     reg_id, str(e))
+        logger.error("[UserDoesNotExistException Occurred] No registration found! :: %s",
+                     str(e))
         return False
 
     return True
@@ -109,8 +109,8 @@ def delete_user(reg_id):
         user = RegisteredUsers.objects.get(reg_id=reg_id)
         user.delete()
     except RegisteredUsers.DoesNotExist, e:
-        logger.error("[UserDoesNotExistException Occurred] No registration found! for %d::%s",
-                     reg_id, str(e))
+        logger.error("[UserDoesNotExistException Occurred] No registration found! :: %s",
+                     str(e))
         return False
 
     return True
