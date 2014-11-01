@@ -5,15 +5,16 @@
 # TODO: Add process specific start/stop commands
 
 # Change to the repository directory
-HOME=`printenv ELENSERVER`
-cd $HOME
+ELENSHOME=`printenv ELENSERVER`
+cd $ELENSHOME
 
 #Take a backup of the existing log file
-default_logfile=${HOME}"logs/django.log"
-main_logfile=${HOME}"logs/energylens.log"
-gcm_logfile=${HOME}"logs/gcmserver.log"
-celery_logfile=${HOME}"logs/celery.log"
-meterdata_logfile=${HOME}"logs/meter_data.log"
+default_logfile=${ELENSHOME}"logs/django.log"
+main_logfile=${ELENSHOME}"logs/energylens.log"
+gcm_logfile=${ELENSHOME}"logs/gcmserver.log"
+celery_logfile=${ELENSHOME}"logs/celery.log"
+worker_logfile=${ELENSHOME}"logs/energylens-worker.log"
+meterdata_logfile=${ELENSHOME}"logs/meter_data.log"
 
 
 #Get the command option
@@ -27,28 +28,30 @@ if [ "$arg" = 'start' ]; then
    # whether it is not equal to two
    then
    echo "Command Error: No IP Address entered"
-   echo "Usage: energylens start <ip_addr>"	# not two parameters
+   echo "Usage: energylens start <ip_addr:port_no>"	# not two parameters
    # so print message
    exit 2             		# and fail ($0 is name of command).
    fi
 
     # Managing log files
-    cd $HOME"logs/"
+    cd $ELENSHOME"logs/"
     no_of_log_files=$(ls -1 *.log | wc -l)
-    if [ $no_of_log_files = 5 ]; then
-	   cp $default_logfile ${HOME}"logs/old_logs/django"_`date +%F_%T`".log"
-	   cp $main_logfile ${HOME}"logs/old_logs/energylens"_`date +%F_%T`".log"
-	   cp $gcm_logfile ${HOME}"logs/old_logs/gcmserver"_`date +%F_%T`".log"
-	   cp $celery_logfile ${HOME}"logs/old_logs/celery"_`date +%F_%T`".log"
-	   cp $meterdata_logfile ${HOME}"logs/old_logs/meter_data"_`date +%F_%T`".log"
+    if [ $no_of_log_files = 6 ]; then
+	   cp $default_logfile ${ELENSHOME}"logs/old_logs/django"_`date +%F_%T`".log"
+	   cp $main_logfile ${ELENSHOME}"logs/old_logs/energylens"_`date +%F_%T`".log"
+	   cp $gcm_logfile ${ELENSHOME}"logs/old_logs/gcmserver"_`date +%F_%T`".log"
+	   cp $celery_logfile ${ELENSHOME}"logs/old_logs/celery"_`date +%F_%T`".log"
+	   cp $meterdata_logfile ${ELENSHOME}"logs/old_logs/energylens-worker"_`date +%F_%T`".log"
+	   cp $worker_logfile ${ELENSHOME}"logs/old_logs/meter_data"_`date +%F_%T`".log"
 	   
 	   cat /dev/null > $default_logfile
 	   cat /dev/null > $main_logfile
 	   cat /dev/null > $gcm_logfile
 	   cat /dev/null > $celery_logfile
+	   cat /dev/null > $worker_logfile
 	   cat /dev/null > $meterdata_logfile
 	fi
-    cd $HOME
+    cd $ELENSHOME
 
 	echo "Starting EnergyLensPlus Server..."
 
@@ -58,13 +61,16 @@ if [ "$arg" = 'start' ]; then
 	python manage.py rungcmserver &
 
 	# Start Celery
-	celery -A energylensplus worker -l info -B  &
+	sudo /etc/init.d/celeryd start
+	# sleep 1
+	sudo /etc/init.d/celerybeat start
+	# celery -A energylensplus worker -l info -B  &
 	
 	# Start Django Server
-	python manage.py runserver $ip &
+	# python manage.py runserver $ip &
 	
 	# Start Meter data collection service
-	python manage.py getmeterdata &
+	# python manage.py getmeterdata &
 	
 elif [ "$arg" = 'stop' ]; then
 	echo "Stopping EnergyLensPlus Server.."
@@ -73,7 +79,9 @@ elif [ "$arg" = 'stop' ]; then
 	kill -9 `ps aux | grep "python manage.py" | grep -v grep | awk '{print $2}'`
 
 	# Stop celery
-	kill -9 `ps aux | grep "celery" | grep -v grep | awk '{print $2}'`
+	sudo /etc/init.d/celerybeat stop
+	sudo /etc/init.d/celeryd stop
+	# kill -9 `ps aux | grep "celery" | grep -v grep | awk '{print $2}'`
 	
 
 elif [ "$arg" = 'restart' ]; then
@@ -84,7 +92,9 @@ elif [ "$arg" = 'update' ]; then
 	git pull	
 
 elif [ "$arg" = 'status' ]; then
-	pwd
+	echo "Celery Status:"
+	sudo /etc/init.d/celerybeat status
+	sudo /etc/init.d/celeryd status
 	# if [ -f $brokerServerFile ]; then
 	# 	echo "EnergyLensPlus Server has already started"
 	# else
