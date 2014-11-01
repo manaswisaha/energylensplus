@@ -32,6 +32,7 @@ from energylenserver.common_imports import *
 
 # Enable Logging
 logger = logging.getLogger('energylensplus_gcm')
+exception_logger = logging.getLogger('energylensplus_error')
 
 
 """
@@ -49,6 +50,7 @@ class MessageClient:
         self.start_time = time.time()
         self.prev_req_time = None
         self.logger = logger
+        self.err_logger = exception_logger
 
         """
         Maintain a queue of all the unACKed sent messages
@@ -146,7 +148,6 @@ class MessageClient:
         """
 
         try:
-            now_time = "[" + time.ctime(time.time()) + "]"
             self.logger.debug("Received Upstream Message")
             gcm = message.getTags('gcm')
             if gcm:
@@ -173,7 +174,7 @@ class MessageClient:
 
         except Exception, e:
             self.logger.error("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
-            self.logger.exception("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
+            self.err_logger.exception("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
 
     def handle_request_message(self, message):
 
@@ -305,7 +306,6 @@ class MessageClient:
         # Delete the ACKed message from the queue
         msg_id = message['message_id']
         reg_id = message['from']
-        now_time = "[" + time.ctime(time.time()) + "]"
         self.logger.debug("Received ACK")
         self.logger.debug("MessageID:%s\n", msg_id)
         # self.logger.debug ("1 : Sent Queue:\n", json.dumps(self.sent_queue, indent=4))
