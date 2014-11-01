@@ -36,7 +36,7 @@ if [ "$arg" = 'start' ]; then
     # Managing log files
     cd "$ELENSHOME/logs/"
     no_of_log_files=$(ls -1 *.log | wc -l)
-    if [ $no_of_log_files = 8 ]; then
+    if [ $no_of_log_files = 7 ]; then
 	   cp $default_logfile "$ELENSHOME/logs/old_logs/django"_`date +%F_%T`".log"
 	   cp $main_logfile "$ELENSHOME/logs/old_logs/energylens"_`date +%F_%T`".log"
 	   cp $gcm_logfile "$ELENSHOME/logs/old_logs/gcmserver"_`date +%F_%T`".log"
