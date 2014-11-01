@@ -112,7 +112,6 @@ class Client:
                     # logger.debug("Readings: \n%s", readings)
                 except ValueError:
                     # Log error
-                    filename = os.path.join(settings.BASE_DIR, "/logs/meterdata.csv")
                     logger.debug("Invalid JSON string passed. Ignoring data:%s", data)
                     string_to_log = ["[" + time.ctime(time.time()) + "]", str(data)]
                     logger.debug("%s", string_to_log)

@@ -47,7 +47,7 @@ def detect_edges_from_meters(streams_df):
         first_idx = df_i.index[0]
         stream_type = df_i.ix[first_idx]['type']
 
-        logger.debug("Detecting Edges for Stream:%s", stream_type)
+        logger.debug("Detecting Edges for Stream: %s", stream_type)
         stream_edges[stream_type] = detect_edges(df_i)
         # logger.debug("Stream edges:\n%s", stream_edges)
     return stream_edges
@@ -117,6 +117,11 @@ def check_if_edge(df, index, power_stream):
     currwin = int(round(df.ix[i + winmin][power_stream]))
 
     time = df.ix[i]['time']
+    tprev = int(round(df.ix[i - 1]['time']))
+    tcurr = int(round(df.ix[i]['time']))
+    tnext = int(round(df.ix[i + 1]['time']))
+    tcurrnextnext = int(round(df.ix[i + 2]['time']))
+    tcurrwin = int(round(df.ix[i + winmin]['time']))
 
     if i - winmin not in (df.index):
         prevwin = 0
@@ -140,6 +145,8 @@ def check_if_edge(df, index, power_stream):
     curr_prevwin_diff = int(prevwin - curr)
     curr_nextnext_diff = int(currnextnext - curr)
 
+    magnitude = curr_nextwin_diff
+
     # if curr_nextwin_diff > 0:
     #     print("RISETEST::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
     #     print("prev={0} curr={1} next={2}".format(prev, curr, next))
@@ -154,11 +161,13 @@ def check_if_edge(df, index, power_stream):
         return "Not an edge", {}
 
     # Rising Edge
-    if ((curr_nextwin_diff >= thresmin or curr_next_diff >= thresmin)
+    if ((magnitude >= thresmin or curr_next_diff >= thresmin) and magnitude > 0
             and prev_curr_diff <= 5 and curr_next_diff > prev_curr_diff):
 
-        logger.debug("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
-        logger.debug("prev={0} curr={1} next={2}".format(prev, curr, next))
+        logger.debug("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), magnitude))
+        logger.debug("prev={0} curr={1} next={2} currwin={3}".format(prev, curr, next, currwin))
+        logger.debug("tprev=[{0}] tcurr=[{1}] tnext=[{2}] tcurrwin=[{3}]".format(
+            t.ctime(tprev), t.ctime(tcurr), t.ctime(tnext), t.ctime(tcurrwin)))
         logger.debug("curr_next_diff::{0}  prev_curr_diff::{1} curr_nextnext_diff::{2}".
                      format(curr_next_diff, prev_curr_diff, math.fabs(curr_nextnext_diff)))
 
@@ -167,13 +176,16 @@ def check_if_edge(df, index, power_stream):
         if next_missing_sample and curr_next_diff >= thresmin:
             # Storing the rising edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
-                   curr_nextwin_diff, "type": edge_type, "curr_power": curr}
+                   magnitude, "type": edge_type, "curr_power": curr}
             # logger.debug("Missing Sample: edge at [" + t.ctime(time) + "]" + json.dumps(row)
             return edge_type, row
         if curr_next_diff >= thresmin:
+            if curr_next_diff > magnitude:
+                magnitude = curr_next_diff
+                time = tnext
             # Storing the rising edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
-                   curr_nextwin_diff, "type": edge_type, "curr_power": curr}
+                   magnitude, "type": edge_type, "curr_power": curr}
             # logger.debug("Missing Sample: edge at [" + t.ctime(time) + "]" + json.dumps(row)
             return edge_type, row
         else:
@@ -181,12 +193,14 @@ def check_if_edge(df, index, power_stream):
             pass
 
     # Falling Edge
-    elif (prev_curr_diff < thresmin and math.floor(curr_nextwin_diff) <= -thresmin
+    elif (prev_curr_diff < thresmin and math.floor(magnitude) <= -thresmin
           and ((curr_next_diff != 0 and prev_curr_diff != 0) or (curr_next_diff > prev_curr_diff))
           and math.fabs(curr_prevwin_diff) < thresmin and curr_next_diff > thresmin):
 
-        logger.debug("Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
+        logger.debug("Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), magnitude))
         logger.debug("prev={0} curr={1} next={2}".format(prev, curr, next))
+        logger.debug("tprev=[{0}] tcurr=[{1}] tnext=[{2}] tcurrwin=[{3}]".format(
+            t.ctime(tprev), t.ctime(tcurr), t.ctime(tnext), t.ctime(tcurrwin)))
         logger.debug("curr_next_diff::{0} prev_curr_diff::{1} curr_prevwin_diff::{2}".
                      format(curr_next_diff, prev_curr_diff,
                             curr_prevwin_diff))
@@ -195,14 +209,14 @@ def check_if_edge(df, index, power_stream):
         if curr_next_diff < thresmin or curr_next_diff > thresmin:
             # Storing the falling edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
-                   curr_nextwin_diff, "type": edge_type, "curr_power": curr}
+                   magnitude, "type": edge_type, "curr_power": curr}
             # logger.debug("Falling Edge2: edge at [" + t.ctime(time) + "]" + json.dumps(row)
             return edge_type, row
 
         if prev_missing_sample is True or next_missing_sample is True:
             # Storing the falling edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
-                   curr_nextwin_diff, "type": edge_type, "curr_power": curr}
+                   magnitude, "type": edge_type, "curr_power": curr}
             # logger.debug("Falling Edge1: edge at [" + t.ctime(time) + "]" + json.dumps(row)
             return edge_type, row
 

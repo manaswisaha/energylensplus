@@ -3,10 +3,7 @@ from constants import WIFI_THRESHOLD
 from energylenserver.models import functions as mod_func
 from django_pandas.io import read_frame
 
-# Enable Logging
-import logging
-logger = logging.getLogger('energylensplus_django')
-
+from common_imports import *
 """
 Contains common preprocessing functions
 """
