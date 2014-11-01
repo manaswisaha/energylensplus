@@ -29,6 +29,7 @@ from energylenserver.models import functions as mod_func
 
 # Core Algo imports
 from energylenserver.core import classifier
+from energylenserver.core import user_attribution as attrib
 from energylenserver.core import functions as core_f
 from energylenserver.meter import edge_detection
 
@@ -42,7 +43,7 @@ from energylenserver.api import reporting as rpt
 from energylenserver.common_imports import *
 
 # Enable Logging
-logger = logging.getLogger('energylensplus_celery')
+logger = logging.getLogger('energylensplus_django')
 meter_logger = logging.getLogger('energylensplus_meterdata')
 
 
@@ -67,7 +68,7 @@ FILE_MODEL_MAP = {
 
 class ClientManager(BaseManager):
     pass
-
+# '''
 # Establishing connection with the running gcmserver
 try:
     ClientManager.register('get_msg_client')
@@ -75,7 +76,8 @@ try:
     manager.connect()
     client = manager.get_msg_client()
 except Exception, e:
-    pass
+    logger.exception("[InternalGCMClientConnectionException] %s", e)
+# '''
 
 """
 Data Handlers
@@ -114,7 +116,7 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
             df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
 
     if sensor_name != 'rawaudio':
-        logger.debug("Total number of records to insert: %d", len(df_csv))
+        # logger.debug("Total number of records to insert: %d", len(df_csv))
 
         # Remove NAN timestamps
         df_csv.dropna(subset=[0], inplace=True)
@@ -132,8 +134,7 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     # --Store data in the model--
     model[0]().insert_records(user, filepath, model[1])
 
-    now_time = "[" + time.ctime(time.time()) + "]"
-    logger.debug("%s Successful Upload for %s %s !!", now_time, sensor_name, filename)
+    logger.debug("Successful Upload file: %s!!", filename)
 
 
 @shared_task
@@ -224,18 +225,21 @@ def classifyEdgeHandler(edge):
     # Step 2: Determine user at home
     user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
     if len(user_list) == 0:
+        logger.debug("No user at home. Ignoring edge activity.")
         return 'ignore', 'ignore', 'ignore'
 
     # --- Classification ---
     # Step 1: Determine location for every user
-    location = classifier.classify_location(event_time,
+    location = classifier.classify_location(event_time, apt_no,
                                             start_time, end_time, user_list)
+
+    logger.debug("Determined Location: %s", location)
 
     # Step 2: Determine appliance for every user
     appliance = classifier.classify_sound(edge.timestamp, user_list)
 
     # Step 3: Determine user based on location, appliance and metadata
-    user = determine_user(location, appliance, user_list)
+    user = attrib.identify_user(location, appliance, user_list)
 
     who = user['dev_id']
     where = user['location']
@@ -346,9 +350,9 @@ def send_validation_report():
     """
     logger.debug("Sending periodic validation report..")
     # Get all the users
-    users = mod_func.get_all_users()
+    users = mod_func.get_all_active_users()
     if users is False:
-        logger.debug("No users that are active")
+        logger.debug("No users are active")
         return
     for user in users:
         reg_id = user.reg_id

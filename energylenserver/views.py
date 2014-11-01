@@ -250,7 +250,7 @@ def import_from_file(filename, csvfile):
         return False
 
     logger.debug("User: %s", user.name)
-    logger.debug("File size: %s", csvfile.size)
+    # logger.debug("File size: %s", csvfile.size)
 
     training_status = False
 
@@ -258,7 +258,7 @@ def import_from_file(filename, csvfile):
     if sensor_name == "Training":
         sensor_name = filename_l[3]
         training_status = True
-    logger.debug("Sensor:%s", sensor_name)
+    logger.debug("Sensor: %s", sensor_name)
 
     # Save file in a temporary location
     new_filename = ('data_file_' + sensor_name + '_' + str(
