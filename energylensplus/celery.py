@@ -9,7 +9,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'energylensplus.settings')
 
 from celery import Celery
 
-app = Celery('energylensplus', backend='amqp://')
+app = Celery('energylensplus')
 
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.
