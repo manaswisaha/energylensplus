@@ -50,7 +50,7 @@ class MessageClient:
         self.start_time = time.time()
         self.prev_req_time = None
         self.logger = logger
-        self.err_logger = exception_logger
+        self.elogger = exception_logger
 
         """
         Maintain a queue of all the unACKed sent messages
@@ -174,7 +174,7 @@ class MessageClient:
 
         except Exception, e:
             self.logger.error("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
-            self.err_logger.exception("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
+            self.elogger.exception("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
 
     def handle_request_message(self, message):
 

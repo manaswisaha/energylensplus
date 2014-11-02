@@ -44,6 +44,7 @@ from energylenserver.common_imports import *
 
 # Enable Logging
 logger = logging.getLogger('energylensplus_django')
+elogger = logging.getLogger('energylensplus_error')
 meter_logger = logging.getLogger('energylensplus_meterdata')
 
 
@@ -76,7 +77,7 @@ try:
     manager.connect()
     client = manager.get_msg_client()
 except Exception, e:
-    logger.exception("[InternalGCMClientConnectionException] %s", e)
+    elogger.exception("[InternalGCMClientConnectionException] %s", e)
 # '''
 
 """
