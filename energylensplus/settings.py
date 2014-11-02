@@ -56,13 +56,13 @@ WSGI_APPLICATION = 'energylensplus.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
-# db_host = '192.168.1.38'
-# db_user = 'manaswi'
+db_host = '192.168.1.38'
+db_user = 'manaswi'
 db_pass = 'research'
 
 # Local machine settings
-db_host = '127.0.0.1'
-db_user = 'root'
+# db_host = '127.0.0.1'
+# db_user = 'root'
 
 DATABASES = {
     'default': {
