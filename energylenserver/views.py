@@ -285,6 +285,10 @@ def import_from_file(filename, csvfile):
                 # Create temp wifi csv file
                 os.remove(filepath)
                 df_csv.to_csv(filepath, index=False)
+        except CParserError, e:
+            logger.error("[DataFileFormatIncorrect] Upload unsuccessful! :: %s", e)
+            # os.remove(filepath) # Commented for debugging
+            return True
 
         except Exception, e:
             if str(e) == "Passed header=0 but only 0 lines in file":
