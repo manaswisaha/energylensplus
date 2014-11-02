@@ -2,8 +2,6 @@
 
 # Managing EnergyLensPlus processes
 
-# TODO: Add process specific start/stop commands
-
 # Change to the repository directory
 ELENSHOME=`printenv ELENSERVER`
 cd $ELENSHOME
@@ -12,7 +10,6 @@ cd $ELENSHOME
 default_logfile="$ELENSHOME/logs/django.log"
 main_logfile="$ELENSHOME/logs/energylens.log"
 gcm_logfile="$ELENSHOME/logs/gcmserver.log"
-celery_logfile="$ELENSHOME/logs/celery.log"
 worker_logfile="$ELENSHOME/logs/energylens-worker.log"
 meterdata_logfile="$ELENSHOME/logs/meter_data.log"
 
@@ -33,26 +30,6 @@ if [ "$arg" = 'start' ]; then
    exit 2             		# and fail ($0 is name of command).
    fi
 
-    # Managing log files
-    cd "$ELENSHOME/logs/"
-    no_of_log_files=$(ls -1 *.log | wc -l)
-    if [ $no_of_log_files = 7 ]; then
-	   cp $default_logfile "$ELENSHOME/logs/old_logs/django"_`date +%F_%T`".log"
-	   cp $main_logfile "$ELENSHOME/logs/old_logs/energylens"_`date +%F_%T`".log"
-	   cp $gcm_logfile "$ELENSHOME/logs/old_logs/gcmserver"_`date +%F_%T`".log"
-	   cp $celery_logfile "$ELENSHOME/logs/old_logs/celery"_`date +%F_%T`".log"
-	   cp $meterdata_logfile "$ELENSHOME/logs/old_logs/energylens-worker"_`date +%F_%T`".log"
-	   cp $worker_logfile "$ELENSHOME/logs/old_logs/meter_data"_`date +%F_%T`".log"
-	   
-	   cat /dev/null > $default_logfile
-	   cat /dev/null > $main_logfile
-	   cat /dev/null > $gcm_logfile
-	   cat /dev/null > $celery_logfile
-	   cat /dev/null > $worker_logfile
-	   cat /dev/null > $meterdata_logfile
-	fi
-    cd $ELENSHOME
-
 	echo "Starting EnergyLensPlus Server..."
 
 	# Start GCM Server
@@ -64,7 +41,6 @@ if [ "$arg" = 'start' ]; then
 	sudo /etc/init.d/celeryd start
 	# sleep 1
 	sudo /etc/init.d/celerybeat start
-	# celery -A energylensplus worker -l info -B  &
 	
 	# Start Django Server
 	python manage.py runserver $ip &
@@ -81,7 +57,24 @@ elif [ "$arg" = 'stop' ]; then
 	# Stop celery
 	sudo /etc/init.d/celerybeat stop
 	sudo /etc/init.d/celeryd stop
-	# kill -9 `ps aux | grep "celery" | grep -v grep | awk '{print $2}'`
+
+	# Managing log files
+    cd "$ELENSHOME/logs/"
+    no_of_log_files=$(ls -1 *.log | wc -l)
+    if [ $no_of_log_files = 7 ]; then
+	   cp $default_logfile "$ELENSHOME/logs/old_logs/django"_`date +%F_%T`".log"
+	   cp $main_logfile "$ELENSHOME/logs/old_logs/energylens"_`date +%F_%T`".log"
+	   cp $gcm_logfile "$ELENSHOME/logs/old_logs/gcmserver"_`date +%F_%T`".log"
+	   cp $meterdata_logfile "$ELENSHOME/logs/old_logs/energylens-worker"_`date +%F_%T`".log"
+	   cp $worker_logfile "$ELENSHOME/logs/old_logs/meter_data"_`date +%F_%T`".log"
+	   
+	   cat /dev/null > $default_logfile
+	   cat /dev/null > $main_logfile
+	   cat /dev/null > $gcm_logfile
+	   cat /dev/null > $worker_logfile
+	   cat /dev/null > $meterdata_logfile
+	fi
+    cd $ELENSHOME
 	
 
 elif [ "$arg" = 'restart' ]; then
@@ -95,11 +88,11 @@ elif [ "$arg" = 'status' ]; then
 	echo "Celery Status:"
 	sudo /etc/init.d/celerybeat status
 	sudo /etc/init.d/celeryd status
-	# if [ -f $brokerServerFile ]; then
+	# if [ -f $serverPIDFile ]; then
 	# 	echo "EnergyLensPlus Server has already started"
 	# else
 	# 	echo "EnergyLensPlus Server has not been started. To start, type:"
-	# 	echo -e '\t source sensoract start'
+	# 	echo -e '\t energylens start <ip_addr:port_no>'
 	# fi
 else
 	echo 'Wrong command. Please type in this format-> source sensoract <start|stop|update|restart|status>'
