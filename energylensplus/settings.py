@@ -79,7 +79,7 @@ DATABASES = {
 }
 
 # Celery Settings
-CELERY_RESULT_BACKEND = ('db+mysqldb://' + db_user +
+CELERY_RESULT_BACKEND = ('db+mysql://' + db_user +
                          ':' + db_pass + '@' + db_host + '/celery_results')
 CELERY_ACCEPT_CONTENT = ['pickle', 'json']
 CELERY_TASK_RESULT_EXPIRES = 7200
