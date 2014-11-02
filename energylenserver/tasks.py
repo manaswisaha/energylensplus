@@ -135,7 +135,7 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     # --Store data in the model--
     model[0]().insert_records(user, filepath, model[1])
 
-    logger.debug("Successful Upload file: %s!!", filename)
+    logger.debug("Successful Upload! File: %s", filename)
 
 
 @shared_task
