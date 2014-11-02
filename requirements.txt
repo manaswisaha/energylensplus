@@ -7,3 +7,4 @@ xmpppy
 Celery
 rabbitmq-server
 flower
+sqlalchemy
