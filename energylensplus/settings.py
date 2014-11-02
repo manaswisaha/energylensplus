@@ -56,21 +56,48 @@ WSGI_APPLICATION = 'energylensplus.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
+db_host = '192.168.1.38'
+db_user = 'manaswi'
+db_pass = 'research'
+
+# Local machine settings
+# db_user = 'root'
+# db_host = '127.0.0.1'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'energylensplus',
-        'HOST': '192.168.1.38',
-        'USER': 'manaswi',
-        # 'USER': 'root',
-        # 'HOST': '127.0.0.1',
-        'PASSWORD': 'research',
+        'USER': db_user,
+        'HOST': db_host,
+        'PASSWORD': db_pass,
         'OPTIONS': {
             'local_infile': 1,
         },
         'CONN_MAX_AGE': None
     }
 }
+
+# Celery Settings
+CELERY_RESULT_BACKEND = ('db+mysqldb://' + db_user +
+                         ':' + db_pass + '@' + db_host + '/celery_results')
+CELERY_ACCEPT_CONTENT = ['pickle', 'json']
+CELERY_TASK_RESULT_EXPIRES = 7200
+
+
+'''
+from datetime import timedelta
+CELERYBEAT_SCHEDULE = {
+    'send-report-every-hour': {
+        'task': 'tasks.send_validation_report',
+        'schedule': timedelta(seconds=60 * 60),
+    },
+    # 'send-notification-every-hour': {
+    #     'task': 'energylenserver.tasks.send_wastage_notification',
+    #     'schedule': timedelta(seconds=60 * 45),
+    # },
+}
+'''
 
 # Logger Settings
 LOGGING = {
@@ -153,26 +180,6 @@ LOGGING = {
 # For File Handling
 MEDIA_ROOT = os.path.join(BASE_DIR, 'energylenserver/tmp/')
 # FILE_UPLOAD_HANDLERS = ("django.core.files.uploadhandler.TemporaryFileUploadHandler",)
-
-
-# Celery Settings
-# CELERY_RESULT_BACKEND = 'amqp'
-CELERY_ACCEPT_CONTENT = ['pickle', 'json']
-
-'''
-from datetime import timedelta
-CELERYBEAT_SCHEDULE = {
-    'send-report-every-hour': {
-        'task': 'tasks.send_validation_report',
-        'schedule': timedelta(seconds=60 * 60),
-    },
-    # 'send-notification-every-hour': {
-    #     'task': 'energylenserver.tasks.send_wastage_notification',
-    #     'schedule': timedelta(seconds=60 * 45),
-    #     'args': (1102),
-    # },
-}
-'''
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/
