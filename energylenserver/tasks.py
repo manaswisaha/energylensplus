@@ -261,6 +261,11 @@ def classifyEdgeHandler(edge):
                      event_type=event_type)
     event.save()
 
+    who = 'dev_id'
+    where = 'location'
+    what = 'appliance'
+    event = EventLog()
+
     return who, what, where, event
 
 
@@ -287,7 +292,7 @@ def findTimeSliceHandler(result_labels):
     end_time = time.ctime(edge.timestamp)
     logger.debug("[%s] :: Time slice for activity: %s uses %s in %s during %s and %s",
                  time.ctime(edge.timestamp), who, what, where, start_time, end_time)
-    return start_time, end_time, event
+    return who, what, where, event
 
 """
 Invokes the components that use EnergyLens+ outputs - who, what, where and when:

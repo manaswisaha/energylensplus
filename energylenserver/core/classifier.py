@@ -14,13 +14,15 @@ from energylenserver.core import location as lc
 from energylenserver.core import movement as acl
 from energylenserver.common_imports import *
 from energylenserver.models import functions as mod_func
+from common_imports import *
+from django_pandas.io import read_frame
 
 
 stars = 40
 
 
 def classify_location(event_time, apt_no, start_time, end_time, user_list):
-    logger.debug("--Classifying location--")
+    logger.debug("[Classifying location]..")
 
     # Step1: Get data from radio map (training set) and test set
 
@@ -34,19 +36,19 @@ def classify_location(event_time, apt_no, start_time, end_time, user_list):
     # Format data
 
     # Classify
+    location_label = lc.determine_location(train_df, test_df)
+    return location_label
 
-    return lc.determine_location(train_df, test_df)
 
-
-def classify_sound(train_csv, test_csv, apt_no, idx):
-    logger.debug("--Classifying sound--")
+def classify_appliance(train_csv, test_csv, apt_no, idx):
+    logger.debug("[Classifying appliance]..")
     # test_csv = cs.extract_features(test_csv, "test", apt_no, idx)
     return cs.classify_sound(train_csv, test_csv, apt_no, idx)
 
 
-def classify_accl(test_csv, apt_no, idx):
+def classify_movement(test_csv, apt_no, idx):
     logger.debug("-" * stars)
-    logger.debug("Accelerometer Prediction Process ")
+    logger.debug("[Classifying motion]..")
     logger.debug("-" * stars)
     # train_csv = acl.extract_features(train_csv, "train", apt_no, idx)
     # test_csv = acl.extract_features(test_csv, "test", apt_no, idx)

@@ -79,14 +79,15 @@ DATABASES = {
 }
 
 # Celery Settings
+from datetime import timedelta
 CELERY_RESULT_BACKEND = ('db+mysql://' + db_user +
                          ':' + db_pass + '@' + db_host + '/celery_results')
 CELERY_ACCEPT_CONTENT = ['pickle', 'json']
-CELERY_TASK_RESULT_EXPIRES = 7200
+CELERY_TASK_RESULT_EXPIRES = timedelta(seconds=60 * 60)
+CELERY_ENABLE_UTC = False
 
 
 '''
-from datetime import timedelta
 CELERYBEAT_SCHEDULE = {
     'send-report-every-hour': {
         'task': 'tasks.send_validation_report',

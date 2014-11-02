@@ -269,7 +269,7 @@ def import_from_file(filename, csvfile):
     # Create a dataframe for preprocessing
     if sensor_name != 'rawaudio':
         try:
-            df_csv = pd.read_csv(filepath)
+            df_csv = pd.read_csv(filepath, error_bad_lines=False)
             t = df_csv.label
 
             # --Preprocess records before storing--
@@ -285,7 +285,7 @@ def import_from_file(filename, csvfile):
                 # Create temp wifi csv file
                 os.remove(filepath)
                 df_csv.to_csv(filepath, index=False)
-        except CParserError, e:
+        except pd.parser.CParserError, e:
             logger.error("[DataFileFormatIncorrect] Upload unsuccessful! :: %s", e)
             # os.remove(filepath) # Commented for debugging
             return True
