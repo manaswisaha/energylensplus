@@ -16,21 +16,13 @@ meterdata_logfile="$ELENSHOME/logs/meter_data.log"
 
 #Get the command option
 arg=$1
-ip=$2
 
 if [ "$arg" = 'start' ]; then
 
-   if [ $# -ne 2 ]
-   # "$#" is number of parameters- here we test
-   # whether it is not equal to two
-   then
-   echo "Command Error: No IP Address entered"
-   echo "Usage: energylens start <ip_addr:port_no>"	# not two parameters
-   # so print message
-   exit 2             		# and fail ($0 is name of command).
-   fi
-
 	echo "Starting EnergyLensPlus Server..."
+
+	# Django Server
+	touch "$ELENSHOME/energylensplus/wsgi.py"
 
 	# Start GCM Server
 	python manage.py opengcmserver &
@@ -41,10 +33,7 @@ if [ "$arg" = 'start' ]; then
 	sudo /etc/init.d/celeryd start
 	# sleep 1
 	sudo /etc/init.d/celerybeat start
-	
-	# Start Django Server
-	python manage.py runserver $ip &
-	
+		
 	# Start Meter data collection service
 	python manage.py getmeterdata &
 	
@@ -65,8 +54,8 @@ elif [ "$arg" = 'stop' ]; then
 	   cp $default_logfile "$ELENSHOME/logs/old_logs/django"_`date +%F_%T`".log"
 	   cp $main_logfile "$ELENSHOME/logs/old_logs/energylens"_`date +%F_%T`".log"
 	   cp $gcm_logfile "$ELENSHOME/logs/old_logs/gcmserver"_`date +%F_%T`".log"
-	   cp $meterdata_logfile "$ELENSHOME/logs/old_logs/energylens-worker"_`date +%F_%T`".log"
-	   cp $worker_logfile "$ELENSHOME/logs/old_logs/meter_data"_`date +%F_%T`".log"
+	   cp $worker_logfile "$ELENSHOME/logs/old_logs/energylens-worker"_`date +%F_%T`".log"
+	   cp $meterdata_logfile "$ELENSHOME/logs/old_logs/meter_data"_`date +%F_%T`".log"
 	   
 	   cat /dev/null > $default_logfile
 	   cat /dev/null > $main_logfile
@@ -79,6 +68,25 @@ elif [ "$arg" = 'stop' ]; then
 
 elif [ "$arg" = 'restart' ]; then
 	echo "Restarting EnergyLensPlus Server.."
+	
+	# Stop Django commands
+	kill -9 `ps aux | grep "python manage.py" | grep -v grep | awk '{print $2}'`
+
+	# Django Server
+	touch "$ELENSHOME/energylensplus/wsgi.py"
+
+	# Start GCM Server
+	python manage.py opengcmserver &
+	sleep 5
+	python manage.py rungcmserver &
+
+	# Restart Celery
+	sudo /etc/init.d/celerybeat restart
+	sudo /etc/init.d/celeryd restart
+
+	# Start Meter data collection service
+	python manage.py getmeterdata &
+
 	
 elif [ "$arg" = 'update' ]; then
 	echo "Updating EnergyLensPlus Server..."
