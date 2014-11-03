@@ -41,11 +41,12 @@ Main Functions
 """
 
 
-def determine_hourly_usage(no_of_hours, activities, usage_entries):
+def determine_hourly_consumption(no_of_hours, activities, consumption_entries):
     """
     Determines the hourly usage/wastage based on activities
     """
-    pass
+    hourly_consumption = []
+    return hourly_consumption
 
 
 def get_energy_report(reg_id, api, start_time, end_time):
@@ -65,7 +66,6 @@ def get_energy_report(reg_id, api, start_time, end_time):
     start_time = end_time - no_of_hours * 3600
 
     # Temp code
-    # usage_list = [1000, 1030, 1100, 4500, 2300, 5500, 3200, 2100, 5500, 6000, 3000, 7800]
     usage_list = random.randint(1000, size=no_of_hours)
     logger.debug("Energy Usage:%s", usage_list)
 
@@ -77,12 +77,15 @@ def get_energy_report(reg_id, api, start_time, end_time):
 
     if api == PERSONAL_ENERGY_API:
         # Retrieve records from the db
-        # activities = retrieve_activities(reg_id, start_time, end_time)
-        # if activities:
-            # usage_entries = retrieve_usage_entries(activities.keys())
-            # hourly_usage = determine_hourly_usage(no_of_hours, activities, usage_entries)
-            # logger.debug "Detected Activities:\n " + activities
+        activities = retrieve_activities(reg_id, start_time, end_time)
+        if activities:
+            usage_entries = retrieve_usage_entries(activities.keys())
+            hourly_usage = determine_hourly_consumption(no_of_hours, activities, usage_entries)
+            logger.debug("Detected Activities: %s", activities)
+            options['total_consumption'] = total_usage
+            options['hourly_consumption'] = hourly_usage
 
+        '''
         # Temp code
         options['total_consumption'] = total_usage
         options['hourly_consumption'] = usage_list.tolist()
@@ -96,9 +99,11 @@ def get_energy_report(reg_id, api, start_time, end_time):
             {'name': "Microwave", "usage": total_usage * perc_list[3] / 100.})
         options['activities'].append(
             {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
+        '''
 
     elif api == ENERGY_WASTAGE_REPORT_API:
         # Call API
+        '''
         options['total_wastage'] = total_usage
         options['hourly_wastage'] = usage_list.tolist()
 
@@ -111,6 +116,7 @@ def get_energy_report(reg_id, api, start_time, end_time):
             {'name': "Microwave", "wastage": total_usage * perc_list[3] / 100.})
         options['activities'].append(
             {'name': "Unknown", "wastage": total_usage * perc_list[0] / 100.})
+        '''
 
     return options
 
@@ -125,9 +131,10 @@ def get_inferred_activities(reg_id):
     report_period = 3600  # 1 hour
     end_time = time.time()
     start_time = end_time - report_period
-    # activities = retrieve_activities(reg_id, start_time, end_time, "all")
+    activities = retrieve_activities(reg_id, start_time, end_time, "all")
 
     # Temp code
+    '''
     usage = random.randint(1000, size=7)
 
     activities.append(
@@ -151,6 +158,7 @@ def get_inferred_activities(reg_id):
     activities.append(
         {'id': 7, 'name': 'AC', 'location': 'Sitting Room', "usage": usage[6],
          "start_time": 1409790393, "end_time": 1409793993})
+    '''
     return activities
 
 
@@ -169,7 +177,8 @@ def disaggregated_energy(reg_id, activity_name, start_time, end_time):
             start_time = end_time - no_of_hours * 3600
 
     activities = []
-    # activities = retrieve_activities(reg_id, start_time, end_time, activity_name)
+    activities = retrieve_activities(reg_id, start_time, end_time, activity_name)
+    '''
     activities.append(
         {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
          "start_time": 1408086307, "end_time": 1408095726,
@@ -188,5 +197,6 @@ def disaggregated_energy(reg_id, activity_name, start_time, end_time):
         {'id': 4, 'name': activity_name, 'location': 'Bedroom', "value": 120,
          "start_time": 1408179665, "end_time": 1408185065,
          "wastage_times": [{"start_time": 1408183200, "end_time": 1408184100}]})
+    '''
 
     return activities
