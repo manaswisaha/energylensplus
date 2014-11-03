@@ -227,7 +227,7 @@ def classifyEdgeHandler(edge):
     user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
     if len(user_list) == 0:
         logger.debug("No user at home. Ignoring edge activity.")
-        return 'ignore', 'ignore', 'ignore'
+        return 'ignore', 'ignore', 'ignore', 'ignore'
 
     # --- Classification ---
     # Step 1: Determine location for every user
