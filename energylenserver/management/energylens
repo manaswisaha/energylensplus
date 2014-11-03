@@ -21,7 +21,6 @@ if [ "$arg" = 'start' ]; then
 
 	echo "Starting EnergyLensPlus Server..."
 
-	# Django Server
 	touch "$ELENSHOME/energylensplus/wsgi.py"
 
 	# Start GCM Server
@@ -33,6 +32,9 @@ if [ "$arg" = 'start' ]; then
 	sudo /etc/init.d/celeryd start
 	# sleep 1
 	sudo /etc/init.d/celerybeat start
+
+	# Start Django-Apache Server
+	sudo service apache2 start
 		
 	# Start Meter data collection service
 	python manage.py getmeterdata &
@@ -42,6 +44,9 @@ elif [ "$arg" = 'stop' ]; then
 
 	# Stop Django Commands
 	kill -9 `ps aux | grep "python manage.py" | grep -v grep | awk '{print $2}'`
+
+	# Stop Django-Apache Server
+	sudo service apache2 stop
 
 	# Stop celery
 	sudo /etc/init.d/celerybeat stop
