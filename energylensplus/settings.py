@@ -85,9 +85,9 @@ CELERY_RESULT_BACKEND = ('db+mysql://' + db_user +
 CELERY_ACCEPT_CONTENT = ['pickle', 'json']
 CELERY_TASK_RESULT_EXPIRES = timedelta(seconds=60 * 60)
 CELERY_ENABLE_UTC = False
+CELERY_TIMEZONE = 'Asia/Kolkata'
 
 
-'''
 CELERYBEAT_SCHEDULE = {
     'send-report-every-hour': {
         'task': 'tasks.send_validation_report',
@@ -98,7 +98,6 @@ CELERYBEAT_SCHEDULE = {
     #     'schedule': timedelta(seconds=60 * 45),
     # },
 }
-'''
 
 # Logger Settings
 LOGGING = {

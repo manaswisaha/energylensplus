@@ -4,20 +4,27 @@ Author: Manaswi Saha
 Updated on: Sep 18, 2014
 """
 
-import csv
 import pandas as pd
-import numpy as np
 
 from sklearn.neighbors import KNeighborsClassifier
-# from sklearn.metrics import confusion_matrix
-# from sklearn.metrics import classification_report
 
-from constants import WIFI_THRESHOLD
-from energylenserver.models import functions as mod_func
-from django_pandas.io import read_frame
+from common_imports import *
+
 
 import warnings
 warnings.filterwarnings('ignore')
+
+
+def train_localization_model(train_df):
+    """
+    Train WiFi localization model
+    TODO: For future use, for new models
+    """
+    # Run KNN or NNSS algorithm to generate locations for the data points
+    n = 5
+    clf = KNeighborsClassifier(n_neighbors=n)
+
+    return clf
 
 
 def determine_location(train_df, test_df):
@@ -26,48 +33,36 @@ def determine_location(train_df, test_df):
     """
 
     try:
-
-        # Step 1: Get RSSI columns
+        # Get RSSI columns
         train_col_names = train_df.columns[1:len(train_df.columns) - 1]
-        test_col_names = test_df.columns[1:len(test_df.columns) - 2]
+        test_col_names = test_df.columns[1:len(test_df.columns) - 1]
 
         # Find the common rssi columns
-        print "-" * 30, "Using multiple access point", "-" * 30
         features = list(set(test_col_names) & set(train_col_names))
+        logger.debug("WiFi Features:: %s", features)
 
-        # Testing with the residence access point
-        # print "-"*30, "Using single access point", "-"*30
-        # features = ['c4:0a:cb:2d:87:a0']
-        # print "Training set columns::", train_col_names, "\nTest set::", test_col_names
-        print "Features::", features
-
-        # Step 2: Localizing the user
-        total_rows = (test_df.shape)[0]
+        # Localizing the user
         # Run KNN or NNSS algorithm to generate locations for the data points
         n = 5
-        print "Using n::", n
-        # clf = KNeighborsClassifier(n_neighbors=n,weights='distance')
         clf = KNeighborsClassifier(n_neighbors=n)
         clf.fit(train_df[features], train_df['label'])
-        pred_loc = clf.predict(test_df[features])
-        true_loc = test_df['label']
+        pred_label = clf.predict(test_df[features])
 
-        # Step4: Store results in a csv and plot the csv with labels
-        # cols_to_write =  ['timestamp'] + features + ['location']
-        train_csv_name = train_csv.split('/')[3].replace('.csv', '')
-        new_csv = (test_csv.split('/')[3]).replace(
-            '.csv', '_' + train_csv_name + '.csv')
-        new_csv = 'Wifi/output/testing/' + apt_no + "_n" + str(n) + "_" + new_csv
-        new_df = test_df
-        new_df['pred_label'] = pred_loc
-        new_df.to_csv(new_csv, index=False)
+        # Return results
+        pred_list = dict((i, list(pred_loc).count(i)) for i in pred_test_class)
+        logger.debug("Predicted list: %s", pred_list)
+        grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
+        grpcount_label.columns = ['lcount']
+        pred_label = grpcount_label[
+            grpcount_label.lcount == grpcount_label.lcount.max()].index[0]
+        logger.debug("Predicted Location Label: %s", pred_label)
+        return pred_label
 
     except Exception, e:
         logger.error("[WiFiClassifierException]::%s", str(e))
+        return False
 
-    return new_df
-
-
+'''
 def classify_location(train_csv, test_csv, apt_no, idx):
 
     # Step1: Get data from radio map (training set) and test set
@@ -280,3 +275,4 @@ def class_results(train_df, test_df, pred_df):
     #     '.png', '_' + train_csv_name + '_dist_n' + str(n) + '.png')
     # print "Imagename::", imgname, "\n"
     # pltcm.plot_cm(cm, "Wifi", classes, imgname, n)
+'''

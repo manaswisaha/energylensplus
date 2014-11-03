@@ -9,17 +9,85 @@ Updated: Sep 29, 2013
 """
 
 import os
-import csv
+import time
 import sys
-import pandas as pd
-import numpy as np
-from constants import *
-# import MFCC as MFCC
 
+from django.conf import settings
+
+import numpy as np
+import pandas as pd
 from sklearn.svm import SVC
-from sklearn import tree
-# from sklearn.naive_bayes import GaussianNB
-# from sklearn.mixture import GMM
+from sklearn.externals import joblib
+
+from constants import *
+from common_imports import *
+
+base_dir = settings.BASE_DIR
+
+
+def train_audio_classfication_model(train_df, filename):
+    """
+    Train Audio Classification model
+    """
+
+    # Training features
+    features = train_df.columns[1:-1]
+
+    # Cleaning
+    train_df = train_df[train_df.mfcc1 != '-Infinity']
+
+    # Train SVM Model
+    clf = SVC()
+    clf.fit(train_df[features], train_df['label'])
+
+    # Saving model into a disk
+    dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/audio/')
+    if not os.path.exists(dst_folder):
+        os.makedirs(dst_folder)
+
+    model_file = filename + "_SVM_" + str(int(time.time()))
+    joblib.dump(clf, dst_folder + model_file + '.pkl', compress=9)
+
+    return clf
+
+
+"""
+Classify Sound event for the data in the given time slice
+and output the sound event
+
+Input: sound data for a time frame
+Output: sound event for that time frame
+
+"""
+
+
+def classify_sound(train_model, test_df):
+
+    try:
+        # Cleaning
+        test_df = test_df[test_df.mfcc1 != '-Infinity']
+
+        # Features
+        features = test_df.columns[1:-1]
+
+        # Run NB/GMM/SVM algorithm to generate sound events for the data points
+        clf = train_model
+        clf.fit(train_df[features], train_df['label'])
+        pred_label = clf.predict(test_df[features])
+
+        # Return results: Selecting the label with maximum count
+        pred_list = dict((i, list(pred_label).count(i)) for i in pred_test_class)
+        logger.debug("Predicted list: %s", pred_list)
+        grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
+        grpcount_label.columns = ['lcount']
+        pred_label = grpcount_label[
+            grpcount_label.lcount == grpcount_label.lcount.max()].index[0]
+        logger.debug("Predicted Sound Label: %s", pred_label)
+        return pred_label
+
+    except Exception, e:
+        logger.error("[AudioClassifierException]::%s", str(e))
+        return False
 
 
 def extract_features(csvfile, dataset_type, apt_no, idx):
@@ -192,89 +260,13 @@ def extract_features(csvfile, dataset_type, apt_no, idx):
     for the_file in os.listdir(folder_path):
         file_path = os.path.join(folder_path, the_file)
         try:
-        # if os.path.isfile(file_path):
+            # if os.path.isfile(file_path):
             os.unlink(file_path)
         except Exception, e:
             print e
 
     return feat_csv
 
-"""
-Classify Sound event for the data in the given time slice
-and output the sound event
-
-Input: sound data for a time frame
-Output: sound event for that time frame
-
-"""
-
-
-def classify_sound(train_csv, test_csv, apt_no, idx):
-
-    # Step1: Get data from training set and test set
-    train_df = pd.read_csv(train_csv)
-    test_df = pd.read_csv(test_csv)
-
-    # train_df = train_df[train_df.label != 'Washing Machine']
-    # train_df = train_df[train_df.label != 'None']
-
-    # Using MFCC features calculated on phone
-    # if 'mfcc1' in test_df.columns and 'mfcc1' in train_df.columns:
-    #     train_df = train_df[train_df.mfcc1 != '-Infinity']
-        # test_df = test_df[test_df.mfcc1 != '-Infinity']
-
-    # Step2: Get features from the train_df
-    features = train_df.columns[1:-1]
-    # features = test_df.columns[1:-1]
-    # print "Features::", features
-
-    # Step3: Run NB/GMM/SVM algorithm to generate sound events for the data points
-    # clf = GaussianNB()  # Naive Bayes
-    clf = SVC()  # Linear SVM
-    # clf = tree.DecisionTreeClassifier()  # Decision Tree
-    clf.fit(train_df[features], train_df['label'])
-    pred_label = clf.predict(test_df[features])
-    # true_loc = test_df['label']
-
-    # Step4: Store results in a csv and plot the csv with labels
-    #cols_to_write = ['frame_no'] + features + ['label', 'pred_label']
-
-    # File name generation
-    train_csv_name = train_csv.split('/')[3].replace('.csv', '')
-    new_csv = (test_csv.split('/')[3]).replace(
-        '.csv', '_' + train_csv_name + '.csv')
-    new_csv = 'Sound/output/testing/' + apt_no + "_" + new_csv
-    new_df = test_df
-    new_df['pred_label'] = pred_label
-    new_df.to_csv(new_csv, index=False)
-
-    # Step5: Check accuracy by comparing it with the ground truth
-    # Plot confusion matrix
-    print "\nSound Classification Accuracy..."
-    train_classes = sorted(train_df.label.unique().tolist())
-    test_classes = sorted(test_df.label.unique().tolist())
-    pred_test_class = sorted(new_df.pred_label.unique().tolist())
-    print "Train Classes: ", train_classes
-
-    # Data points for the classes in the training set
-    print "-" * 10, "Training Set", "-" * 10
-    grp_loc_df = [train_df.iloc[np.where(train_df['label'] == i)]
-                  for i in train_classes]
-    for j in range(len(grp_loc_df)):
-        print "Class", grp_loc_df[j].label.unique(), " : ", len(grp_loc_df[j])
-
-    print "Test Classes: ", test_classes
-    print "Predicted class::", pred_test_class
-
-    # Selecting the label with maximum count
-    pred_list = dict((i, list(pred_label).count(i)) for i in pred_test_class)
-    print "Predicted list", pred_list
-    grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
-    grpcount_label.columns = ['lcount']
-    pred_label = grpcount_label[
-        grpcount_label.lcount == grpcount_label.lcount.max()].index[0]
-    print "Predicted Sound Label:", pred_label, "\n"
-    return pred_label
 
 if __name__ == '__main__':
 

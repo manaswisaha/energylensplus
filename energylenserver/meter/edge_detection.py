@@ -177,7 +177,7 @@ def check_if_edge(df, index, power_stream):
             # Storing the rising edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
                    magnitude, "type": edge_type, "curr_power": curr}
-            # logger.debug("Missing Sample: edge at [" + t.ctime(time) + "]" + json.dumps(row)
+            logger.debug("Rise: Missing Sample: edge at [%s] %s", t.ctime(time), json.dumps(row))
             return edge_type, row
         if curr_next_diff >= thresmin:
             if curr_next_diff > magnitude:
@@ -186,7 +186,7 @@ def check_if_edge(df, index, power_stream):
             # Storing the rising edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
                    magnitude, "type": edge_type, "curr_power": curr}
-            # logger.debug("Missing Sample: edge at [" + t.ctime(time) + "]" + json.dumps(row)
+            logger.debug("Rise: Curr Next greater: edge at [%s] %s", t.ctime(time), json.dumps(row))
             return edge_type, row
         else:
             # logger.debug("Rise: None of the conditions satisfied:: [" + t.ctime(time) + "]"
@@ -210,14 +210,14 @@ def check_if_edge(df, index, power_stream):
             # Storing the falling edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
                    magnitude, "type": edge_type, "curr_power": curr}
-            # logger.debug("Falling Edge2: edge at [" + t.ctime(time) + "]" + json.dumps(row)
+            logger.debug("Fall Edge2: edge at [%s] %s", t.ctime(time), json.dumps(row))
             return edge_type, row
 
         if prev_missing_sample is True or next_missing_sample is True:
             # Storing the falling edge e_i = (time_i, mag_i)
             row = {"index": i, "time": time, "magnitude":
                    magnitude, "type": edge_type, "curr_power": curr}
-            # logger.debug("Falling Edge1: edge at [" + t.ctime(time) + "]" + json.dumps(row)
+            logger.debug("Fall: Missing sample: edge at at [%s] %s", t.ctime(time), json.dumps(row))
             return edge_type, row
 
         else:

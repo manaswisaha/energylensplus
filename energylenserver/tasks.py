@@ -231,16 +231,21 @@ def classifyEdgeHandler(edge):
 
     # --- Classification ---
     # Step 1: Determine location for every user
-    location = classifier.classify_location(event_time, apt_no,
-                                            start_time, end_time, user_list)
+    location_dict = classifier.classify_location(event_time, apt_no, start_time, end_time,
+                                                 user_list)
 
-    logger.debug("Determined Location: %s", location)
+    logger.debug("Determined Locations: %s", location_dict)
 
     # Step 2: Determine appliance for every user
-    appliance = classifier.classify_sound(edge.timestamp, user_list)
+    appliance_dict = classifier.classify_sound(event_time, apt_no, start_time, end_time,
+                                               user_list, location_dict)
+
+    logger.debug("Determined Appliances: %s", appliance_dict)
 
     # Step 3: Determine user based on location, appliance and metadata
-    user = attrib.identify_user(location, appliance, user_list)
+    user = attrib.identify_user(location_dict, appliance_dict, user_list)
+
+    logger.debug("Determined User: %s", user)
 
     who = user['dev_id']
     where = user['location']

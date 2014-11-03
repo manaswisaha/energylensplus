@@ -59,7 +59,7 @@ def determine_user(reg_id):
 
 def get_all_active_users():
     """
-    Determine all the users
+    Get all the active users
     """
     try:
         users = RegisteredUsers.objects.filter(is_active=True)
@@ -70,12 +70,40 @@ def get_all_active_users():
     return users
 
 
-def retrieve_users(apt_no):
+def get_users_for_training(apt_no, phone_model):
     """
-    Determine all the users of an apartment
+    Get user details based on the given parameters
+    Usage: For training
     """
     try:
-        users = RegisteredUsers.objects.filter(apt_no=apt_no)
+        users = RegisteredUsers.objects.filter(
+            is_active=True, apt_no=apt_no, phone_model=phone_model)
+    except Exception, e:
+        logger.error("[GetTrainUsersException Occurred]:: %s", str(e))
+        return False
+
+    return users
+
+
+def get_users(user_list):
+    """
+    Get active users based on the list
+    """
+    try:
+        users = RegisteredUsers.objects.filter(is_active=True, reg_id__in=user_list)
+    except Exception, e:
+        logger.error("[GetUsersException Occurred]:: %s", str(e))
+        return False
+
+    return users
+
+
+def retrieve_users(apt_no):
+    """
+    Get all the active users of an apartment
+    """
+    try:
+        users = RegisteredUsers.objects.filter(apt_no=apt_no, is_active=True)
     except Exception, e:
         logger.error("[GetAllUsersException Occurred]:: %s", str(e))
         return False
@@ -154,18 +182,18 @@ def get_sensor_training_data(sensor_name, apt_no, dev_id_list):
     # Set sensor data model
     model = MODEL_MAP['Training' + sensor_name]
 
-    logger.debug("Getting data for dev_ids: %s for apt_no: %d", dev_id_list, apt_no)
+    logger.debug("Getting training data for dev_ids: %s for apt_no: %d", dev_id_list, apt_no)
 
     # Get data
     try:
         data = model.objects.filter(dev_id__in=dev_id_list)
     except model.DoesNotExist:
-        logger.error("[SensorDataDoesNotExistException Occurred]"
+        logger.error("[SensorTrainDataDoesNotExistException Occurred]"
                      " No training data found for the given sensor: %s",
                      sensor_name)
         return False
     except Exception, e:
-        logger.error("[GetSensorDataException Occurred] %s", str(e))
+        logger.error("[SensorTrainDataDoesNotExistException Occurred] %s", str(e))
         return False
 
     return data
