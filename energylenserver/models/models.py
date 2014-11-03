@@ -19,6 +19,7 @@ class Devices(models.Model):
     is_active = models.BooleanField(default=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
+    phone_model = models.CharField(max_length=50, blank=True)
 
     def __unicode__(self):
         return self.name
