@@ -69,7 +69,7 @@ def register_device(request):
             user_name = payload['user_name']
             email_id = payload['email_id']
             dev_id = payload['dev_id']
-            # phone_model = payload['phone_model']
+            phone_model = payload['phone_model']
             apt_no = payload['apt_no']
             home_ap = payload['home_ap']
             other_ap = payload['other_ap']
@@ -79,6 +79,7 @@ def register_device(request):
             logger.debug("Username: %s", user_name)
             logger.debug("Email ID: %s", email_id)
             logger.debug("Device ID: %s", dev_id)
+            logger.debug("Model: %s", phone_model)
             logger.debug("Apartment Number: %s", apt_no)
             logger.debug("Home AP: %s", home_ap)
             logger.debug("Other APs: %s", other_ap)
@@ -139,7 +140,7 @@ def register_device(request):
 
                 # Store user
                 user = RegisteredUsers(dev_id=dev_id, reg_id=reg_id, apt_no=apt_no, name=user_name,
-                                       email_id=email_id)  # , phone_model=phone_model)
+                                       email_id=email_id, phone_model=phone_model)
                 user.save()
                 logger.debug("Registration successful")
             return HttpResponse(json.dumps(REGISTRATION_SUCCESS),
@@ -288,7 +289,7 @@ def import_from_file(filename, csvfile):
                 df_csv.to_csv(filepath, index=False)
         except pd.parser.CParserError, e:
             logger.error("[DataFileFormatIncorrect] Upload unsuccessful! :: %s", e)
-            # os.remove(filepath) # Commented for debugging
+            os.remove(filepath)  # Commented for debugging
             return True
 
         except Exception, e:

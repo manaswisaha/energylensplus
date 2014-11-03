@@ -23,4 +23,11 @@ from models import RegisteredUsers
 from models import Metadata
 from models import Edges
 from models import MeterInfo
+from models import AccessPoints
+from models import EnergyUsageLog
+from models import EnergyWastageLog
 from models import ActivityLog
+from models import EventLog
+from models import EnergyWastageNotif
+from models import UsageLogScreens
+from models import UsageLogNotifs
