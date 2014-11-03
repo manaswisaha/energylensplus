@@ -307,7 +307,8 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
     """
     try:
         if activity_name == "all":
-            # Retrieves all activities - for validation report generation
+            # Retrieves all activities - for validation report generation and
+            # usage/wastage reports
             records = ActivityLog.objects.filter(dev_id=dev_id,
                                                  end_time__gte=start_time,
                                                  end_time__lte=end_time)
@@ -376,6 +377,32 @@ def retrieve_usage_entries(dev_id, activity_id_list):
     u_entries = {}
     for r in usage_entries:
         u_entries[r.id] = {'usage': r.usage}
+    logger.debug("Appliances::\n %s", json.dumps(u_entries))
+
+    return u_entries
+
+
+def retrieve_wastage_entries(dev_id, activity_id_list):
+    """
+    Retrieves wastage entries of the given activity id list
+    """
+    try:
+        wastage_entries = EnergyWastageLog.objects.filter(
+            dev_id=dev_id, activity_id__in=activity_id_list)
+
+    except EnergyWastageLog.DoesNotExist:
+        logger.debug("[WastageDoesNotExistException Occurred] "
+                     "No wastage entries found for the given ids:: %s", activity_id_list)
+        return False
+    except Exception, e:
+        logger.error("[RetrieveWastageEntriesException]:: %s", str(e))
+        return False
+
+    record_count = wastage_entries.count()
+    logger.debug("Number of wastage entries: %s", record_count)
+    u_entries = {}
+    for r in wastage_entries:
+        u_entries[r.id] = {'wastage': r.wastage}
     logger.debug("Appliances::\n %s", json.dumps(u_entries))
 
     return u_entries
