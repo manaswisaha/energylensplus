@@ -69,6 +69,7 @@ def register_device(request):
             user_name = payload['user_name']
             email_id = payload['email_id']
             dev_id = payload['dev_id']
+            # phone_model = payload['phone_model']
             apt_no = payload['apt_no']
             home_ap = payload['home_ap']
             other_ap = payload['other_ap']
@@ -137,8 +138,8 @@ def register_device(request):
             except RegisteredUsers.DoesNotExist, e:
 
                 # Store user
-                user = RegisteredUsers(
-                    dev_id=dev_id, reg_id=reg_id, apt_no=apt_no, name=user_name, email_id=email_id)
+                user = RegisteredUsers(dev_id=dev_id, reg_id=reg_id, apt_no=apt_no, name=user_name,
+                                       email_id=email_id)  # , phone_model=phone_model)
                 user.save()
                 logger.debug("Registration successful")
             return HttpResponse(json.dumps(REGISTRATION_SUCCESS),
