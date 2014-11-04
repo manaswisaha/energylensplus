@@ -69,7 +69,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
     options = {}
 
     # Retrieve records from the db
-    activities = mod_func.retrieve_activities(dev_id, start_time, end_time, "all")
+    activities = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name="all")
     logger.debug("Detected Activities: %s", activities)
 
     if api == PERSONAL_ENERGY_API:
@@ -111,7 +111,7 @@ def get_inferred_activities(dev_id):
     report_period = 3600  # 1 hour
     end_time = time.time()
     start_time = end_time - report_period
-    all_activities = mod_func.retrieve_activities(dev_id, start_time, end_time, "all")
+    all_activities = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name="all")
 
     if len(all_activities) > 0:
         for act_id, aentry in all_activities.iteritems():
