@@ -272,27 +272,10 @@ def retrieve_metadata(apt_no):
     try:
         records = Metadata.objects.filter(apt_no=apt_no)
         logger.debug("Number of metadata entries: %s", str(records.count()))
-        for r in records:
-            appliances.append({'location': r.location, 'appliance': r.appliance})
 
     except Exception, e:
         logger.error("[GetMetadataException]:: %s", DISAGG_ENERGY_API, e)
 
-    '''
-    # temp code
-    appliances.append(
-        {'location': 'Dining Room', 'appliance': 'Light'})
-    appliances.append(
-        {'location': 'Dining Room', 'appliance': 'Fan'})
-    appliances.append(
-        {'location': 'Dining Room', 'appliance': 'AC'})
-    appliances.append(
-        {'location': 'Bedroom', 'appliance': 'TV'})
-    appliances.append(
-        {'location': 'Bedroom', 'appliance': 'Light'})
-    appliances.append(
-        {'location': 'Bedroom', 'appliance': 'AC'})
-    '''
     return appliances
 
 """
@@ -302,7 +285,7 @@ Inference Management Model methods
 
 def retrieve_activities(dev_id, start_time, end_time, activity_name):
     """
-    Retrieves all activities between the time period or
+    Retrieves all activities of a user between the time period or
     based on requested appliance
     """
     try:
