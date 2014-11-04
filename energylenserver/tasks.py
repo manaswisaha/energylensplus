@@ -69,6 +69,7 @@ FILE_MODEL_MAP = {
 
 class ClientManager(BaseManager):
     pass
+
 # '''
 # Establishing connection with the running gcmserver
 try:
@@ -190,10 +191,10 @@ def edgeHandler(edge):
     """
     logger.debug("Starting the Classification pipeline..")
     if edge.type == "falling":
-        chain = classifyEdgeHandler.s(
-            edge) | findTimeSliceHandler.s() | determineWastageHandler.s()
+        chain = (classify_edge.s(edge) |
+                 find_time_slice.s() | apportion_energy.s())
     else:
-        chain = classifyEdgeHandler.s(edge) | determineWastageHandler.s()
+        chain = (classify_edge.s(edge) | determine_wastage.s())
     chain()
     logger.debug("Classification Pipeline ended for edge: [%s] :: %d",
                  time.ctime(edge.timestamp), edge.magnitude)
@@ -204,7 +205,7 @@ Invokes the EnergyLens+ core algorithm
 
 
 @shared_task
-def classifyEdgeHandler(edge):
+def classify_edge(edge):
     """
     Consumes smart meter edges and phone data to give out 'who',
     'what', 'where' and 'when'
@@ -219,13 +220,17 @@ def classifyEdgeHandler(edge):
     p_window = 60  # window for each side of the event time (in seconds)
 
     event_time = edge.timestamp
+    magnitude = edge.magnitude
+
     start_time = event_time - p_window
     end_time = event_time + p_window
 
     # --- Preprocessing ---
     # Step 2: Determine user at home
     user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
-    if len(user_list) == 0:
+    n_users_at_home = len(user_list)
+
+    if n_users_at_home == 0:
         logger.debug("No user at home. Ignoring edge activity.")
         return 'ignore', 'ignore', 'ignore', 'ignore'
 
@@ -243,39 +248,50 @@ def classifyEdgeHandler(edge):
     logger.debug("Determined Appliances: %s", appliance_dict)
 
     # Step 3: Determine user based on location, appliance and metadata
-    user = attrib.identify_user(location_dict, appliance_dict, user_list)
+    if n_users_at_home > 1:
+        user = attrib.identify_user(apt_no, magnitude, location_dict, appliance_dict, user_list)
+        who = user['dev_id']
+        where = user['location']
+        what = user['appliance']
 
-    logger.debug("Determined User: %s", user)
+    elif n_users_at_home == 1:
+        user = user_list[0]
+        who = user_list
+        where = location_dict[user]
+        what = appliance_dict[user]
 
-    who = user['dev_id']
-    where = user['location']
-    what = user['appliance']
+    logger.debug("[%s] :: Determined labels: %s %s %s" %
+                 (time.ctime(event_time), who, where, what))
 
     if edge.type == "rising":
         event_type = "ON"
     else:
         event_type = "OFF"
 
-    logger.debug("[%s] :: Determined labels: %s %s %s" %
-                 (time.ctime(edge.timestamp), who, where, what))
+    if type(who) == list:
 
-    # Create a record in the Event Log with edge id
-    # and store who what where labels
-    event = EventLog(edge_id=edge, event_time=edge.timestamp,
-                     location=where, appliance=what, dev_id=who,
-                     event_type=event_type)
-    event.save()
-
-    who = 'dev_id'
-    where = 'location'
-    what = 'appliance'
-    event = EventLog()
+        # New record for each user for an edge - indicates multiple occupants
+        # were present in the room during the event
+        for user in who:
+            # Create a record in the Event Log with edge id
+            # and store 'who', 'what', 'where' labels
+            event = EventLog(edge_id=edge, event_time=event_time,
+                             location=where, appliance=what, dev_id=user,
+                             event_type=event_type)
+            event.save()
+    else:
+        # Create a record in the Event Log with edge id
+        # and store 'who', 'what', 'where' labels
+        event = EventLog(edge_id=edge, event_time=event_time,
+                         location=where, appliance=what, dev_id=user,
+                         event_type=event_type)
+        event.save()
 
     return who, what, where, event
 
 
 @shared_task
-def findTimeSliceHandler(result_labels):
+def find_time_slice(result_labels):
     """
     Consumes "where", what" and "who" labels and gives out "when"
     and stores an "activity"
@@ -287,16 +303,26 @@ def findTimeSliceHandler(result_labels):
     :return when:
     """
     who, what, where, event = result_labels
-    logger.debug("Determines activity duration: [%s] :: %s" % (
-        time.ctime(edge.timestamp), str(edge.magnitude)))
 
-    if who == 'ignore' and what == 'ignore' and where == 'ignore':
+    # If no user at home, skip event
+    if (who == 'ignore' and what == 'ignore' and
+        where == 'ignore') or (who == 'not_found' and
+                               what == 'not_found' and
+                               where == 'not_found'):
         return
+
+    event_time = event.event_time
+    magnitude = event.edge_id.magnitude
+    logger.debug("Determines activity duration: [%s] :: %s" % (
+        time.ctime(event_time), str(magnitude)))
+
+    # ------ TEMP CODE START -----
     time.sleep(2)
-    start_time = time.ctime(edge.timestamp - 10)
-    end_time = time.ctime(edge.timestamp)
+    start_time = time.ctime(event_time - 10)
+    end_time = time.ctime(event_time)
+    # ----- TEMP CODE END -----
     logger.debug("[%s] :: Time slice for activity: %s uses %s in %s during %s and %s",
-                 time.ctime(edge.timestamp), who, what, where, start_time, end_time)
+                 time.ctime(event_time), who, what, where, start_time, end_time)
     return who, what, where, event
 
 """
@@ -307,46 +333,51 @@ Invokes the components that use EnergyLens+ outputs - who, what, where and when:
 
 
 @shared_task
-def determineWastageHandler(result_labels):
+def apportion_energy(result_labels):
     """
-    Consumes edge and determines energy wastage
-    :param edge:
-    :return determined wastage:
-    """
-    energy_wasted = True
-    who, what, where, event = result_labels
-    reg_id = ''  # Get regid based on the who value
+    Determines the energy usage/wastage of an individual based on
+    activity parameters and length of stay for each activity
 
-    logger.debug("Determines energy wastage:: [%s] :: %s" % (
-        time.ctime(edge.timestamp), str(edge.magnitude)))
-    logger.debug("Activity: %s in %s uses %s", who, where, what)
-    # Call module that determines energy wastage
-    time.sleep(2)
-
-    if energy_wasted:
-        # Call real-time feedback component to send a message to the user
-        message_to_send = {}
-        message_to_send['msg_type'] = 'response'
-        message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
-        message_to_send['options'] = {}
-        message_to_send['options']['message'] = 'Please turn off the Light in the Bedroom.'
-        inform_user.delay(edge, reg_id, message_to_send)
-        pass
-
-    logger.debug("Wastage Determined: %s", str(energy_wasted))
-
-    return energy_wasted
-
-
-@shared_task
-def apportion_energy():
-    """
-    Determines the energy usage of an individual based on activity parameters
-    and length of stay for each activity
+    -Determine duration of stay in the room for a user
+    -In the determined appliance usage, determine actual usage/wastage of a user
+     based on time of stay in the room of activity
+    -handle all complex use cases
+    -generate hourly energy data
+    -generate energy wastage notifications
 
     :return: energy usage
     """
     logger.debug("Apportioning energy..")
+
+    who, what, where, event = result_labels
+
+    event_time = event.event_time
+    magnitude = event.edge_id.magnitude
+
+    logger.debug("Determines energy wastage:: [%s] :: %s" % (
+        time.ctime(event_time), str(magnitude)))
+    logger.debug("Activity: %s in %s uses %s", who, where, what)
+
+
+@shared_task
+def determine_wastage(result_labels):
+    """
+    Consumes edge and determines energy wastage
+    :param edge:
+    :return determined wastage:
+
+    """
+    who, what, where, event = result_labels
+    # reg_id = ''  # Get regid based on the who value
+
+    logger.debug("Determines energy wastage:: [%s] :: %s" % (
+        time.ctime(edge.timestamp), str(edge.magnitude)))
+    logger.debug("Activity: %s in %s uses %s", who, where, what)
+
+    # Call module that determines energy wastage
+    logger.debug("Wastage Determined: %s", str(energy_wasted))
+
+    return energy_wasted
 
 
 """
@@ -380,7 +411,10 @@ def send_validation_report():
         if len(activities) <= 0:
             return
 
-        appliances = mod_func.retrieve_metadata(apt_no)
+        appliances = []
+        records = mod_func.retrieve_metadata(apt_no)
+        for r in records:
+            appliances.append({'location': r.location, 'appliance': r.appliance})
 
         users = mod_func.retrieve_users(apt_no)
 
@@ -397,14 +431,17 @@ def send_validation_report():
         # Send the message to all the users
         client.send_message(message)
 
-        logger.debug("Sending report for:: %s", user.name)
+        logger.debug("Sent report to:: %s", user.name)
 
 
 @shared_task
-def send_wastage_notification(apt_no):
+def inform_user(apt_no, message_to_send):
     """
-    Sends a wastage notification to all the users
+    Informs the user by sending a notification to all the users
+    :return message:
+    Call: inform_user.delay(apt_no, message_to_send)
     """
+
     import random
     import string
 
@@ -418,34 +455,20 @@ def send_wastage_notification(apt_no):
         reg_id = user.reg_id
         notif_id = random.choice(string.digits)
 
+        notif_message = ('Please turn off the Light in the Bedroom' + str(notif_id)) * 3
         # Construct the message
         message_to_send = {}
         message_to_send['msg_type'] = 'response'
         message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
         message_to_send['options'] = {}
         message_to_send['options']['id'] = notif_id
-        message_to_send['options'][
-            'message'] = ('Please turn off the Light in the Bedroom' + str(notif_id)) * 3
+        message_to_send['options']['message'] = notif_message
 
         message = create_message(reg_id, message_to_send)
 
         # Send the message to all the users
         client.send_message(message)
-
-        logger.debug("Sending wastage notification for:: %s", user.name)
-
-
-@shared_task
-def inform_user(edge, reg_id, message_to_send):
-    """
-    Informs the user by sending a notification to the phone
-    :return message:
-    """
-    logger.debug("Sending message:: [%s] :: %s", time.ctime(edge.timestamp), str(edge.magnitude))
-    # Call module that sends message
-    message = create_message(reg_id, message_to_send)
-    client.send_message(message)
-    logger.debug("Message Sent [%s]::", time.ctime(edge.timestamp), str(edge.magnitude))
+        logger.debug("Notified user :: %s", user.name)
 
 """
 Test Task

@@ -69,6 +69,8 @@ class Metadata(models.Model):
     appliance = models.CharField(max_length=50)
     location = models.CharField(max_length=50)
     power = models.FloatField()
+    user_presence = models.BooleanField(default=True)
+    audio_based = models.BooleanField(default=True)
 
     def __unicode__(self):
         return self.dev_id.apt_no + "-" + self.appliance + "-" + self.location
@@ -141,8 +143,8 @@ class ActivityLog(models.Model):
     power = models.FloatField()  # Average of magnitude of the matched edges
     usage = models.FloatField()  # Power * activity_duration (hours bw start and end time)
     meter = models.ForeignKey(MeterInfo)
-    start_event = models.ForeignKey(EventLog, related_name=("ON event"))
-    end_event = models.ForeignKey(EventLog, related_name=("OFF event"))
+    start_event = models.ForeignKey(Edges, related_name=("ON event"))
+    end_event = models.ForeignKey(Edges, related_name=("OFF event"))
 
     class Meta:
         db_table = 'ActivityLog'
@@ -157,6 +159,7 @@ class EnergyUsageLog(models.Model):
     activity_id = models.ForeignKey(ActivityLog)
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    stayed_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
     usage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
 
@@ -173,6 +176,7 @@ class EnergyWastageLog(models.Model):
     activity_id = models.ForeignKey(ActivityLog)
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    left_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
     wastage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
 
