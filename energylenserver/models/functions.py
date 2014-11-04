@@ -57,6 +57,20 @@ def determine_user(reg_id):
     return user
 
 
+def get_user(dev_id):
+    """
+    Gets user details with the given dev_id
+    """
+    try:
+        user = RegisteredUsers.objects.get(dev_id=dev_id)
+    except RegisteredUsers.DoesNotExist, e:
+        logger.error("[UserDoesNotExistException Occurred] No registration found! :: %s",
+                     str(e))
+        return False
+
+    return user
+
+
 def get_all_active_users():
     """
     Get all the active users
@@ -290,10 +304,9 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
     """
     try:
         if activity_name == "all":
-            # Retrieves all activities - for validation report generation and
-            # usage/wastage reports
+            # Retrieves all activities - for usage/wastage reports
             records = ActivityLog.objects.filter(dev_id=dev_id,
-                                                 end_time__gte=start_time,
+                                                 start_time__gte=start_time,
                                                  end_time__lte=end_time)
         else:
             # Retrieves the specified activities - for disaggregated activities
@@ -305,16 +318,25 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
     except Exception, e:
         logger.error("[RetrieveActivitiesException]::", e)
 
-    record_count = records.count()
-    logger.debug("Number of activities: %s", record_count)
-    activities = {}
-    for r in records:
-        activities[r.id] = {'name': r.appliance, 'location': r.location,
-                            'usage': r.power, 'start_time': r.start_time,
-                            'end_time': r.end_time}
-    logger.debug("Appliances::\n %s", json.dumps(activities))
+    return records
 
-    return activities
+
+def retrieve_finished_activities(dev_id, start_time, end_time):
+    """
+    Retrieves all activities that got completed in the specified time
+    period
+    """
+    try:
+        # Retrieves all activities - for validation report generation and
+        # usage/wastage reports
+        records = ActivityLog.objects.filter(dev_id=dev_id,
+                                             end_time__gte=start_time,
+                                             end_time__lte=end_time)
+
+    except Exception, e:
+        logger.error("[RetrieveFinishedActivitiesException]::", e)
+
+    return records
 
 
 def update_activities(act_id, true_appl, true_loc):

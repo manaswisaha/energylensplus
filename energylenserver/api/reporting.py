@@ -1,6 +1,7 @@
 """
 Module for the energy reporting APIs
 """
+import json
 import time
 import random as rnd
 from numpy import random
@@ -111,7 +112,15 @@ def get_inferred_activities(dev_id):
     report_period = 3600  # 1 hour
     end_time = time.time()
     start_time = end_time - report_period
-    all_activities = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name="all")
+
+    all_activities = []
+    records = mod_func.retrieve_finished_activities(dev_id, start_time, end_time)
+
+    for r in records:
+        all_activities[r.id] = {'name': r.appliance, 'location': r.location,
+                                'usage': r.power, 'start_time': r.start_time,
+                                'end_time': r.end_time}
+    logger.debug("Appliances::\n %s", json.dumps(all_activities))
 
     if len(all_activities) > 0:
         for act_id, aentry in all_activities.iteritems():
@@ -137,6 +146,15 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
             start_time = end_time - no_of_hours * 3600
 
     activities = []
-    activities = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name)
+    records = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name)
+
+    record_count = records.count()
+    logger.debug("Number of activities: %s", record_count)
+    activities = {}
+    for r in records:
+        activities[r.id] = {'name': r.appliance, 'location': r.location,
+                            'usage': r.power, 'start_time': r.start_time,
+                            'end_time': r.end_time}
+    logger.debug("Appliances::\n %s", json.dumps(activities))
 
     return activities
