@@ -279,6 +279,9 @@ def classify_edge(edge):
                              location=where, appliance=what, dev_id=user,
                              event_type=event_type)
             event.save()
+            # ONLY FOR TESTING
+            message = "%s uses %s in %s" % (who, what, where)
+            send_notification(user, message)
     else:
         # Create a record in the Event Log with edge id
         # and store 'who', 'what', 'where' labels
@@ -304,12 +307,12 @@ def find_time_slice(result_labels):
     """
     who, what, where, event = result_labels
 
-    # If no user at home, skip event
+    # If no user at home or no identified users, skip event
     if (who == 'ignore' and what == 'ignore' and
         where == 'ignore') or (who == 'not_found' and
                                what == 'not_found' and
                                where == 'not_found'):
-        return
+        return 'ignore', 'ignore', 'ignore', 'ignore'
 
     event_time = event.event_time
     magnitude = event.edge_id.magnitude
@@ -351,10 +354,13 @@ def apportion_energy(result_labels):
 
     who, what, where, event = result_labels
 
+    if (who == 'ignore' and what == 'ignore' and where == 'ignore'):
+        return
+
     event_time = event.event_time
     magnitude = event.edge_id.magnitude
 
-    logger.debug("Determines energy wastage:: [%s] :: %s" % (
+    logger.debug("Apportioned energy:: [%s] :: %s" % (
         time.ctime(event_time), str(magnitude)))
     logger.debug("Activity: %s in %s uses %s", who, where, what)
 
@@ -426,20 +432,46 @@ def send_validation_report():
         data_to_send['options']['appliances'] = appliances
         data_to_send['options']['occupants'] = occupants
 
-        message = create_message(reg_id, data_to_send)
-
-        # Send the message to all the users
-        client.send_message(message)
+        # Send the message
+        send_notification(reg_id, message_to_send)
 
         logger.debug("Sent report to:: %s", user.name)
 
 
 @shared_task
-def inform_user(apt_no, message_to_send):
+def inform_user(dev_id, notif_message):
+    """
+    Sends a notification to a specific user
+    """
+
+    # Get user
+    user = mod_func.get_user(dev_id)
+    if users is False:
+        logger.error("Specified user does not exist")
+        return
+
+    reg_id = user.reg_id
+    notif_id = random.choice(string.digits)
+
+    # Construct the message
+    message_to_send = {}
+    message_to_send['msg_type'] = 'response'
+    message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
+    message_to_send['options'] = {}
+    message_to_send['options']['id'] = notif_id
+    message_to_send['options']['message'] = notif_message
+
+    # Send the message
+    send_notification(reg_id, message_to_send)
+    logger.debug("Notified user :: %s", user.name)
+
+
+@shared_task
+def inform_all_users(apt_no):
     """
     Informs the user by sending a notification to all the users
     :return message:
-    Call: inform_user.delay(apt_no, message_to_send)
+    Call: inform_users.delay(apt_no, message_to_send)
     """
 
     import random
@@ -464,11 +496,18 @@ def inform_user(apt_no, message_to_send):
         message_to_send['options']['id'] = notif_id
         message_to_send['options']['message'] = notif_message
 
-        message = create_message(reg_id, message_to_send)
-
-        # Send the message to all the users
-        client.send_message(message)
+        # Send the message
+        send_notification(reg_id, message_to_send)
         logger.debug("Notified user :: %s", user.name)
+
+
+@shared_task
+def send_notification(reg_id, message_to_send):
+    """
+    Sends a message to a specific user
+    """
+    message = create_message(reg_id, message_to_send)
+    client.send_message(message)
 
 """
 Test Task
