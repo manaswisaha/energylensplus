@@ -1,5 +1,5 @@
 # Meter Sampling Rate
-sampling_rate = 1
+sampling_rate = 2
 # Edge Transition Window (in seconds)
 # for the change to take place
 # its more for simultaneous or quick sequential activity

@@ -45,17 +45,20 @@ def training_compute_power(apt_no, start_time, end_time):
     # For now, taking it as 5 seconds
     time_diff = -5  # If phone is ahead, subtract from the time sent
     time_diff = 5  # If phone is behind, add to the time sent
-    '''
 
     # Convert time to seconds and add/subtract the difference time
-    # start_time = int(start_time) / 1000 + time_diff
-    # end_time = int(end_time) / 1000 + time_diff
+    # start_time = start_time + time_diff
+    # end_time = end_time + time_diff
+    '''
+
+    # Adding 5 to fetch extra to account for missing values??
+    edge_window = winmax * sampling_rate
 
     # Add a window to the given event time duration
-    s_time = start_time - winmax
+    s_time = start_time - edge_window
     s_time = timestamp_to_str(s_time, date_format)
 
-    e_time = end_time + winmax
+    e_time = end_time + edge_window
     e_time = timestamp_to_str(e_time, date_format)
 
     # Retrieve power data from smap server for both meters
@@ -97,9 +100,8 @@ def training_compute_power(apt_no, start_time, end_time):
         # Temp code -- END
 
         # Add a window around the event edges
-        # Adding 5 to fetch extra to account for missing values
-        s_time = edge_time - winmax - 5
-        e_time = edge_time + winmax + 5
+        s_time = edge_time - edge_window
+        e_time = edge_time + edge_window
 
         # logger.debug("Start time: %s", s_time)
         # logger.debug("End time: %s", e_time)
@@ -200,7 +202,7 @@ def combine_streams(df):
                    stream2_df.ix[stream2_df.index[-1]]['time'])
     # logger.debug ("ST:%s ET:%s", start_time, end_time)
 
-    time_values = range(start_time, end_time + 1)
+    time_values = range(start_time, end_time + 1, sampling_rate)
     n_time_values = len(time_values)
     # logger.debug ("Total values: %d ", n_time_values)
 

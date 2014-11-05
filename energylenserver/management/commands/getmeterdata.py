@@ -58,9 +58,6 @@ payload = ""
 # Destination Folder for the output files
 dst_folder = 'data/meter/'
 
-# Process number
-p_no = 0
-
 
 class Client:
 
@@ -68,26 +65,70 @@ class Client:
 
         logger.debug("[Initializing Client...]")
 
-        global uuid_list, payload, p_no
-        p_no += 1
+        global uuid_list, payload
 
+        self.conn = None
         self.msg_count = {}
         self.current_file = {}
+
+        self.backoff_network_error = 0.25
+        self.backoff_http_error = 5
+        self.backoff_rate_limit = 60
 
         for i in uuid_list:
             self.msg_count[i] = 0
             self.current_file[i] = ""
 
+        self.setup_connection()
+
+    def setup_connection(self):
+        """
+        Establishes a persistent connection with the sMap server
+        """
+
+        if self.conn:
+            self.conn.close()
+
+        self.backoff_network_error = 0.25
+        self.backoff_http_error = 5
+        self.backoff_rate_limit = 60
+
         self.conn = pycurl.Curl()
         self.conn.setopt(pycurl.URL, STREAM_URL)
-        self.conn.setopt(pycurl.WRITEFUNCTION, self.on_receive)
         self.conn.setopt(pycurl.POST, 1)
         self.conn.setopt(pycurl.POSTFIELDS, payload)
-        try:
-            self.conn.perform()
-        except KeyboardInterrupt:
-            logger.error("\n\nInterrupted by user, shutting down..")
-            sys.exit(0)
+        self.conn.setopt(pycurl.WRITEFUNCTION, self.on_receive)
+
+    def start(self):
+        """
+        Starts listening to the open stream
+        """
+
+        while True:
+            self.setup_connection()
+            try:
+                self.conn.perform()
+            except:
+                # Network error, use linear back off up to 16 seconds
+                logger.error('Network error: %s' % self.conn.errstr())
+                logger.error('Waiting %s seconds before trying again' % self.backoff_network_error)
+                time.sleep(self.backoff_network_error)
+                self.backoff_network_error = min(self.backoff_network_error + 1, 16)
+                continue
+            # HTTP Error
+            sc = self.conn.getinfo(pycurl.HTTP_CODE)
+            if sc == 420:
+                # Rate limit, use exponential back off starting with 1 minute and double
+                # each attempt
+                logger.error('Rate limit, waiting %s seconds' % self.backoff_rate_limit)
+                time.sleep(self.backoff_rate_limit)
+                self.backoff_rate_limit *= 2
+            else:
+                # HTTP error, use exponential back off up to 320 seconds
+                logger.error('HTTP error %s, %s' % (sc, self.conn.errstr()))
+                logger.error('Waiting %s seconds' % self.backoff_http_error)
+                time.sleep(self.backoff_http_error)
+                self.backoff_http_error = min(self.backoff_http_error * 2, 320)
 
     def create_file(self, filename):
 
@@ -262,7 +303,9 @@ class Command(BaseCommand):
             logger.debug("Payload:\n [%s]", payload)
 
             # Open persistent HTTP connection to sMAP
-            Client()
+            c = Client()
+            c.setup_connection()
+            c.start()
         except KeyboardInterrupt:
             logger.error("\n\nInterrupted by user, shutting down..")
             sys.exit(0)

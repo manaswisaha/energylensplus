@@ -20,6 +20,9 @@ Output: Time slices of interest <T_i, T_j, ...>
 
 from energylenserver.common_imports import *
 
+# Enable Logging
+logger = logging.getLogger('energylensplus_meterdata')
+
 
 def make_pairs(rise_fall_dict, rise_df, fall_df, edge_type, app):
 
@@ -98,9 +101,9 @@ def edge_matching(df_l, df_p, edge_list, app):
     # Find the time slices (start and end time of activity) by matching
     # based on magnitude of the edges
 
-        # for rising and its corresponding falling edge
-        # l_power = 5
-        # p_power = 100
+    # for rising and its corresponding falling edge
+    # l_power = 5
+    # p_power = 100
 
     rise_l_df = edge_list[0].reset_index(drop=True)
     fall_l_df = edge_list[1].reset_index(drop=True)
