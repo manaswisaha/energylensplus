@@ -11,6 +11,7 @@ Author: Manaswi Saha
 
 import os
 
+from django_pandas.io import read_frame
 from sklearn.externals import joblib
 
 from energylenserver.core import audio
@@ -20,7 +21,6 @@ from energylenserver.common_imports import *
 from energylenserver.models import functions as mod_func
 from energylenserver.preprocessing import wifi as pre_p
 from common_imports import *
-from django_pandas.io import read_frame
 
 
 stars = 40

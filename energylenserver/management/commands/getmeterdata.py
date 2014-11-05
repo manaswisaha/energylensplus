@@ -37,7 +37,7 @@ from django.conf import settings
 # EnergyLens+ imports
 from energylenserver.common_imports import *
 from energylenserver.functions import *
-from energylenserver.meter.smap import get_meter_info
+from energylenserver.meter import smap
 from energylenserver.tasks import meterDataHandler
 
 
@@ -273,7 +273,8 @@ class Command(BaseCommand):
             # Retrieve uuids for the apartment numbers
             for apt_no in apt_no_list:
                 logger.debug("Apartment: %s", apt_no)
-                meter_list = get_meter_info(apt_no)
+                meter_list = smap.get_meter_info(apt_no)
+
                 logger.debug("Meters:\n %s", meter_list)
                 for meter in meter_list:
                     meter_uuid = meter['uuid']
