@@ -312,7 +312,4 @@ class Command(BaseCommand):
 
         except Exception, e:
             logger.error("[GetMeterDataException] %s\n" % str(e))
-            # Reconnect
-            subprocess.call(["python", "manage.py", "getmeterdata", "&"])
-            logger.debug("Exiting process number: %d", p_no)
             sys.exit(1)
