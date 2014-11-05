@@ -272,29 +272,57 @@ def get_home_ap(apt_no):
     """
     try:
         home_ap = AccessPoints.objects.get(apt_no=apt_no, home_ap=True)
-        return home_ap.macid
     except Exception, e:
         logger.error("[GetHomeAPException Occurred]:: %s", str(e))
         return False
+
+    return home_ap.macid
 
 
 def retrieve_metadata(apt_no):
     """
     Retrieve appliances from Metadata
     """
-    appliances = []
     try:
         records = Metadata.objects.filter(apt_no=apt_no)
         logger.debug("Number of metadata entries: %s", str(records.count()))
 
     except Exception, e:
-        logger.error("[GetMetadataException]:: %s", DISAGG_ENERGY_API, e)
+        logger.error("[GetMetadataException]:: %s", e)
 
-    return appliances
+    return records
 
 """
 Inference Management Model methods
 """
+
+
+def get_on_event_by_id(index):
+    """
+    Gets on event by the specified id
+    """
+    try:
+        record = EventLog.objects.get(id=index)
+    except Exception, e:
+        logger.error("[GetONEventByIDException]:: %s", e)
+        return False
+
+    return record
+
+
+def get_on_events(apt_no, event_time):
+    """
+    Retrieves all the on events before the specified time in
+    given apartment
+    """
+    try:
+        records = EventLog.objects.filter(apt_no=apt_no, event_time__lt=event_time)
+        logger.debug("Number of ON events: %s", str(records.count()))
+    except Exception, e:
+        logger.error("[GetONEventException]:: %s", e)
+        return False
+
+    return records
 
 
 def retrieve_activities(dev_id, start_time, end_time, activity_name):

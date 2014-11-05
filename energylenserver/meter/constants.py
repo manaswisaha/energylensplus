@@ -8,7 +8,7 @@ pwinmin = 3
 # lwinmin = pwinmin
 
 # Common for both edges
-if sampling_rate in [1, 3]:
+if sampling_rate in [1, 2, 3]:
     winmin = 3
     winmax = 6
 else:

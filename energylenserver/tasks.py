@@ -32,6 +32,7 @@ from energylenserver.core import classifier
 from energylenserver.core import user_attribution as attrib
 from energylenserver.core import functions as core_f
 from energylenserver.meter import edge_detection
+from energylenserver.meter import edge_matching as e_match
 
 # GCM Client imports
 from energylenserver.gcmxmppclient.messages import create_message
@@ -164,10 +165,10 @@ def meterDataHandler(df, file_path):
 
         try:
 
-            meter = MeterInfo.objects.get(meter_uuid__exact=uuid)
+            meter = MeterInfo.objects.get(meter_uuid=uuid)
             # Check if the edge exists
             try:
-                record = Edges.objects.get(meter__exact=meter, timestamp__exact=edge_time)
+                record = Edges.objects.get(meter=meter, timestamp=edge_time)
             except Edges.DoesNotExist, e:
 
                 # --Store edge--
@@ -212,83 +213,89 @@ def classify_edge(edge):
     :param edge:
     :return "where", what" and "who" labels:
     """
-    apt_no = edge.meter.apt_no
-    logger.debug("Apt.No.:: %d Classify edge type '%s' [%s] %d",
-                 apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude)
 
-    # Defining event window
-    p_window = 60  # window for each side of the event time (in seconds)
+    try:
 
-    event_time = edge.timestamp
-    magnitude = edge.magnitude
+        apt_no = edge.meter.apt_no
+        logger.debug("Apt.No.:: %d Classify edge type '%s' [%s] %d",
+                     apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude)
 
-    start_time = event_time - p_window
-    end_time = event_time + p_window
+        # Defining event window
+        p_window = 60  # window for each side of the event time (in seconds)
 
-    # --- Preprocessing ---
-    # Step 2: Determine user at home
-    user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
-    n_users_at_home = len(user_list)
+        event_time = edge.timestamp
+        magnitude = edge.magnitude
 
-    if n_users_at_home == 0:
-        logger.debug("No user at home. Ignoring edge activity.")
-        return 'ignore', 'ignore', 'ignore', 'ignore'
+        start_time = event_time - p_window
+        end_time = event_time + p_window
 
-    # --- Classification ---
-    # Step 1: Determine location for every user
-    location_dict = classifier.classify_location(event_time, apt_no, start_time, end_time,
-                                                 user_list)
+        # --- Preprocessing ---
+        # Step 2: Determine user at home
+        user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
+        n_users_at_home = len(user_list)
 
-    logger.debug("Determined Locations: %s", location_dict)
+        if n_users_at_home == 0:
+            logger.debug("No user at home. Ignoring edge activity.")
+            return 'ignore', 'ignore', 'ignore', 'ignore'
 
-    # Step 2: Determine appliance for every user
-    appliance_dict = classifier.classify_sound(event_time, apt_no, start_time, end_time,
-                                               user_list, location_dict)
+        # --- Classification ---
+        # Step 1: Determine location for every user
+        location_dict = classifier.classify_location(event_time, apt_no, start_time, end_time,
+                                                     user_list)
 
-    logger.debug("Determined Appliances: %s", appliance_dict)
+        logger.debug("Determined Locations: %s", location_dict)
 
-    # Step 3: Determine user based on location, appliance and metadata
-    if n_users_at_home > 1:
-        user = attrib.identify_user(apt_no, magnitude, location_dict, appliance_dict, user_list)
-        who = user['dev_id']
-        where = user['location']
-        what = user['appliance']
+        # Step 2: Determine appliance for every user
+        appliance_dict = classifier.classify_sound(event_time, apt_no, start_time, end_time,
+                                                   user_list, location_dict)
 
-    elif n_users_at_home == 1:
-        user = user_list[0]
-        who = user_list
-        where = location_dict[user]
-        what = appliance_dict[user]
+        logger.debug("Determined Appliances: %s", appliance_dict)
 
-    logger.debug("[%s] :: Determined labels: %s %s %s" %
-                 (time.ctime(event_time), who, where, what))
+        # Step 3: Determine user based on location, appliance and metadata
+        if n_users_at_home > 1:
+            user = attrib.identify_user(apt_no, magnitude, location_dict, appliance_dict, user_list)
+            who = user['dev_id']
+            where = user['location']
+            what = user['appliance']
 
-    if edge.type == "rising":
-        event_type = "ON"
-    else:
-        event_type = "OFF"
+        elif n_users_at_home == 1:
+            user = user_list[0]
+            who = user_list
+            where = location_dict[user]
+            what = appliance_dict[user]
 
-    if type(who) == list:
+        logger.debug("[%s] :: Determined labels: %s %s %s" %
+                     (time.ctime(event_time), who, where, what))
 
-        # New record for each user for an edge - indicates multiple occupants
-        # were present in the room during the event
-        for user in who:
+        if edge.type == "rising":
+            event_type = "ON"
+        else:
+            event_type = "OFF"
+
+        if isinstance(who, list):
+
+            # New record for each user for an edge - indicates multiple occupants
+            # were present in the room during the event
+            for user in who:
+                # Create a record in the Event Log with edge id
+                # and store 'who', 'what', 'where' labels
+                event = EventLog(edge=edge, event_time=event_time,
+                                 location=where, appliance=what, dev_id=user,
+                                 event_type=event_type)
+                event.save()
+                # ONLY FOR TESTING
+                message = "%s uses %s in %s" % (who, what, where)
+                send_notification(user, message)
+        elif isinstance(who, str):
             # Create a record in the Event Log with edge id
             # and store 'who', 'what', 'where' labels
-            event = EventLog(edge_id=edge, event_time=event_time,
+            event = EventLog(edge=edge, event_time=event_time,
                              location=where, appliance=what, dev_id=user,
                              event_type=event_type)
             event.save()
-            # ONLY FOR TESTING
-            message = "%s uses %s in %s" % (who, what, where)
-            send_notification(user, message)
-    else:
-        # Create a record in the Event Log with edge id
-        # and store 'who', 'what', 'where' labels
-        event = EventLog(edge_id=edge, event_time=event_time,
-                         location=where, appliance=what, dev_id=user,
-                         event_type=event_type)
-        event.save()
+    except Exception, e:
+        logger.error("[ClassifyEdgeException]:: %s", e)
+        return 'ignore', 'ignore', 'ignore', 'ignore'
 
     return who, what, where, event
 
@@ -305,28 +312,47 @@ def find_time_slice(result_labels):
     :param where:
     :return when:
     """
-    who, what, where, event = result_labels
+    try:
+        who, what, where, off_event = result_labels
 
-    # If no user at home or no identified users, skip event
-    if (who == 'ignore' and what == 'ignore' and
-        where == 'ignore') or (who == 'not_found' and
-                               what == 'not_found' and
-                               where == 'not_found'):
+        # If no user at home or no identified users, skip off_event
+        if (who == 'ignore' and what == 'ignore' and
+            where == 'ignore') or (who == 'not_found' and
+                                   what == 'not_found' and
+                                   where == 'not_found'):
+            return 'ignore', 'ignore', 'ignore', 'ignore'
+
+        off_time = off_event.event_time
+        magnitude = off_event.edge.magnitude
+
+        logger.debug("Determining activity duration: [%s] :: %s" % (
+            time.ctime(off_time), str(magnitude)))
+
+        # Match ON/OFF events
+        matched_on_event = e_match.match_events(apt_no, off_event)
+
+        if not matched_on_event:
+            logger.debug("No ON event found")
+            return 'ignore', 'ignore', 'ignore', 'ignore'
+
+        # Mark ON event as matched
+        matched_on_event.matched = True
+        matched_on_event.save()
+
+        off_event.matched = True
+        off_event.save()
+
+        # Inferred activity time slice
+        start_time = time.ctime(matched_on_event.event_time)
+        end_time = time.ctime(off_time)
+
+        logger.debug("[%s] :: Time slice for activity: %s uses %s in %s during %s and %s",
+                     time.ctime(off_time), who, what, where, start_time, end_time)
+    except Exception, e:
+        logger.error("[FindTimeSliceException]:: %s", str(e))
         return 'ignore', 'ignore', 'ignore', 'ignore'
 
-    event_time = event.event_time
-    magnitude = event.edge_id.magnitude
-    logger.debug("Determines activity duration: [%s] :: %s" % (
-        time.ctime(event_time), str(magnitude)))
-
-    # ------ TEMP CODE START -----
-    time.sleep(2)
-    start_time = time.ctime(event_time - 10)
-    end_time = time.ctime(event_time)
-    # ----- TEMP CODE END -----
-    logger.debug("[%s] :: Time slice for activity: %s uses %s in %s during %s and %s",
-                 time.ctime(event_time), who, what, where, start_time, end_time)
-    return who, what, where, event
+    return who, what, where, off_event
 
 """
 Invokes the components that use EnergyLens+ outputs - who, what, where and when:
@@ -350,19 +376,24 @@ def apportion_energy(result_labels):
 
     :return: energy usage
     """
-    logger.debug("Apportioning energy..")
+    try:
+        logger.debug("Apportioning energy..")
 
-    who, what, where, event = result_labels
+        who, what, where, event = result_labels
 
-    if (who == 'ignore' and what == 'ignore' and where == 'ignore'):
+        if (who == 'ignore' and what == 'ignore' and where == 'ignore'):
+            logger.debug("Ignoring event")
+            return
+
+        event_time = event.event_time
+        magnitude = event.edge.magnitude
+
+        logger.debug("Apportioned energy:: [%s] :: %s" % (
+            time.ctime(event_time), str(magnitude)))
+        logger.debug("Activity: %s in %s uses %s", who, where, what)
+    except Exception, e:
+        logger.error("[ApportionEnergyException]:: %s", str(e))
         return
-
-    event_time = event.event_time
-    magnitude = event.edge_id.magnitude
-
-    logger.debug("Apportioned energy:: [%s] :: %s" % (
-        time.ctime(event_time), str(magnitude)))
-    logger.debug("Activity: %s in %s uses %s", who, where, what)
 
 
 @shared_task
@@ -373,18 +404,27 @@ def determine_wastage(result_labels):
     :return determined wastage:
 
     """
-    who, what, where, event = result_labels
-    # reg_id = ''  # Get regid based on the who value
+    try:
+        who, what, where, event = result_labels
 
-    logger.debug("Determines energy wastage:: [%s] :: %s" % (
-        time.ctime(edge.timestamp), str(edge.magnitude)))
-    logger.debug("Activity: %s in %s uses %s", who, where, what)
+        if (who == 'ignore' and what == 'ignore' and where == 'ignore'):
+            logger.debug("Ignoring event")
+            return
 
-    # Call module that determines energy wastage
-    logger.debug("Wastage Determined: %s", str(energy_wasted))
+        event_time = event.event_time
+        magnitude = event.edge.magnitude
 
-    return energy_wasted
+        logger.debug("Determines energy wastage:: [%s] :: %s" % (
+            time.ctime(event_time), str(magnitude)))
+        logger.debug("Activity: %s in %s uses %s", who, where, what)
 
+        energy_wasted = None
+        # Call module that determines energy wastage
+        logger.debug("Wastage Determined: %s", energy_wasted)
+
+    except Exception, e:
+        logger.error("DetermineWastageException]:: %s", str(e))
+        return
 
 """
 Invokes the real-time feedback component

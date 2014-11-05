@@ -120,7 +120,6 @@ def check_if_edge(df, index, power_stream):
     tprev = int(round(df.ix[i - 1]['time']))
     tcurr = int(round(df.ix[i]['time']))
     tnext = int(round(df.ix[i + 1]['time']))
-    tcurrnextnext = int(round(df.ix[i + 2]['time']))
     tcurrwin = int(round(df.ix[i + winmin]['time']))
 
     if i - winmin not in (df.index):
@@ -129,7 +128,7 @@ def check_if_edge(df, index, power_stream):
         prevwin = int(round(df.ix[i - winmin][power_stream]))
 
     time = df.ix[i]['time']
-    per_current_val = int(0.25 * curr)
+    # per_current_val = int(0.25 * curr)
 
     # Checking for missing time samples
     prev_time = df.ix[i - 1]['time']
@@ -147,16 +146,21 @@ def check_if_edge(df, index, power_stream):
 
     magnitude = curr_nextwin_diff
 
-    # if curr_nextwin_diff > 0:
-    #     print("RISETEST::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), curr_nextwin_diff))
-    #     print("prev={0} curr={1} next={2}".format(prev, curr, next))
-    #     print("curr_next_diff::{0}  prev_curr_diff::{1}".format(curr_next_diff, prev_curr_diff))
+    if curr_next_diff >= thresmin:
+        logger.debug("RISETEST::{0}:: TIME: [{1}] MAG::{2}".format(
+            i, t.ctime(time), magnitude))
+        logger.debug("prev={0} curr={1} next={2} currwin={3}".format(prev, curr, next, currwin))
+
+        logger.debug("tprev=[{0}] tcurr=[{1}] tnext=[{2}] tcurrwin=[{3}]".format(
+            t.ctime(tprev), t.ctime(tcurr), t.ctime(tnext), t.ctime(tcurrwin)))
+        logger.debug("curr_next_diff::{0}  prev_curr_diff::{1} curr_nextnext_diff::{2}".
+                     format(curr_next_diff, prev_curr_diff, math.fabs(curr_nextnext_diff)))
 
     # logger.debug("[" + t.ctime(time) + "] currnextnextDIFF:" + str(math.fabs(curr_nextnext_diff))
 
     # Removes spikes
     if math.fabs(curr_nextnext_diff) < thresmin:
-        # print("[{0} currnextnext:{1} curr_nextnext_diff:{2}".format(
+        # logger.debug("[{0} currnextnext:{1} curr_nextnext_diff:{2}".format(
         #     t.ctime(time), currnextnext, math.fabs(curr_nextnext_diff)))
         return "Not an edge", {}
 
