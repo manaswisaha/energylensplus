@@ -48,14 +48,16 @@ def determine_location(train_df, test_df):
         clf.fit(train_df[features], train_df['label'])
         pred_label = clf.predict(test_df[features])
 
+        pred_test_class = sorted(pred_label.unique().tolist())
+
         # Return results
-        pred_list = dict((i, list(pred_loc).count(i)) for i in pred_test_class)
+        pred_list = dict((i, list(pred_label).count(i)) for i in pred_test_class)
         logger.debug("Predicted list: %s", pred_list)
         grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
         grpcount_label.columns = ['lcount']
-        pred_label = grpcount_label[
-            grpcount_label.lcount == grpcount_label.lcount.max()].index[0]
+        pred_label = grpcount_label[grpcount_label.lcount == grpcount_label.lcount.max()].index[0]
         logger.debug("Predicted Location Label: %s", pred_label)
+
         return pred_label
 
     except Exception, e:
