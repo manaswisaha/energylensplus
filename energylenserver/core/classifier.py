@@ -17,6 +17,7 @@ from sklearn.externals import joblib
 from energylenserver.core import audio
 from energylenserver.core import location as lc
 from energylenserver.core import movement as acl
+from energylenserver.models.models import *
 from energylenserver.common_imports import *
 from energylenserver.models import functions as mod_func
 from energylenserver.preprocessing import wifi as pre_p
@@ -48,24 +49,18 @@ def get_trained_model(sensor, apt_no, phone_model):
             return model
 
 
-def classify_location(event_time, apt_no, start_time, end_time, user_list):
+def classify_location(apt_no, start_time, end_time, user):
     logger.debug("[Classifying location]..")
 
-    location_label = {}
-
-    # Get user details
-    users = mod_func.get_users(user_list)
-
-    for user in users:
-        dev_id = user.dev_id
+    try:
         pmodel = user.phone_model
 
-        # Get Wifi data
-        user_list = get_users_for_training(apt_no, pmodel)
+        # Get WiFi data
+        user_list = mod_func.get_users_for_training(apt_no, pmodel)
         data = mod_func.get_sensor_training_data("wifi", apt_no, user_list)
         train_df = read_frame(data, verbose=False)
 
-        data = mod_func.get_sensor_data("wifi", "test", start_time, end_time, [dev_id])
+        data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
         test_df = read_frame(data, verbose=False)
 
         # Format data for classification
@@ -74,39 +69,41 @@ def classify_location(event_time, apt_no, start_time, end_time, user_list):
 
         # Classify
         location = lc.determine_location(train_df, test_df)
-        if not location:
-            return
-        location_label[dev_id] = location
 
-    return location_label
+        # Save location label to the database
+        data.update(label=location)
+
+    except Exception, e:
+        logger.error("[ClassifyLocationException]:: %s", e)
+        return False
+
+    return location
 
 
-def classify_appliance(event_time, apt_no, start_time, end_time, user_list):
+def classify_appliance(apt_no, start_time, end_time, user):
     logger.debug("[Classifying appliance]..")
 
-    appliance_label = {}
-
-    # Get user details
-    users = mod_func.get_users(user_list)
-
-    for user in users:
-        dev_id = user.dev_id
+    try:
         pmodel = user.phone_model
 
         # Get trained model
         train_model = get_trained_model("audio", pmodel)
 
         # Get test data
-        data = mod_func.get_sensor_data("audio", "test", start_time, end_time, [dev_id])
+        data = mod_func.get_sensor_data("audio", start_time, end_time, [dev_id])
         test_df = read_frame(data, verbose=False)
 
         # Classify
         appliance = audio.determine_appliance(train_model, test_df)
-        if not appliance:
-            return
-        appliance_label[dev_id] = appliance
 
-    return appliance_label
+        # Save appliance label to the database
+        data.update(label=appliance)
+
+    except Exception, e:
+        logger.error("[ClassifyApplianceException]::%s", e)
+        return False
+
+    return appliance
 
 
 def classify_movement(test_csv, apt_no, idx):
