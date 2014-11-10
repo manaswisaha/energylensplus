@@ -494,13 +494,17 @@ def send_validation_report():
         data_to_send['options'] = {}
         activities = rpt.get_inferred_activities(dev_id)
 
-        if len(activities) <= 0:
+        if not activities:
+            return
+
+        if len(activities) == 0:
             return
 
         appliances = []
         records = mod_func.retrieve_metadata(apt_no)
-        for r in records:
-            appliances.append({'location': r.location, 'appliance': r.appliance})
+        if records:
+            for r in records:
+                appliances.append({'location': r.location, 'appliance': r.appliance})
 
         users = mod_func.retrieve_users(apt_no)
 
