@@ -82,18 +82,18 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
     if api == PERSONAL_ENERGY_API:
 
-        options['total_wastage'] = total_usage
-        options['hourly_wastage'] = usage_list.tolist()
+        options['total_consumption'] = total_usage
+        options['hourly_consumption'] = usage_list.tolist()
 
         options['activities'] = []
         options['activities'].append(
-            {'name': "TV", "wastage": total_usage * perc_list[1] / 100.})
+            {'name': "TV", "usage": total_usage * perc_list[1] / 100.})
         options['activities'].append(
-            {'name': "AC", "wastage": total_usage * perc_list[2] / 100.})
+            {'name': "AC", "usage": total_usage * perc_list[2] / 100.})
         options['activities'].append(
-            {'name': "Microwave", "wastage": total_usage * perc_list[3] / 100.})
+            {'name': "Microwave", "usage": total_usage * perc_list[3] / 100.})
         options['activities'].append(
-            {'name': "Unknown", "wastage": total_usage * perc_list[0] / 100.})
+            {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
         return options
 
         if activities:
