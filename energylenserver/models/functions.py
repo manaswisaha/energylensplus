@@ -343,6 +343,7 @@ def retrieve_metadata(apt_no):
 
     except Exception, e:
         logger.error("[GetMetadataException]:: %s", e)
+        return False
 
     return records
 
@@ -399,6 +400,7 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
 
     except Exception, e:
         logger.error("[RetrieveActivitiesException]::", e)
+        return False
 
     return records
 
@@ -417,6 +419,7 @@ def retrieve_finished_activities(dev_id, start_time, end_time):
 
     except Exception, e:
         logger.error("[RetrieveFinishedActivitiesException]::", e)
+        return False
 
     return records
 
