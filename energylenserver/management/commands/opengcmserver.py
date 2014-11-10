@@ -54,17 +54,22 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Creates a message client that is connected to the Google server
-        msg_client = MessageClient()
-        msg_client.register_handlers()
-        client = msg_client.get_connection_client()
+        msg_client_obj = MessageClient()
+        msg_client_obj.register_handlers()
+        client = msg_client_obj.get_connection_client()
 
         try:
 
             ClientManager.register('get_client', callable=lambda: client)
-            ClientManager.register('get_msg_client', callable=lambda: msg_client)
+            ClientManager.register('get_client_obj', callable=lambda: msg_client_obj)
             manager = ClientManager(address=('', 50000), authkey='abracadabra')
             server = manager.get_server()
-            server.serve_forever()
+            logger.debug("Got server")
+            t = threading.Thread(target=lambda: server.serve_forever())
+            t.start()
+            logger.debug("Command Server started")
+            msg_client_obj.start()
+            logger.debug("End")
 
             """
             try:

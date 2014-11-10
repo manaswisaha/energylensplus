@@ -28,7 +28,7 @@ class Command(BaseCommand):
         logger.info("Waiting for requests from the Google Server...")
         try:
             ClientManager.register('get_client')
-            ClientManager.register('get_msg_client')
+            ClientManager.register('get_client_obj')
             manager = ClientManager(address=('localhost', 50000), authkey='abracadabra')
             manager.connect()
             client = manager.get_client()

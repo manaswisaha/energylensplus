@@ -26,7 +26,7 @@ if [ "$arg" = 'start' ]; then
 	# Start GCM Server
 	python manage.py opengcmserver &
 	sleep 5
-	python manage.py rungcmserver &
+	# python manage.py rungcmserver &
 
 	# Start Celery
 	sudo /etc/init.d/celeryd start
@@ -37,7 +37,7 @@ if [ "$arg" = 'start' ]; then
 	sudo service apache2 start
 		
 	# Start Meter data collection service
-	python manage.py getmeterdata &
+	# python manage.py getmeterdata &
 	
 elif [ "$arg" = 'stop' ]; then
 	echo "Stopping EnergyLensPlus Server.."
@@ -83,14 +83,14 @@ elif [ "$arg" = 'restart' ]; then
 	# Start GCM Server
 	python manage.py opengcmserver &
 	sleep 5
-	python manage.py rungcmserver &
+	# python manage.py rungcmserver &
 
 	# Restart Celery
 	sudo /etc/init.d/celerybeat restart
 	sudo /etc/init.d/celeryd restart
 
 	# Start Meter data collection service
-	python manage.py getmeterdata &
+	# python manage.py getmeterdata &
 
 	
 elif [ "$arg" = 'update' ]; then

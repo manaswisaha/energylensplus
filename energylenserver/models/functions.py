@@ -379,6 +379,8 @@ def get_on_events(apt_no, event_time):
 
     return records
 
+# Fix it
+
 
 def retrieve_activities(dev_id, start_time, end_time, activity_name):
     """
@@ -403,6 +405,8 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
         return False
 
     return records
+
+# Fix it
 
 
 def retrieve_finished_activities(dev_id, start_time, end_time):

@@ -80,11 +80,26 @@ class MessageClient:
                 return False
         return True
 
+    def start(self):
+        """
+        Establishes connection and runs the infinite loop
+        """
+        logger.debug("Starting GCM Server..")
+        while True:
+            try:
+                self.client.Process(1)
+                # Restore connection if connection broken
+                if not self.client.isConnected():
+                    logger.debug("Reconnecting..")
+                    if not self.client.connect_to_gcm_server():
+                        self.logger.error("Authentication failed! Try again!")
+                        sys.exit(1)
+
+            except Exception, e:
+                self.elogger.exception("[GCMConnClient EXCEPTION]: Start() ::%s", e)
+
     def get_connection_client(self):
         return self.client
-
-    def set_connection_client(self, client):
-        self.client = client
 
     def register_handlers(self):
         """
