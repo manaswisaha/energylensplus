@@ -29,9 +29,10 @@ from energylenserver.models import functions as mod_func
 
 # Core Algo imports
 from energylenserver.core import classifier
-from energylenserver.core import user_attribution as attrib
 from energylenserver.core import functions as core_f
 from energylenserver.meter import edge_detection
+from energylenserver.core import user_attribution as attrib
+from energylenserver.core import apportionment as apprt
 from energylenserver.meter import edge_matching as e_match
 
 # GCM Client imports
@@ -238,17 +239,26 @@ def classify_edge(edge):
             logger.debug("No user at home. Ignoring edge activity.")
             return 'ignore', 'ignore', 'ignore', 'ignore'
 
-        # --- Classification ---
-        # Step 1: Determine location for every user
-        location_dict = classifier.classify_location(event_time, apt_no, start_time, end_time,
-                                                     user_list)
+        # --- Classification --
+        location_dict = {}
+        appliance_dict = {}
+
+        # Get user details
+        users = mod_func.get_users(user_list)
+        for user in users:
+            dev_id = user.dev_id
+
+            # Step 1: Determine location for every user
+            location = classifier.classify_location(apt_no, start_time, end_time, user)
+            if location:
+                location_dict[dev_id] = location
+
+            # Step 2: Determine appliance for every user
+            appliance = classifier.classify_appliance(apt_no, start_time, end_time, user)
+            if appliance:
+                appliance_dict[dev_id] = appliance
 
         logger.debug("Determined Locations: %s", location_dict)
-
-        # Step 2: Determine appliance for every user
-        appliance_dict = classifier.classify_sound(event_time, apt_no, start_time, end_time,
-                                                   user_list, location_dict)
-
         logger.debug("Determined Appliances: %s", appliance_dict)
 
         # Step 3: Determine user based on location, appliance and metadata
@@ -312,6 +322,7 @@ def find_time_slice(result_labels):
     :param where:
     :return when:
     """
+    return_error = 'ignore', 'ignore', 'ignore', 'ignore'
     try:
         who, what, where, off_event = result_labels
 
@@ -320,8 +331,9 @@ def find_time_slice(result_labels):
             where == 'ignore') or (who == 'not_found' and
                                    what == 'not_found' and
                                    where == 'not_found'):
-            return 'ignore', 'ignore', 'ignore', 'ignore'
+            return return_error
 
+        apt_no = off_event.edge.meter.apt_no
         off_time = off_event.event_time
         magnitude = off_event.edge.magnitude
 
@@ -333,7 +345,7 @@ def find_time_slice(result_labels):
 
         if not matched_on_event:
             logger.debug("No ON event found")
-            return 'ignore', 'ignore', 'ignore', 'ignore'
+            return return_error
 
         # Mark ON event as matched
         matched_on_event.matched = True
@@ -343,16 +355,27 @@ def find_time_slice(result_labels):
         off_event.save()
 
         # Inferred activity time slice
-        start_time = time.ctime(matched_on_event.event_time)
-        end_time = time.ctime(off_time)
+        start_time = matched_on_event.event_time
+        end_time = off_time
 
-        logger.debug("[%s] :: Time slice for activity: %s uses %s in %s during %s and %s",
-                     time.ctime(off_time), who, what, where, start_time, end_time)
+        power = round((magnitude + matched_on_event.edge.magnitude) / 2)
+        usage = apprt.get_energy_consumption(start_time, end_time, power)
+
+        # Save Activity
+        activity = ActivityLog(start_time=start_time, end_time=end_time,
+                               location=where, appliance=what,
+                               power=power, usage=usage,
+                               start_event=matched_on_event.edge,
+                               end_event=off_event.edge)
+        activity.save()
+
+        logger.debug("Time slice for activity: %s uses %s in %s between %s and %s",
+                     who, what, where, time.ctime(start_time), time.ctime(end_time))
     except Exception, e:
         logger.error("[FindTimeSliceException]:: %s", str(e))
-        return 'ignore', 'ignore', 'ignore', 'ignore'
+        return return_error
 
-    return who, what, where, off_event
+    return apt_no, start_time, end_time, activity
 
 """
 Invokes the components that use EnergyLens+ outputs - who, what, where and when:
@@ -367,30 +390,44 @@ def apportion_energy(result_labels):
     Determines the energy usage/wastage of an individual based on
     activity parameters and length of stay for each activity
 
-    -Determine duration of stay in the room for a user
-    -In the determined appliance usage, determine actual usage/wastage of a user
-     based on time of stay in the room of activity
-    -handle all complex use cases
-    -generate hourly energy data
-    -generate energy wastage notifications
-
     :return: energy usage
     """
     try:
         logger.debug("Apportioning energy..")
 
-        who, what, where, event = result_labels
+        apt_no, start_time, end_time, activity = result_labels
 
-        if (who == 'ignore' and what == 'ignore' and where == 'ignore'):
-            logger.debug("Ignoring event")
+        if (start_time == 'ignore' and end_time == 'ignore' and
+                activity == 'ignore'):
+            logger.debug("Ignoring request")
             return
-
-        event_time = event.event_time
-        magnitude = event.edge.magnitude
 
         logger.debug("Apportioned energy:: [%s] :: %s" % (
             time.ctime(event_time), str(magnitude)))
-        logger.debug("Activity: %s in %s uses %s", who, where, what)
+
+        user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
+        n_users_at_home = len(user_list)
+
+        if n_users_at_home == 0:
+            logger.error("No user at home. Something went wrong!")
+            return
+
+        act_loc = activity.location
+
+        presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
+        for user in user_list:
+
+            user_id = user.dev_id
+
+            # Determine duration of stay in the room for a user
+            df = core_f.get_presence_matrix(
+                apt_no, user, start_time, end_time, act_loc)
+            presence_df[str(user_id)] = df['label']
+
+        # Determine actual usage/wastage of a user based on
+        # time of stay in the room of activity handling all complex cases
+        apprt.calculate_consumption(user_list, presence_df, activity)
+
     except Exception, e:
         logger.error("[ApportionEnergyException]:: %s", str(e))
         return
@@ -399,9 +436,12 @@ def apportion_energy(result_labels):
 @shared_task
 def determine_wastage(result_labels):
     """
-    Consumes edge and determines energy wastage
+    Determines energy wastage
     :param edge:
     :return determined wastage:
+
+    -generate hourly energy data
+    -generate energy wastage notifications
 
     """
     try:

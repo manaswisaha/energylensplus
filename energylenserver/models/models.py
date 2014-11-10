@@ -15,11 +15,11 @@ class Devices(models.Model):
 
     dev_id = models.BigIntegerField(max_length=15,  primary_key=True)
     reg_id = models.CharField(max_length=255, unique=True)
-    name = models.CharField(max_length=50, blank=True, null=True)
+    name = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
     creation_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    phone_model = models.CharField(max_length=50, blank=True)
+    phone_model = models.CharField(max_length=50)
 
     def __unicode__(self):
         return self.name
@@ -86,7 +86,7 @@ class MeterInfo(models.Model):
     Stores the meter details in each apartment
     """
     meter_uuid = models.CharField(max_length=255, primary_key=True)
-    meter_type = models.CharField(max_length=20, null=True)
+    meter_type = models.CharField(max_length=20)
     apt_no = models.IntegerField()
 
     class Meta:
@@ -118,10 +118,10 @@ class EventLog(models.Model):
     """
     edge = models.ForeignKey(Edges)
     event_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)  # when
-    location = models.CharField(max_length=50,  null=True)  # where
-    appliance = models.CharField(max_length=50,  null=True)  # what
+    location = models.CharField(max_length=50)  # where
+    appliance = models.CharField(max_length=50)  # what
     dev_id = models.ForeignKey(RegisteredUsers)  # who
-    event_type = models.CharField(max_length=20,  null=True)  # ON/OFF
+    event_type = models.CharField(max_length=20)  # ON/OFF
     matched = models.BooleanField(default=False)  # Only for ON edges
 
     class Meta:
@@ -157,7 +157,7 @@ class EnergyUsageLog(models.Model):
     """
     Stores energy usage for each user for every activity
     """
-    activity_id = models.ForeignKey(ActivityLog)
+    activity = models.ForeignKey(ActivityLog)
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     stayed_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
@@ -174,7 +174,7 @@ class EnergyWastageLog(models.Model):
     """
     Stores energy wastage for each user for every activity
     """
-    activity_id = models.ForeignKey(ActivityLog)
+    activity = models.ForeignKey(ActivityLog)
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     left_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
@@ -218,7 +218,7 @@ class UsageLogScreens(models.Model):
     dev_id = models.ForeignKey(RegisteredUsers)
     time_of_day = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     screen_name = models.CharField(
-        max_length=50, blank=True, null=False)
+        max_length=50)
     time_of_stay = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
 
     def save_stats(self, user, filename):
@@ -251,7 +251,7 @@ class UsageLogNotifs(models.Model):
     dev_id = models.ForeignKey(RegisteredUsers)
     received_at = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     notif_id = models.CharField(
-        max_length=50, blank=True, null=False)
+        max_length=50)
     seen_at = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
 
     def save_stats(self, user, filename):

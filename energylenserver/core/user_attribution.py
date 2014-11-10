@@ -25,6 +25,10 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
     for dev_id in user_list:
         loc_user = location[dev_id]
 
+        # Ignore if location is unknown
+        if loc_user == "Unknown":
+            continue
+
         # Extract metadata for the current location of the user
         mdf = metadata_df[(metadata_df.location == loc_user)]
         for md_i in mdf.index:
@@ -48,9 +52,9 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
         logger.debug("Edge did not match with the metadata for any user.")
         logger.debug("Location classification is incorrect")
 
-        user['dev_id'] = "not_found"
-        user['location'] = "not_found"
-        user['appliance'] = "not_found"
+        user['dev_id'] = "Unknown"
+        user['location'] = "Unknown"
+        user['appliance'] = "Unknown"
         return user
 
     # Select the entry with the matching appliance for a user
@@ -89,9 +93,9 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
             if len(contending_users) == 0:
                 logger.debug("Appliance Classification incorrect")
 
-                user['dev_id'] = "not_found"
-                user['location'] = "not_found"
-                user['appliance'] = "not_found"
+                user['dev_id'] = "Unknown"
+                user['location'] = "Unknown"
+                user['appliance'] = "Unknown"
             elif len(contending_users) == 1:
                 # Indicates that there is single contender
                 dev_id = contending_users[0]
@@ -125,9 +129,9 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
                         user['location'] = location[users[0]]
                         user['appliance'] = appliance[users[0]]
                     else:
-                        user['dev_id'] = "not_found"
-                        user['location'] = "not_found"
-                        user['appliance'] = "not_found"
+                        user['dev_id'] = "Unknown"
+                        user['location'] = "Unknown"
+                        user['appliance'] = "Unknown"
 
     logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
 

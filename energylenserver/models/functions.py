@@ -213,17 +213,14 @@ def get_sensor_training_data(sensor_name, apt_no, dev_id_list):
     return data
 
 
-def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list):
+def get_sensor_data(sensor_name, start_time, end_time, dev_id_list):
     """
-    Retrieves the sensor data based on its type and the dataset type
+    Retrieves the sensor data based on its type
     between the specified period
     """
 
-    # Determine sensor data model
-    if dataset_type == "train":
-        model = MODEL_MAP['Training' + sensor_name]
-    else:
-        model = MODEL_MAP[sensor_name]
+    # Set sensor data model
+    model = MODEL_MAP[sensor_name]
 
     logger.debug("Getting data between %s and %s for dev_id: %s" %
                  (time.ctime(start_time), time.ctime(end_time), dev_id_list))
@@ -247,6 +244,63 @@ def get_sensor_data(sensor_name, dataset_type, start_time, end_time, dev_id_list
 
     return data
 
+
+def get_unlabeled_data(sensor_name, start_time, end_time, label, dev_id_list):
+    """
+    Retrieves the unlabeled sensor data based on its type
+    between the specified period
+    """
+
+    # Set sensor data model
+    model = MODEL_MAP[sensor_name]
+
+    logger.debug("Getting unlabeled data between %s and %s for dev_id: %s" %
+                 (time.ctime(start_time), time.ctime(end_time), dev_id_list))
+    # Get data
+    try:
+        data = model.objects.filter(dev_id__in=dev_id_list,
+                                    timestamp__gte=start_time,
+                                    timestamp__lte=end_time,
+                                    label='none')
+    except model.DoesNotExist:
+        logger.error("[SensorDataDoesNotExistException Occurred] "
+                     "No data found for the given sensor: %s",
+                     sensor_name)
+        return False
+    except Exception, e:
+        logger.error("[GetUnlabeledDataException Occurred] %s", str(e))
+        return False
+
+    return data
+
+
+def get_labeled_data(sensor_name, start_time, end_time, label, dev_id_list):
+    """
+    Retrieves the labeled sensor data based on its type
+    between the specified period
+    """
+
+    # Set sensor data model
+    model = MODEL_MAP[sensor_name]
+
+    logger.debug("Getting labeled data between %s and %s for dev_id: %s" %
+                 (time.ctime(start_time), time.ctime(end_time), dev_id_list))
+    # Get data
+    try:
+        data = model.objects.filter(dev_id__in=dev_id_list,
+                                    timestamp__gte=start_time,
+                                    timestamp__lte=end_time,
+                                    label=label)
+    except model.DoesNotExist:
+        logger.error("[SensorDataDoesNotExistException Occurred] "
+                     "No data found for the given sensor: %s",
+                     sensor_name)
+        return False
+    except Exception, e:
+        logger.error("[GetLabeledDataException Occurred] %s", str(e))
+        return False
+
+    return data
 
 """
 Metadata Management Model methods

@@ -21,7 +21,6 @@ def format_data(ip_df):
         # Convert timestamps from millisec to seconds
         ip_df[ip_df.columns[0]] = (ip_df[ip_df.columns[0]] / 1000).astype('int')
 
-        print ip_df.rssi.mean()
         # Take the mean of the rssi values based on mac and time
         mean_rssi = ip_df.groupby(['label', 'mac', 'time'])['rssi'].mean()
     except Exception, e:

@@ -110,7 +110,8 @@ def register_device(request):
                 logger.debug("Home AP:%s", home_ap)
 
                 try:
-                    AccessPoints.objects.filter(apt_no__exact=apt_no).delete()
+                    # Delete existing records
+                    AccessPoints.objects.filter(apt_no=apt_no).delete()
 
                     # Store the access point details
                     ap_record = AccessPoints(
@@ -125,7 +126,7 @@ def register_device(request):
                     logger.error("[APSaveException]::%s" % (e))
 
             try:
-                r = RegisteredUsers.objects.get(dev_id__exact=dev_id)
+                r = RegisteredUsers.objects.get(dev_id=dev_id)
                 logger.debug("Registration with device ID %s exists", r.dev_id)
                 # Store user
                 r.reg_id = reg_id
@@ -194,13 +195,11 @@ def training_data(request):
             # See if entry exists for appliance-location combination
             # Update power value if it exists
             try:
+                # Update power
                 r = Metadata.objects.get(apt_no__exact=apt_no, location__exact=location,
-                                         appliance__exact=appliance)
+                                         appliance__exact=appliance).update(power=power)
                 logger.debug(
                     "Metadata with entry:%d %s %s exists", r.apt_no, r.appliance, r.location)
-                # Update power
-                r.power = power
-                r.save()
                 logger.debug("Metadata record updated")
             except Metadata.DoesNotExist, e:
 
