@@ -163,6 +163,7 @@ class EnergyUsageLog(models.Model):
     stayed_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
     usage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
+    shared = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'EnergyUsageLog'
