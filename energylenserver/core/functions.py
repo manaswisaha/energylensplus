@@ -1,6 +1,5 @@
 import numpy as np
 from constants import WIFI_THRESHOLD, stay_duration
-from energylenserver.core import classifier
 from energylenserver.models import functions as mod_func
 from django_pandas.io import read_frame
 

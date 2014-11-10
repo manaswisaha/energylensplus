@@ -4,7 +4,7 @@ from energylenserver.models.models import EnergyUsageLog, EnergyWastageLog
 from energylenserver.models import functions as mod_func
 
 # Enable Logging
-logger = logging.getLogger('energylensplus_django')
+from common_imports import *
 
 
 def get_energy_consumption(start_time, end_time, power):
