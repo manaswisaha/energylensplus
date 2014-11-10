@@ -187,16 +187,16 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
         {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
          "start_time": 1408086307, "end_time": 1408095726,
          "wastage_times": [{"start_time": 1408093500, "end_time": 1408093800}],
-         "shared": [{"start_time": 1408091427, "end_time": 1408093227, "value": 160},
-                    {"start_time": 1408094500, "end_time": 1408094726, "value": 160}]
+         "shared": [{"start_time": 1408091427, "end_time": 1408093227, "value": 320},
+                    {"start_time": 1408094500, "end_time": 1408094726, "value": 320}]
          })
     activities.append(
         {'id': 2, 'name': activity_name, 'location': 'Dining Room', "value": 320,
          "start_time": 1408096865, "end_time": 1408111265,
          "wastage_times": [{"start_time": 1408105827, "end_time": 1408106727},
                            {"start_time": 1408107627, "end_time": 1408107927}],
-         "shared": [{"start_time": 1408097100, "end_time": 1408099500, "value": 160},
-                    {"start_time": 1408100400, "end_time": 1408104000, "value": 160}]
+         "shared": [{"start_time": 1408097100, "end_time": 1408099500, "value": 320},
+                    {"start_time": 1408100400, "end_time": 1408104000, "value": 320}]
          })
     activities.append(
         {'id': 3, 'name': activity_name, 'location': 'Bedroom', "value": 120,
