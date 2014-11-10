@@ -69,11 +69,32 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
     options = {}
 
+    # Temp
+    usage_list = random.randint(1000, size=no_of_hours)
+    logger.debug("Energy Usage:%s", usage_list)
+    total_usage = sum(usage_list)
+    perc_list = constrained_sum_sample_pos(4, 100)
+    perc_list.sort()
+
     # Retrieve records from the db
     activities = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name="all")
     logger.debug("Detected Activities: %s", activities)
 
     if api == PERSONAL_ENERGY_API:
+
+        options['total_wastage'] = total_usage
+        options['hourly_wastage'] = usage_list.tolist()
+
+        options['activities'] = []
+        options['activities'].append(
+            {'name': "TV", "wastage": total_usage * perc_list[1] / 100.})
+        options['activities'].append(
+            {'name': "AC", "wastage": total_usage * perc_list[2] / 100.})
+        options['activities'].append(
+            {'name': "Microwave", "wastage": total_usage * perc_list[3] / 100.})
+        options['activities'].append(
+            {'name': "Unknown", "wastage": total_usage * perc_list[0] / 100.})
+        return options
 
         if activities:
             usage_entries = mod_func.retrieve_usage_entries(activities.keys())
@@ -87,6 +108,21 @@ def get_energy_report(dev_id, api, start_time, end_time):
                 logger.debug("Energy Usage:%s", hourly_usage)
 
     elif api == ENERGY_WASTAGE_REPORT_API:
+
+        options['total_wastage'] = total_usage
+        options['hourly_wastage'] = usage_list.tolist()
+
+        options['activities'] = []
+        options['activities'].append(
+            {'name': "TV", "wastage": total_usage * perc_list[1] / 100.})
+        options['activities'].append(
+            {'name': "AC", "wastage": total_usage * perc_list[2] / 100.})
+        options['activities'].append(
+            {'name': "Microwave", "wastage": total_usage * perc_list[3] / 100.})
+        options['activities'].append(
+            {'name': "Unknown", "wastage": total_usage * perc_list[0] / 100.})
+
+        return options
 
         if activities:
             wastage_entries = mod_func.retrieve_wastage_entries(activities.keys())
@@ -146,15 +182,51 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
             start_time = end_time - no_of_hours * 3600
 
     activities = []
+    # '''
+    activities.append(
+        {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
+         "start_time": 1408086307, "end_time": 1408095726,
+         "wastage_times": [{"start_time": 1408093500, "end_time": 1408093800}],
+         "shared": [{"start_time": 1408094100, "end_time": 1408094400, "value": 160},
+                    {"start_time": 1408094500, "end_time": 1408094726, "value": 160}]
+         })
+    activities.append(
+        {'id': 2, 'name': activity_name, 'location': 'Dining Room', "value": 320,
+         "start_time": 1408096865, "end_time": 1408111265,
+         "wastage_times": [{"start_time": 1408097100, "end_time": 1408099500},
+                           {"start_time": 1408100400, "end_time": 1408104000}],
+         "shared": []
+         })
+    activities.append(
+        {'id': 3, 'name': activity_name, 'location': 'Bedroom', "value": 120,
+         "start_time": 1408165265, "end_time": 1408168865,
+         "wastage_times": [],
+         "shared": []
+         })
+    activities.append(
+        {'id': 4, 'name': activity_name, 'location': 'Bedroom', "value": 120,
+         "start_time": 1408179665, "end_time": 1408185065,
+         "wastage_times": [{"start_time": 1408183200, "end_time": 1408184100}],
+         "shared": []
+         })
+    return activities
+
+    # '''
+
     records = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name)
 
     record_count = records.count()
     logger.debug("Number of activities: %s", record_count)
-    activities = {}
+    '''
+    {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
+         "start_time": 1408086307, "end_time": 1408095726,
+         "wastage_times": [{"start_time": 1408093500, "end_time": 1408093800}],
+         "shared": [{"start_time": 1408094100, "end_time": 1408094400, value: 160}]
+         })
+    '''
     for r in records:
-        activities[r.id] = {'name': r.appliance, 'location': r.location,
-                            'usage': r.power, 'start_time': r.start_time,
-                            'end_time': r.end_time}
+        activities.append = {'id': r.id, 'name': r.appliance, 'location': r.location,
+                             'usage': r.power, 'start_time': r.start_time, 'end_time': r.end_time}
     logger.debug("Appliances::\n %s", json.dumps(activities))
 
     return activities
