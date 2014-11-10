@@ -18,7 +18,9 @@ from energylenserver.core import audio
 from energylenserver.core import location as lc
 from energylenserver.core import movement as acl
 from energylenserver.models.models import *
+from energylenserver.models.DataModels import WiFiTestData
 from energylenserver.common_imports import *
+from energylenserver.core import functions as func
 from energylenserver.models import functions as mod_func
 from energylenserver.preprocessing import wifi as pre_p
 from common_imports import *
@@ -60,18 +62,71 @@ def classify_location(apt_no, start_time, end_time, user):
         data = mod_func.get_sensor_training_data("wifi", apt_no, user_list)
         train_df = read_frame(data, verbose=False)
 
-        data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
+        # Get test data for the past hour - for better classification
+        s_time = start_time - 60 * 60       # 1 hour
+
+        # Get queryset of filtering later
+        data_all = WiFiTestData.objects.all()
+
+        # Get test data - filter for all queryset
+        data = data_all.filter(dev_id__in=[dev_id],
+                               timestamp__gte=s_time,
+                               timestamp__lte=end_time)
         test_df = read_frame(data, verbose=False)
 
         # Format data for classification
         train_df = pre_p.format_data_for_classification(train_df)
         test_df = pre_p.format_data_for_classification(test_df)
 
-        # Classify
-        location = lc.determine_location(train_df, test_df)
+        # Caching for later use
+        sliced_df = test_df[test_df.label == 'none']
 
-        # Save location label to the database
-        data.update(label=location)
+        # Classify
+        pred_label = lc.determine_location(train_df, test_df)
+        test_df['label'] = pred_label
+
+        # ---- Update unlabeled records for the 1 hour slice-----
+        unlabeled_df = test_df.ix[sliced_df.index]
+
+        # 44 --> Explanation:
+        # start_time = event_time - 60;
+        # 15 seconds to compensate for time difference between phone and meter
+        # desired event time slice to label::
+        # start time = start_time + 45 = (event_time - 60) + 45 = event_time - 15
+        # Therefore, end time for the unlabeled set in the past hour would be
+        # one second before the start time of the desired time slice
+        # e_time = (start_time + 45) - 1
+        e_time = start_time + 44
+        window = 2 * 60     # 2 minutes
+
+        st = s_time
+        et = st + window
+        while et <= e_time:
+
+            diff = end_time - et
+            if diff < window:
+                et = et + diff
+
+            # Get class with max class for the time slice
+            sliced_df = unlabeled_df[(unlabeled_df.timestamp >= st
+                                      ) & (unlabeled_df.timestamp) <= et]
+            location = func.get_max_class(sliced_df['label'].tolist())
+
+            # Filter all queryset (to get desired time slice of the unlabeled set) and
+            # Update it
+            data = data_all.filter(dev_id__in=[dev_id],
+                                   timestamp__gte=s_time,
+                                   timestamp__lte=end_time).update(label=location)
+
+            # Update time counter for the next loop
+            st = et + 1
+            et = st + window
+
+        # Update
+        sliced_df = test_df[(test_df.timestamp >= (start_time + 45)
+                             ) & (test_df.timestamp) <= end_time]
+        location = func.get_max_class(sliced_df['label'].tolist())
+        return location
 
     except Exception, e:
         logger.error("[ClassifyLocationException]:: %s", e)
@@ -94,10 +149,15 @@ def classify_appliance(apt_no, start_time, end_time, user):
         test_df = read_frame(data, verbose=False)
 
         # Classify
-        appliance = audio.determine_appliance(train_model, test_df)
+        pred_label = audio.determine_appliance(train_model, test_df)
+        test_df['label'] = pred_label
 
         # Save appliance label to the database
+        sliced_df = test_df[
+            (test_df.timestamp >= (start_time + 45)) & (test_df.timestamp) <= end_time]
+        appliance = func.get_max_class(sliced_df['label'].tolist())
         data.update(label=appliance)
+        return appliance
 
     except Exception, e:
         logger.error("[ClassifyApplianceException]::%s", e)

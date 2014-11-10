@@ -1,6 +1,9 @@
 # Localization Parameters
 WIFI_THRESHOLD = -85
 
+# Stay duration
+stay_duration = 5 * 60  # 5 minutes
+
 # Audio Classification Parameters
 FS = 8000                       		# Sampling rate
 

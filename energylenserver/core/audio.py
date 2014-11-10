@@ -52,7 +52,7 @@ def train_audio_classfication_model(train_df, filename):
 
 
 """
-Classify Sound event for the data in the given time slice
+Classify audio event for the data in the given time slice
 and output the sound event
 
 Input: sound data for a time frame
@@ -61,7 +61,7 @@ Output: sound event for that time frame
 """
 
 
-def classify_sound(train_model, test_df):
+def determine_appliance(train_model, test_df):
 
     try:
         # Cleaning
@@ -75,14 +75,6 @@ def classify_sound(train_model, test_df):
         clf.fit(train_df[features], train_df['label'])
         pred_label = clf.predict(test_df[features])
 
-        # Return results: Selecting the label with maximum count
-        pred_list = dict((i, list(pred_label).count(i)) for i in pred_test_class)
-        logger.debug("Predicted list: %s", pred_list)
-        grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
-        grpcount_label.columns = ['lcount']
-        pred_label = grpcount_label[
-            grpcount_label.lcount == grpcount_label.lcount.max()].index[0]
-        logger.debug("Predicted Sound Label: %s", pred_label)
         return pred_label
 
     except Exception, e:
@@ -266,15 +258,3 @@ def extract_features(csvfile, dataset_type, apt_no, idx):
             print e
 
     return feat_csv
-
-
-if __name__ == '__main__':
-
-    # Variables
-    train_csv = sys.argv[1]		# training data set - train_data/train_1.csv
-    test_csv = sys.argv[2]		# test data set - test_data/test_1.csv
-    apt_no = sys.argv[3]
-    idx = sys.argv[4]
-
-    # Classify
-    pred_label = classify_sound(train_csv, test_csv, apt_no, idx)
