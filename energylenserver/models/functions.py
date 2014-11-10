@@ -399,7 +399,7 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
                                                  appliance=activity_name)
 
     except Exception, e:
-        logger.error("[RetrieveActivitiesException]::", e)
+        logger.error("[RetrieveActivitiesException]:: %s", e)
         return False
 
     return records
@@ -418,7 +418,7 @@ def retrieve_finished_activities(dev_id, start_time, end_time):
                                              end_time__lte=end_time)
 
     except Exception, e:
-        logger.error("[RetrieveFinishedActivitiesException]::", e)
+        logger.error("[RetrieveFinishedActivitiesException]:: %s", e)
         return False
 
     return records
