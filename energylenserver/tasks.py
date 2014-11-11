@@ -73,12 +73,16 @@ class ClientManager(BaseManager):
     pass
 
 # '''
-# Establishing connection with the running gcmserver
+# Establishing connection with the running GCM Server
 try:
-    ClientManager.register('get_msg_client')
+    ClientManager.register('get_client_obj')
     manager = ClientManager(address=('localhost', 50000), authkey='abracadabra')
     manager.connect()
-    client = manager.get_msg_client()
+    client = manager.get_client_obj()
+    if client.isConnected():
+        logger.debug("Got the GCM Client")
+    else:
+        logger.debug("GCM Client not connected")
 except Exception, e:
     elogger.exception("[InternalGCMClientConnectionException] %s", e)
 # '''
@@ -105,40 +109,43 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
 
     logger.debug("FILE:: %s", filename)
 
-    # Create a dataframe for preprocessing
-    if sensor_name != 'rawaudio':
-        try:
-            df_csv = pd.read_csv(filepath)
-        except Exception, e:
-            logger.error("[InsertDataException]::%s", str(e))
+    try:
+        # Create a dataframe for preprocessing
+        if sensor_name != 'rawaudio':
+            try:
+                df_csv = pd.read_csv(filepath)
+            except Exception, e:
+                logger.error("[InsertDataException]::%s", str(e))
+                os.remove(filepath)
+                return
+
+        # Remove rows with 'Infinity' in MFCCs created
+        if sensor_name == 'audio':
+            if str(df_csv.mfcc1.dtype) != 'float64':
+                df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
+
+        if sensor_name != 'rawaudio':
+            # logger.debug("Total number of records to insert: %d", len(df_csv))
+
+            # Remove NAN timestamps
+            df_csv.dropna(subset=[0], inplace=True)
+
+            # Create temp csv file
             os.remove(filepath)
-            return
+            df_csv.to_csv(filepath, index=False)
 
-    # Remove rows with 'Infinity' in MFCCs created
-    if sensor_name == 'audio':
-        if str(df_csv.mfcc1.dtype) != 'float64':
-            df_csv = df_csv[df_csv.mfcc1 != '-Infinity']
+        # --Initialize Model--
+        if training_status is True:
+            model = FILE_MODEL_MAP['Training' + sensor_name]
+        else:
+            model = FILE_MODEL_MAP[sensor_name]
 
-    if sensor_name != 'rawaudio':
-        # logger.debug("Total number of records to insert: %d", len(df_csv))
+        # --Store data in the model--
+        model[0]().insert_records(user, filepath, model[1])
 
-        # Remove NAN timestamps
-        df_csv.dropna(subset=[0], inplace=True)
-
-        # Create temp csv file
-        os.remove(filepath)
-        df_csv.to_csv(filepath, index=False)
-
-    # --Initialize Model--
-    if training_status is True:
-        model = FILE_MODEL_MAP['Training' + sensor_name]
-    else:
-        model = FILE_MODEL_MAP[sensor_name]
-
-    # --Store data in the model--
-    model[0]().insert_records(user, filepath, model[1])
-
-    logger.debug("Successful Upload! File: %s", filename)
+        logger.debug("Successful Upload! File: %s", filename)
+    except Exception, e:
+        logger.debug("[PhoneDataHandlerException]:: %s", e)
 
 
 @shared_task
@@ -477,49 +484,51 @@ def send_validation_report():
     Sends a ground truth validation report to all the users
     """
     logger.debug("Sending periodic validation report..")
-    # Get all the users
-    users = mod_func.get_all_active_users()
-    if users is False:
-        logger.debug("No users are active")
-        return
-    for user in users:
-        reg_id = user.reg_id
-        apt_no = user.apt_no
-        dev_id = user.dev_id
-
-        # Construct the message
-        data_to_send = {}
-        data_to_send['msg_type'] = "response"
-        data_to_send['api'] = GROUND_TRUTH_NOTIF_API
-        data_to_send['options'] = {}
-        activities = rpt.get_inferred_activities(dev_id)
-
-        if not activities:
+    try:
+        # Get all the users
+        users = mod_func.get_all_active_users()
+        if users is False:
+            logger.debug("No users are active")
             return
+        for user in users:
+            reg_id = user.reg_id
+            apt_no = user.apt_no
+            dev_id = user.dev_id
 
-        if len(activities) == 0:
-            return
+            # Construct the message
+            data_to_send = {}
+            data_to_send['msg_type'] = "response"
+            data_to_send['api'] = GROUND_TRUTH_NOTIF_API
+            data_to_send['options'] = {}
+            activities = rpt.get_inferred_activities(dev_id)
 
-        appliances = []
-        records = mod_func.retrieve_metadata(apt_no)
-        if records:
-            for r in records:
-                appliances.append({'location': r.location, 'appliance': r.appliance})
+            if not activities:
+                return
 
-        users = mod_func.retrieve_users(apt_no)
+            if len(activities) == 0:
+                return
 
-        occupants = {}
-        for user_i in users:
-            occupants[user_i.dev_id] = user_i.name
+            appliances = []
+            records = mod_func.retrieve_metadata(apt_no)
+            if records:
+                for r in records:
+                    appliances.append({'location': r.location, 'appliance': r.appliance})
 
-        data_to_send['options']['activities'] = activities
-        data_to_send['options']['appliances'] = appliances
-        data_to_send['options']['occupants'] = occupants
+            users = mod_func.retrieve_users(apt_no)
 
-        # Send the message
-        send_notification(reg_id, message_to_send)
+            occupants = {}
+            for user_i in users:
+                occupants[user_i.dev_id] = user_i.name
 
-        logger.debug("Sent report to:: %s", user.name)
+            data_to_send['options']['activities'] = activities
+            data_to_send['options']['appliances'] = appliances
+            data_to_send['options']['occupants'] = occupants
+
+            # Send the message
+            send_notification(reg_id, data_to_send)
+            logger.debug("Sent report to:: %s", user.name)
+    except Exception, e:
+        logger.debug("[SendingReportException]:: %s", e)
 
 
 @shared_task
@@ -527,27 +536,30 @@ def inform_user(dev_id, notif_message):
     """
     Sends a notification to a specific user
     """
+    try:
 
-    # Get user
-    user = mod_func.get_user(dev_id)
-    if users is False:
-        logger.error("Specified user does not exist")
-        return
+        # Get user
+        user = mod_func.get_user(dev_id)
+        if users is False:
+            logger.error("Specified user does not exist")
+            return
 
-    reg_id = user.reg_id
-    notif_id = random.choice(string.digits)
+        reg_id = user.reg_id
+        notif_id = random.choice(string.digits)
 
-    # Construct the message
-    message_to_send = {}
-    message_to_send['msg_type'] = 'response'
-    message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
-    message_to_send['options'] = {}
-    message_to_send['options']['id'] = notif_id
-    message_to_send['options']['message'] = notif_message
+        # Construct the message
+        message_to_send = {}
+        message_to_send['msg_type'] = 'response'
+        message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
+        message_to_send['options'] = {}
+        message_to_send['options']['id'] = notif_id
+        message_to_send['options']['message'] = notif_message
 
-    # Send the message
-    send_notification(reg_id, message_to_send)
-    logger.debug("Notified user :: %s", user.name)
+        # Send the message
+        send_notification(reg_id, message_to_send)
+        logger.debug("Notified user :: %s", user.name)
+    except Exception, e:
+        logger.debug("[InformUserException]:: %s", e)
 
 
 @shared_task
@@ -561,28 +573,31 @@ def inform_all_users(apt_no):
     import random
     import string
 
-    # Get all the users in the apt_no where wastage was detected
-    users = mod_func.retrieve_users(apt_no)
-    if users is False:
-        logger.debug("No users that are active")
-        return
-    # Create notification for active users
-    for user in users:
-        reg_id = user.reg_id
-        notif_id = random.choice(string.digits)
+    try:
+        # Get all the users in the apt_no where wastage was detected
+        users = mod_func.retrieve_users(apt_no)
+        if users is False:
+            logger.debug("No users that are active")
+            return
+        # Create notification for active users
+        for user in users:
+            reg_id = user.reg_id
+            notif_id = random.choice(string.digits)
 
-        notif_message = ('Please turn off the Light in the Bedroom' + str(notif_id)) * 3
-        # Construct the message
-        message_to_send = {}
-        message_to_send['msg_type'] = 'response'
-        message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
-        message_to_send['options'] = {}
-        message_to_send['options']['id'] = notif_id
-        message_to_send['options']['message'] = notif_message
+            notif_message = ('Please turn off the Light in the Bedroom' + str(notif_id)) * 3
+            # Construct the message
+            message_to_send = {}
+            message_to_send['msg_type'] = 'response'
+            message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
+            message_to_send['options'] = {}
+            message_to_send['options']['id'] = notif_id
+            message_to_send['options']['message'] = notif_message
 
-        # Send the message
-        send_notification(reg_id, message_to_send)
-        logger.debug("Notified user :: %s", user.name)
+            # Send the message
+            send_notification(reg_id, message_to_send)
+            logger.debug("Notified user :: %s", user.name)
+    except Exception, e:
+        logger.debug("[InformAllUsersException]:: %s", e)
 
 
 @shared_task
@@ -590,8 +605,11 @@ def send_notification(reg_id, message_to_send):
     """
     Sends a message to a specific user
     """
-    message = create_message(reg_id, message_to_send)
-    client.send_message(message)
+    try:
+        message = create_message(reg_id, message_to_send)
+        client.send_message(message)
+    except Exception, e:
+        logger.debug("[SendingNotifException]:: %s", e)
 
 """
 Test Task
