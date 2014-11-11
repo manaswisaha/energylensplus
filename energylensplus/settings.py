@@ -24,7 +24,7 @@ DEBUG = False
 
 TEMPLATE_DEBUG = True
 
-ALLOWED_HOSTS = ['.energy.iiitd.edu.in', '.192.168.1.101', '192.168.20.217']
+ALLOWED_HOSTS = ['.energy.iiitd.edu.in', '.192.168.1.100', '192.168.20.217']
 
 
 # Application definition
@@ -87,15 +87,15 @@ CELERY_TASK_RESULT_EXPIRES = timedelta(seconds=60 * 60)
 CELERY_ENABLE_UTC = False
 CELERY_TIMEZONE = 'Asia/Kolkata'
 
-
+from energylenserver.core.constants import wastage_threshold
 CELERYBEAT_SCHEDULE = {
     'send-report-every-hour': {
         'task': 'tasks.send_validation_report',
-        'schedule': timedelta(seconds=60 * 60),
+        'schedule': timedelta(seconds=10 * 60),
     },
-    # 'send-notification-every-hour': {
-    #     'task': 'energylenserver.tasks.send_wastage_notification',
-    #     'schedule': timedelta(seconds=60 * 45),
+    # 'send-wastage-notif': {
+    #     'task': 'tasks.realtime_wastage_notif',
+    #     'schedule': timedelta(seconds=wastage_threshold),
     # },
 }
 
