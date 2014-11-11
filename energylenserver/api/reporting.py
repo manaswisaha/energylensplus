@@ -4,7 +4,10 @@ Module for the energy reporting APIs
 import json
 import time
 import random as rnd
+
 from numpy import random
+from django_pandas.io import read_frame
+
 from constants import PERSONAL_ENERGY_API, ENERGY_WASTAGE_REPORT_API
 from energylenserver.models import functions as mod_func
 
@@ -43,6 +46,32 @@ Main Functions
 """
 
 
+def filter_user_activities(dev_id, activity_df):
+    """
+    Filter the activity list based on the specified user id
+    """
+    try:
+
+        activity_id_list = activity_df.id.tolist()
+
+        # User specific activities
+        usage_entries = mod_func.retrieve_usage_entries(dev_id, activity_id_list)
+        if isinstance(usage_entries, bool) or usage_entries.count() == 0:
+            return False, False
+
+        u_entries_df = read_frame(usage_entries, verbose=False)
+        activity_id = u_entries_df.activity.unique().tolist()
+
+        # Filtered activity
+        activity_df = activity_df[activity_df.id.isin(activity_id)]
+
+        return activity_df, u_entries_df
+
+    except Exception, e:
+        logger.debug("[FilterActivityException]:: %s", e)
+        return False, False
+
+
 def determine_hourly_consumption(no_of_hours, activities, consumption_entries):
     """
     Determines the hourly usage/wastage based on activities
@@ -69,19 +98,31 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
     options = {}
 
+    '''
     # Temp
     usage_list = random.randint(1000, size=no_of_hours)
     logger.debug("Energy Usage:%s", usage_list)
     total_usage = sum(usage_list)
     perc_list = constrained_sum_sample_pos(4, 100)
     perc_list.sort()
+    '''
 
     # Retrieve records from the db
-    activities = mod_func.retrieve_activities(start_time, end_time, activity_name="all")
+    records = mod_func.retrieve_activities(start_time, end_time, activity_name="all")
+
+    if isinstance(records, bool):
+        return options
+
+    all_activities_df = read_frame(records, verbose=False)
+    all_activities_df = filter_user_activities(dev_id, all_activities_df)
+
+    if isinstance(all_activities_df, bool):
+        return options
     logger.debug("Detected Activities: %s", activities)
 
     if api == PERSONAL_ENERGY_API:
 
+        '''
         options['total_consumption'] = total_usage
         options['hourly_consumption'] = usage_list.tolist()
 
@@ -95,10 +136,15 @@ def get_energy_report(dev_id, api, start_time, end_time):
         options['activities'].append(
             {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
         return options
+        '''
 
         if activities:
-            usage_entries = mod_func.retrieve_usage_entries(activities.keys())
-            hourly_usage = determine_hourly_consumption(no_of_hours, activities, usage_entries)
+            usage_entries = mod_func.retrieve_usage_entries(dev_id, activities.keys())
+            u_entries = {}
+            for r in usage_entries:
+                u_entries[r.id] = {'usage': r.usage}
+            logger.debug("Usage Activities:: %s", json.dumps(u_entries))
+            hourly_usage = determine_hourly_consumption(no_of_hours, activities, u_entries)
 
             if len(hourly_usage) > 0:
                 total_usage = sum(hourly_usage)
@@ -109,6 +155,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
     elif api == ENERGY_WASTAGE_REPORT_API:
 
+        '''
         options['total_wastage'] = total_usage
         options['hourly_wastage'] = usage_list.tolist()
 
@@ -123,9 +170,15 @@ def get_energy_report(dev_id, api, start_time, end_time):
             {'name': "Unknown", "wastage": total_usage * perc_list[0] / 100.})
 
         return options
+        '''
 
         if activities:
-            wastage_entries = mod_func.retrieve_wastage_entries(activities.keys())
+            wastage_entries = mod_func.retrieve_wastage_entries(dev_id, activities.keys())
+            u_entries = {}
+            for r in wastage_entries:
+                u_entries[r.id] = {'wastage': r.wastage}
+            logger.debug("Appliances::\n %s", json.dumps(u_entries))
+
             hourly_wastage = determine_hourly_consumption(no_of_hours, activities, wastage_entries)
 
             if len(hourly_wastage) > 0:
@@ -138,72 +191,13 @@ def get_energy_report(dev_id, api, start_time, end_time):
     return options
 
 
-def get_inferred_activities(dev_id):
-    """
-    Retrieves activities in the past n hour(s)
-    Returns: validation report for ground truth with the activities in the past hour
-    """
-    activities = []
-
-    report_period = 3600  # 1 hour
-    end_time = time.time()
-    start_time = end_time - report_period
-
-    # Temp code
-    usage = random.randint(1000, size=7)
-    activities.append(
-        {'id': 1, 'name': 'TV', 'location': 'Dining Room', "usage": usage[0],
-         "start_time": 1408093265, "end_time": 1408095726})
-    activities.append(
-        {'id': 2, 'name': 'Microwave', 'location': 'Kitchen', "usage": usage[1],
-         "start_time": 1408096865, "end_time": 1408111265})
-    activities.append(
-        {'id': 3, 'name': 'TV', 'location': 'Bedroom', "usage": usage[2],
-         "start_time": 1408165265, "end_time": 1408168865})
-    activities.append(
-        {'id': 4, 'name': 'AC', 'location': 'Bedroom', "usage": usage[3],
-         "start_time": 1408179665, "end_time": 1408185065})
-
-    return activities
-
-    # TODO: Retrieve user specific activities
-    records = mod_func.retrieve_finished_activities(start_time, end_time)
-
-    if not records:
-        return activities
-
-    all_activities = []
-    for r in records:
-        all_activities[r.id] = {'name': r.appliance, 'location': r.location,
-                                'usage': r.power, 'start_time': r.start_time,
-                                'end_time': r.end_time}
-    logger.debug("Appliances::\n %s", json.dumps(all_activities))
-
-    if len(all_activities) > 0:
-        for act_id, aentry in all_activities.iteritems():
-            activities.append({'id': act_id, 'name': aentry['name'], 'location': aentry['location'],
-                               "usage": aentry['usage'], "start_time": aentry['start_time'],
-                               "end_time": aentry['end_time']})
-
-    return activities
-
-
 def disaggregated_energy(dev_id, activity_name, start_time, end_time):
     """
     Retrieves all the entries for the selected activity within the given time interval
     """
-
-    no_of_hours = 12
-    if not str(end_time).isdigit():
-        end_time_str = end_time.split(" ")
-        if end_time_str[2] == "hours":
-            no_of_hours = int(end_time_str[1])
-            logger.debug("Number of hours:%d", no_of_hours)
-            end_time = time.time()
-            start_time = end_time - no_of_hours * 3600
-
     activities = []
-    # '''
+
+    '''
     activities.append(
         {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
          "start_time": 1408086307, "end_time": 1408095726,
@@ -232,23 +226,126 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
          "shared": []
          })
     return activities
+    '''
 
-    # '''
-    # TODO: Retrieve user specific activities
+    no_of_hours = 12
+    if not str(end_time).isdigit():
+        end_time_str = end_time.split(" ")
+        if end_time_str[2] == "hours":
+            no_of_hours = int(end_time_str[1])
+            logger.debug("Number of hours:%d", no_of_hours)
+            end_time = time.time()
+            start_time = end_time - no_of_hours * 3600
+
     records = mod_func.retrieve_activities(start_time, end_time, activity_name)
 
-    record_count = records.count()
-    logger.debug("Number of activities: %s", record_count)
+    if isinstance(records, bool):
+        return activities
+
+    all_activities_df = read_frame(records, verbose=False)
+    all_activities_df, usage_entries_df = filter_user_activities(dev_id, all_activities_df)
+
+    if isinstance(all_activities_df, bool):
+        return activities
+
+    if len(all_activities_df) > 0:
+
+        activity_id_list = all_activities_df.id.tolist()
+
+        # Wastage entries
+        wastage_entries = {}
+        w_entries = mod_func.retrieve_wastage_entries(dev_id, activity_id_list)
+        if not isinstance(w_entries, bool) and w_entries.count() != 0:
+            for act_id in activity_id_list:
+                wastage_entries[act_id] = []
+                for entry in w_entries:
+                    wastage_entries[act_id].append({"start_time": entry.start_time,
+                                                    "end_time": entry.end_time})
+
+        # Usage entries
+        usage_entries = {}
+        if not isinstance(w_entries, bool):
+            for act_id in activity_id_list:
+                usage_entries[act_id] = []
+                for idx in usage_entries_df.index:
+                    entry = usage_entries_df.ix[idx]
+                    usage_entries[act_id].append({"start_time": entry['start_time'],
+                                                  "end_time": entry['end_time']})
+
+        for idx in all_activities_df.index:
+
+            aentry = all_activities_df.ix[idx]
+            w_entry = []
+            if len(wastage_entries) > 0:
+                w_entry = wastage_entries[aentry['id']]
+
+            u_entry = []
+            if len(usage_entries) > 0:
+                u_entry = usage_entries[aentry['id']]
+
+            activities.append({"id": aentry['id'], "activity_name": aentry['name'],
+                               "location": aentry['location'], "value": aentry['usage'],
+                               "start_time": aentry['start_time'], "end_time": aentry['end_time'],
+                               "usage_times": u_entry,
+                               "wastage_times": w_entry,
+                               # "shared": shared_entries[aentry['id']]
+                               })
+
+    return activities
+
+
+def get_inferred_activities(dev_id):
+    """
+    Retrieves activities in the past n hour(s)
+    Returns: validation report for ground truth with the activities in the past hour
+    """
+    activities = []
+
     '''
-    {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
-         "start_time": 1408086307, "end_time": 1408095726,
-         "wastage_times": [{"start_time": 1408093500, "end_time": 1408093800}],
-         "shared": [{"start_time": 1408094100, "end_time": 1408094400, value: 160}]
-         })
-    '''
+    # Temp code
+    usage = random.randint(1000, size=7)
+    activities.append(
+        {'id': 1, 'name': 'TV', 'location': 'Dining Room', "usage": usage[0],
+         "start_time": 1408093265, "end_time": 1408095726})
+    activities.append(
+        {'id': 2, 'name': 'Microwave', 'location': 'Kitchen', "usage": usage[1],
+         "start_time": 1408096865, "end_time": 1408111265})
+    activities.append(
+        {'id': 3, 'name': 'TV', 'location': 'Bedroom', "usage": usage[2],
+         "start_time": 1408165265, "end_time": 1408168865})
+    activities.append(
+        {'id': 4, 'name': 'AC', 'location': 'Bedroom', "usage": usage[3],
+         "start_time": 1408179665, "end_time": 1408185065})
+
+    return activities
+
     for r in records:
-        activities.append = {'id': r.id, 'name': r.appliance, 'location': r.location,
-                             'usage': r.power, 'start_time': r.start_time, 'end_time': r.end_time}
-    logger.debug("Appliances::\n %s", json.dumps(activities))
+        all_activities[r.id] = {'name': r.appliance, 'location': r.location,
+                                'usage': r.power, 'start_time': r.start_time,
+                                'end_time': r.end_time}
+
+    '''
+
+    report_period = 3600  # 1 hour in seconds
+    end_time = time.time()
+    start_time = end_time - report_period
+
+    records = mod_func.retrieve_finished_activities(start_time, end_time)
+
+    if isinstance(records, bool):
+        return activities
+
+    all_activities_df = read_frame(records, verbose=False)
+    all_activities_df, u_entries_df = filter_user_activities(dev_id, all_activities_df)
+
+    if isinstance(all_activities_df, bool):
+        return activities
+
+    if len(all_activities_df) > 0:
+        for idx in all_activities_df.index:
+            aentry = all_activities_df.ix[idx]
+            activities.append({'id': aentry['id'], 'name': aentry['name'],
+                               'location': aentry['location'], "usage": aentry['usage'],
+                               "start_time": aentry['start_time'], "end_time": aentry['end_time']})
 
     return activities
