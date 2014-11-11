@@ -128,7 +128,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
         # '''
         options['total_usage'] = total_usage
         options['total_consumption'] = total_consumption
-        options['hourly_consumption'] = usage_list.tolist()
+        options['hourly_usage'] = usage_list.tolist()
 
         options['activities'] = []
         options['activities'].append(
