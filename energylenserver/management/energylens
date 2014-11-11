@@ -120,8 +120,8 @@ elif [ "$arg" = 'celery' ]; then
 		# Django Server
 		touch "$ELENSHOME/energylensplus/wsgi.py"
 		# Celery
-		sudo /etc/init.d/celerybeat restart
 		sudo /etc/init.d/celeryd restart
+		sudo /etc/init.d/celerybeat restart
 	fi
 else
 	echo 'Wrong command. Please type in this format-> energylens <start|stop|update|restart|status>'
