@@ -2,6 +2,7 @@ import numpy as np
 
 from energylenserver.models.models import EnergyUsageLog, EnergyWastageLog
 from energylenserver.models import functions as mod_func
+from constants import wastage_threshold
 
 # Enable Logging
 from common_imports import *
@@ -46,9 +47,8 @@ def calculate_consumption(user_list, presence_df, activity):
                 usage = get_energy_consumption(st, et, power)
 
                 # Create usage entry in the log
-                # Save Activity
                 usage_entry = EnergyUsageLog(activity=activity,
-                                             start_time=start_time, end_time=end_time,
+                                             start_time=st, end_time=et,
                                              stayed_for=stayed_for, usage=usage,
                                              dev_id=user)
                 usage_entry.save()
@@ -71,9 +71,8 @@ def calculate_consumption(user_list, presence_df, activity):
                 usage = get_energy_consumption(st, et, power) / n_users
 
                 # Create usage entry in the log
-                # Save Activity
                 usage_entry = EnergyUsageLog(activity=activity,
-                                             start_time=start_time, end_time=end_time,
+                                             start_time=st, end_time=et,
                                              stayed_for=stayed_for, usage=usage,
                                              dev_id=user, shared=True)
                 usage_entry.save()
@@ -96,19 +95,30 @@ def calculate_consumption(user_list, presence_df, activity):
                     st = row['start_time']
                     et = row['end_time']
 
-                    left_for = et - st
+                    usage = get_energy_consumption(st, et, power)
                     if n_users > 1:
-                        usage = get_energy_consumption(st, et, power) / n_users
-                    else:
-                        usage = get_energy_consumption(st, et, power)
+                        usage = usage / n_users
 
-                    # Create usage entry in the log
-                    # Save log
-                    wastage_entry = EnergyWastageLog(activity=activity,
-                                                     start_time=start_time, end_time=end_time,
-                                                     left_for=left_for, usage=usage,
-                                                     dev_id=user, shared=True)
-                    wastage_entry.save()
+                    # If left_for exceeds a threshold period then it is a wastage
+                    left_for = et - st
+                    if left_for >= wastage_threshold:
+
+                        # Create wastage entry in the log
+                        wastage_entry = EnergyWastageLog(activity=activity,
+                                                         start_time=st, end_time=et,
+                                                         left_for=left_for, usage=usage,
+                                                         dev_id=user)
+                        wastage_entry.save()
+                    else:
+                        shared = False
+                        if n_users > 1:
+                            shared = True
+                        # Declare it as an usage
+                        usage_entry = EnergyUsageLog(activity=activity,
+                                                     start_time=st, end_time=et,
+                                                     stayed_for=left_for, usage=usage,
+                                                     dev_id=user, shared=shared)
+                        usage_entry.save()
 
     except Exception, e:
         logger.error("[CalculateConsumptionException]:: %s", e)
