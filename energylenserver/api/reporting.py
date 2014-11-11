@@ -77,7 +77,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
     perc_list.sort()
 
     # Retrieve records from the db
-    activities = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name="all")
+    activities = mod_func.retrieve_activities(start_time, end_time, activity_name="all")
     logger.debug("Detected Activities: %s", activities)
 
     if api == PERSONAL_ENERGY_API:
@@ -149,9 +149,30 @@ def get_inferred_activities(dev_id):
     end_time = time.time()
     start_time = end_time - report_period
 
-    all_activities = []
-    records = mod_func.retrieve_finished_activities(dev_id, start_time, end_time)
+    # Temp code
+    usage = random.randint(1000, size=7)
+    activities.append(
+        {'id': 1, 'name': 'TV', 'location': 'Dining Room', "usage": usage[0],
+         "start_time": 1408093265, "end_time": 1408095726})
+    activities.append(
+        {'id': 2, 'name': 'Microwave', 'location': 'Kitchen', "usage": usage[1],
+         "start_time": 1408096865, "end_time": 1408111265})
+    activities.append(
+        {'id': 3, 'name': 'TV', 'location': 'Bedroom', "usage": usage[2],
+         "start_time": 1408165265, "end_time": 1408168865})
+    activities.append(
+        {'id': 4, 'name': 'AC', 'location': 'Bedroom', "usage": usage[3],
+         "start_time": 1408179665, "end_time": 1408185065})
 
+    return activities
+
+    # TODO: Retrieve user specific activities
+    records = mod_func.retrieve_finished_activities(start_time, end_time)
+
+    if not records:
+        return activities
+
+    all_activities = []
     for r in records:
         all_activities[r.id] = {'name': r.appliance, 'location': r.location,
                                 'usage': r.power, 'start_time': r.start_time,
@@ -213,8 +234,8 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
     return activities
 
     # '''
-
-    records = mod_func.retrieve_activities(dev_id, start_time, end_time, activity_name)
+    # TODO: Retrieve user specific activities
+    records = mod_func.retrieve_activities(start_time, end_time, activity_name)
 
     record_count = records.count()
     logger.debug("Number of activities: %s", record_count)

@@ -379,10 +379,8 @@ def get_on_events(apt_no, event_time):
 
     return records
 
-# Fix it
 
-
-def retrieve_activities(dev_id, start_time, end_time, activity_name):
+def retrieve_activities(start_time, end_time, activity_name):
     """
     Retrieves all activities of a user between the time period or
     based on requested appliance
@@ -390,13 +388,11 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
     try:
         if activity_name == "all":
             # Retrieves all activities - for usage/wastage reports
-            records = ActivityLog.objects.filter(dev_id=dev_id,
-                                                 start_time__gte=start_time,
+            records = ActivityLog.objects.filter(start_time__gte=start_time,
                                                  end_time__lte=end_time)
         else:
             # Retrieves the specified activities - for disaggregated activities
-            records = ActivityLog.objects.filter(dev_id=dev_id,
-                                                 start_time__gte=start_time,
+            records = ActivityLog.objects.filter(start_time__gte=start_time,
                                                  end_time__lte=end_time,
                                                  appliance=activity_name)
 
@@ -406,10 +402,8 @@ def retrieve_activities(dev_id, start_time, end_time, activity_name):
 
     return records
 
-# Fix it
 
-
-def retrieve_finished_activities(dev_id, start_time, end_time):
+def retrieve_finished_activities(start_time, end_time):
     """
     Retrieves all activities that got completed in the specified time
     period
@@ -417,8 +411,7 @@ def retrieve_finished_activities(dev_id, start_time, end_time):
     try:
         # Retrieves all activities - for validation report generation and
         # usage/wastage reports
-        records = ActivityLog.objects.filter(dev_id=dev_id,
-                                             end_time__gte=start_time,
+        records = ActivityLog.objects.filter(end_time__gte=start_time,
                                              end_time__lte=end_time)
 
     except Exception, e:
