@@ -170,7 +170,8 @@ class MessageClient:
                 msg = json.loads(gcm_json)
 
                 # Indicates it is an upstream data message and accept from the EnergyLens app
-                if 'message_type' not in msg and msg['category'] == 'com.example.energylens':
+                if 'message_type' not in msg and msg['category'] in ['com.example.energylens',
+                                                                     'com.iiitd.muc.energylens']:
                     self.handle_message(msg)
 
                 # Indicates it is an ACK message
