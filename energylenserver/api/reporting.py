@@ -72,11 +72,12 @@ def filter_user_activities(dev_id, activity_df):
         return False, False
 
 
-def determine_hourly_consumption(no_of_hours, activities, consumption_entries):
+def determine_hourly_consumption(no_of_hours, activities_df, consumption_df):
     """
     Determines the hourly usage/wastage based on activities
     """
     hourly_consumption = []
+
     return hourly_consumption
 
 
@@ -98,14 +99,15 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
     options = {}
 
-    '''
+    # '''
     # Temp
     usage_list = random.randint(1000, size=no_of_hours)
     logger.debug("Energy Usage:%s", usage_list)
     total_usage = sum(usage_list)
+    total_consumption = (total_usage * 100) / 40
     perc_list = constrained_sum_sample_pos(4, 100)
     perc_list.sort()
-    '''
+    # '''
 
     # Retrieve records from the db
     records = mod_func.retrieve_activities(start_time, end_time, activity_name="all")
@@ -114,16 +116,16 @@ def get_energy_report(dev_id, api, start_time, end_time):
         return options
 
     all_activities_df = read_frame(records, verbose=False)
-    all_activities_df = filter_user_activities(dev_id, all_activities_df)
+    activities_df, usage_df = filter_user_activities(dev_id, all_activities_df)
 
-    if isinstance(all_activities_df, bool):
+    if isinstance(activities_df, bool):
         return options
-    logger.debug("Detected Activities: %s", activities)
 
     if api == PERSONAL_ENERGY_API:
 
-        '''
-        options['total_consumption'] = total_usage
+        # '''
+        options['total_usage'] = total_usage
+        options['total_consumption'] = total_consumption
         options['hourly_consumption'] = usage_list.tolist()
 
         options['activities'] = []
@@ -136,27 +138,24 @@ def get_energy_report(dev_id, api, start_time, end_time):
         options['activities'].append(
             {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
         return options
-        '''
+        # '''
 
-        if activities:
-            usage_entries = mod_func.retrieve_usage_entries(dev_id, activities.keys())
-            u_entries = {}
-            for r in usage_entries:
-                u_entries[r.id] = {'usage': r.usage}
-            logger.debug("Usage Activities:: %s", json.dumps(u_entries))
-            hourly_usage = determine_hourly_consumption(no_of_hours, activities, u_entries)
+        if len(activities_df) > 0:
+            hourly_usage = determine_hourly_consumption(no_of_hours, activities_df, usage_df)
 
             if len(hourly_usage) > 0:
                 total_usage = sum(hourly_usage)
-                options['total_consumption'] = total_usage
+                options['total_usage'] = total_usage
                 options['hourly_consumption'] = hourly_usage
 
                 logger.debug("Energy Usage:%s", hourly_usage)
 
     elif api == ENERGY_WASTAGE_REPORT_API:
 
-        '''
+        # '''
         options['total_wastage'] = total_usage
+        options['total_consumption'] = total_consumption
+        # options['percent'] = (total_wastage / total_consumption) * 100
         options['hourly_wastage'] = usage_list.tolist()
 
         options['activities'] = []
@@ -170,20 +169,19 @@ def get_energy_report(dev_id, api, start_time, end_time):
             {'name': "Unknown", "wastage": total_usage * perc_list[0] / 100.})
 
         return options
-        '''
+        # '''
 
-        if activities:
-            wastage_entries = mod_func.retrieve_wastage_entries(dev_id, activities.keys())
-            u_entries = {}
-            for r in wastage_entries:
-                u_entries[r.id] = {'wastage': r.wastage}
-            logger.debug("Appliances::\n %s", json.dumps(u_entries))
+        if len(activities_df) > 0:
+            # Get wastage entries
+            activity_id_list = activities_df.id.tolist()
+            w_entries = mod_func.retrieve_wastage_entries(dev_id, activity_id_list)
+            wastage_df = read_frame(w_entries, verbose=False)
 
-            hourly_wastage = determine_hourly_consumption(no_of_hours, activities, wastage_entries)
+            hourly_wastage = determine_hourly_consumption(no_of_hours, activities_df, wastage_df)
 
             if len(hourly_wastage) > 0:
                 total_wastage = sum(hourly_wastage)
-                options['total_consumption'] = total_wastage
+                options['total_wastage'] = total_wastage
                 options['hourly_consumption'] = hourly_wastage
 
                 logger.debug("Energy Wastage: %s", hourly_wastage)
@@ -197,36 +195,35 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
     """
     activities = []
 
-    '''
+    # '''
     activities.append(
         {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
          "start_time": 1408086307, "end_time": 1408095726,
          "wastage_times": [{"start_time": 1408093500, "end_time": 1408093800}],
-         "shared": [{"start_time": 1408091427, "end_time": 1408093227, "value": 320},
-                    {"start_time": 1408094500, "end_time": 1408094726, "value": 320}]
+         "usage_times": [{"start_time": 1408091427, "end_time": 1408093227},
+                         {"start_time": 1408094500, "end_time": 1408094726}]
          })
     activities.append(
         {'id': 2, 'name': activity_name, 'location': 'Dining Room', "value": 320,
          "start_time": 1408096865, "end_time": 1408111265,
          "wastage_times": [{"start_time": 1408105827, "end_time": 1408106727},
                            {"start_time": 1408107627, "end_time": 1408107927}],
-         "shared": [{"start_time": 1408097100, "end_time": 1408099500, "value": 320},
-                    {"start_time": 1408100400, "end_time": 1408104000, "value": 320}]
+         "usage_times": [{"start_time": 1408097100, "end_time": 1408099500},
+                         {"start_time": 1408100400, "end_time": 1408104000}]
          })
     activities.append(
         {'id': 3, 'name': activity_name, 'location': 'Bedroom', "value": 120,
          "start_time": 1408165265, "end_time": 1408168865,
+         "usage_times": [{"start_time": 1408165265, "end_time": 1408168865}],
          "wastage_times": [],
-         "shared": []
          })
     activities.append(
         {'id': 4, 'name': activity_name, 'location': 'Bedroom', "value": 120,
          "start_time": 1408179665, "end_time": 1408185065,
-         "wastage_times": [{"start_time": 1408183200, "end_time": 1408184100}],
-         "shared": []
+         "usage_times": [{"start_time": 1408183200, "end_time": 1408184100}],
          })
     return activities
-    '''
+    # '''
 
     no_of_hours = 12
     if not str(end_time).isdigit():

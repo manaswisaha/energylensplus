@@ -18,14 +18,14 @@ def random_id():
     return rid
 
 
-def create_message(reg_id, data):
+def create_message(reg_id, data, time_to_live=3600):
     """
     Creates a JSON message body for an XMPP message
     """
     message = json.dumps({'to': reg_id,
                           'message_id': random_id(),
                           'data': data,
-                          'time_to_live': 3600,
+                          'time_to_live': time_to_live,
                           'delay_while_idle': False})
     # print "Message created::\n", json.dumps(message, indent=4)
     return message

@@ -24,10 +24,11 @@ def calculate_consumption(user_list, presence_df, activity):
         power = activity.power
         user_columns = presence_df.columns - ['start_time', 'end_time']
         col_sum = presence_df.ix[:, user_columns].sum(axis=1, numeric_only=True)
+        presence_df['sum'] = col_sum
+
         ts_slices_ix = presence_df.index[np.where(col_sum > 1)[0]]
         time_shared_slices_df = presence_df.ix[ts_slices_ix]
         time_shared_slices_df['sum'] = col_sum
-        presence_df['sum'] = col_sum
 
         indiv_slices_df = presence_df.ix[presence_df.index - ts_slices_ix]
 
