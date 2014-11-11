@@ -25,9 +25,8 @@ if [ "$arg" = 'start' ]; then
 	touch "$ELENSHOME/energylensplus/wsgi.py"
 
 	# Start GCM Server
-	python manage.py opengcmserver &
+	python manage.py gcmserver &
 	sleep 5
-	# python manage.py rungcmserver &
 
 	# Start Celery
 	sudo /etc/init.d/celeryd start
@@ -82,9 +81,8 @@ elif [ "$arg" = 'restart' ]; then
 	touch "$ELENSHOME/energylensplus/wsgi.py"
 
 	# Start GCM Server
-	python manage.py opengcmserver &
+	python manage.py gcmserver &
 	sleep 5
-	# python manage.py rungcmserver &
 
 	# Restart Celery
 	sudo /etc/init.d/celerybeat restart
@@ -121,6 +119,7 @@ elif [ "$arg" = 'celery' ]; then
 	elif [ "$cmd" = 'restart' ]; then
 		# Django Server
 		touch "$ELENSHOME/energylensplus/wsgi.py"
+		# Celery
 		sudo /etc/init.d/celerybeat restart
 		sudo /etc/init.d/celeryd restart
 	fi

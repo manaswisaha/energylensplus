@@ -28,11 +28,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Creates a message client that is connected to the Google server
-        msg_client_obj = MessageClient()
-        msg_client_obj.register_handlers()
-        client = msg_client_obj.get_connection_client()
-
         try:
+            msg_client_obj = MessageClient()
+            msg_client_obj.register_handlers()
+            client = msg_client_obj.get_connection_client()
 
             ClientManager.register('get_client', callable=lambda: client)
             ClientManager.register('get_client_obj', callable=lambda: msg_client_obj)
@@ -50,4 +49,4 @@ class Command(BaseCommand):
         except Exception, e:
             logger.error("[GCMServerException] %s" % str(e))
         finally:
-            logger.debug("End")
+            logger.debug("GCM Client Connection Closed")
