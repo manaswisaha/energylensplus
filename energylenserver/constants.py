@@ -1,3 +1,5 @@
+# Participating apartments
+apt_no_list = ['1201']  # , '101', '1003', '1002']
 
 # Constants for sending response messages
 ERROR_INVALID_REQUEST = {"type": "ERROR", "code": 0, "message": "Invalid request made"}

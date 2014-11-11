@@ -36,6 +36,7 @@ from django.conf import settings
 
 # EnergyLens+ imports
 from energylenserver.common_imports import *
+from energylenserver.constants import apt_no_list
 from energylenserver.functions import *
 from energylenserver.meter import smap
 from energylenserver.tasks import meterDataHandler
@@ -51,7 +52,7 @@ STREAM_URL = "http://energy.iiitd.edu.in:9106/republish"
 
 
 # Participating apartments
-apt_no_list = ['1201']  # , '101', '1003', '1002']
+# apt_no_list = ['1201']  # , '101', '1003', '1002']
 uuid_list = []
 payload = ""
 
@@ -253,7 +254,7 @@ class Command(BaseCommand):
         component
         """
 
-        global dst_folder, apt_no_list, payload, uuid_list
+        global dst_folder, payload, uuid_list
 
         base_dir = settings.BASE_DIR
 
