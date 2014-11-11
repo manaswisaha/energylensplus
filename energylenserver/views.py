@@ -5,15 +5,16 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
 
-from common_imports import *
-from models.models import *
-from models.DataModels import *
-from meter.functions import *
-from meter.smap import *
-from functions import *
+from energylenserver.common_imports import *
+from energylenserver.models.models import *
+from energylenserver.models.DataModels import *
+from energylenserver.meter.functions import *
+from energylenserver.meter.smap import *
+from energylenserver.functions import *
 from energylenserver.preprocessing import wifi
 from energylenserver.api.reassign import *
 from energylenserver.tasks import phoneDataHandler
+from energylenserver.models import functions as mod_func
 
 import os
 import sys
@@ -25,22 +26,6 @@ import datetime as dt
 
 # Enable Logging
 logger = logging.getLogger('energylensplus_django')
-
-"""
-Helper functions
-"""
-
-
-def user_exists(device_id):
-    """
-    Check whether user is registered
-    """
-    try:
-        dev_id = RegisteredUsers.objects.get(dev_id__exact=device_id)
-        return dev_id
-    except RegisteredUsers.DoesNotExist, e:
-        logger.error("[UserDoesNotExistException Occurred] No registration found!:: %s", e)
-        return False
 
 """
 Registration API
@@ -180,8 +165,8 @@ def training_data(request):
             appliance = payload['appliance']
 
             # Check if it is a registered user
-            user = user_exists(dev_id)
-            if not user:
+            user = mod_func.get_user(dev_id)
+            if isinstance(user, bool):
                 return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
                                     content_type="application/json")
             else:
@@ -235,7 +220,7 @@ def determine_user(filename):
     device_id = int(filename_l[0])
 
     # Check if it is a registered user
-    is_user = user_exists(device_id)
+    is_user = mod_func.get_user(device_id)
     return is_user
 
 
@@ -247,7 +232,7 @@ def import_from_file(filename, csvfile):
     filename_l = filename.split('_')
 
     user = determine_user(filename)
-    if not user:
+    if isinstance(user, bool):
         return False
 
     logger.debug("User: %s", user.name)
@@ -363,7 +348,7 @@ def upload_stats(request):
             # --- Saving file in the database ---
             # Check if it is a registered user
             user = determine_user(filename)
-            if not user:
+            if isinstance(user, bool):
                 return False
 
             # Save file in a temporary location
@@ -406,8 +391,8 @@ def real_time_data_access(request):
             logger.debug("Requested by:%s", dev_id)
 
             # Check if it is a registered user
-            is_user = user_exists(dev_id)
-            if not is_user:
+            is_user = mod_func.get_user(dev_id)
+            if isinstance(is_user, bool):
                 return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
                                     content_type="application/json")
             else:
@@ -452,8 +437,8 @@ def real_time_past_data(request):
             logger.debug("For %d minute(s)", minutes)
 
             # Check if it is a registered user
-            is_user = user_exists(dev_id)
-            if not is_user:
+            is_user = mod_func.get_user(dev_id)
+            if isinstance(is_user, bool):
                 return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
                                     content_type="application/json")
             else:
@@ -520,8 +505,8 @@ def reassign_inference(request):
             dev_id = payload['dev_id']
 
             # Check if it is a registered user
-            user = user_exists(dev_id)
-            if not user:
+            user = mod_func.get_user(dev_id)
+            if isinstance(user, bool):
                 return HttpResponse(json.dumps(REASSIGN_UNSUCCESSFUL),
                                     content_type="application/json")
             else:

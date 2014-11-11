@@ -448,8 +448,11 @@ def retrieve_usage_entries(dev_id, activity_id_list):
     Retrieves usage entries of the given activity id list
     """
     try:
-        usage_entries = EnergyUsageLog.objects.filter(
-            dev_id=dev_id, activity_id__in=activity_id_list)
+        if isinstance(dev_id, str):
+            usage_entries = EnergyUsageLog.objects.filter(activity_id__in=activity_id_list)
+        else:
+            usage_entries = EnergyUsageLog.objects.filter(
+                dev_id=dev_id, activity_id__in=activity_id_list)
 
     except EnergyUsageLog.DoesNotExist:
         logger.debug("[UsageDoesNotExistException Occurred] "
@@ -459,14 +462,7 @@ def retrieve_usage_entries(dev_id, activity_id_list):
         logger.error("[RetrieveUsageEntriesException]:: %s", str(e))
         return False
 
-    record_count = usage_entries.count()
-    logger.debug("Number of usage entries: %s", record_count)
-    u_entries = {}
-    for r in usage_entries:
-        u_entries[r.id] = {'usage': r.usage}
-    logger.debug("Appliances::\n %s", json.dumps(u_entries))
-
-    return u_entries
+    return usage_entries
 
 
 def retrieve_wastage_entries(dev_id, activity_id_list):
@@ -485,11 +481,4 @@ def retrieve_wastage_entries(dev_id, activity_id_list):
         logger.error("[RetrieveWastageEntriesException]:: %s", str(e))
         return False
 
-    record_count = wastage_entries.count()
-    logger.debug("Number of wastage entries: %s", record_count)
-    u_entries = {}
-    for r in wastage_entries:
-        u_entries[r.id] = {'wastage': r.wastage}
-    logger.debug("Appliances::\n %s", json.dumps(u_entries))
-
-    return u_entries
+    return wastage_entries

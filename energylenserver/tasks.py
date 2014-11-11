@@ -203,7 +203,7 @@ def edgeHandler(edge):
         chain = (classify_edge.s(edge) |
                  find_time_slice.s() | apportion_energy.s())
     else:
-        chain = (classify_edge.s(edge) | determine_wastage.s())
+        chain = classify_edge.s(edge)
     chain()
     logger.debug("Classification Pipeline ended for edge: [%s] :: %d",
                  time.ctime(edge.timestamp), edge.magnitude)
@@ -350,7 +350,7 @@ def find_time_slice(result_labels):
         # Match ON/OFF events
         matched_on_event = e_match.match_events(apt_no, off_event)
 
-        if not matched_on_event:
+        if isinstance(matched_on_event, bool):
             logger.debug("No ON event found")
             return return_error
 
@@ -502,7 +502,7 @@ def send_validation_report():
             data_to_send['options'] = {}
             activities = rpt.get_inferred_activities(dev_id)
 
-            if not activities:
+            if isinstace(activities, bool):
                 return
 
             if len(activities) == 0:
