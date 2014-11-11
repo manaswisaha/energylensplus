@@ -530,8 +530,8 @@ def send_validation_report():
             data_to_send['options'] = {}
             activities = rpt.get_inferred_activities(dev_id)
 
-            # if isinstance(activities, bool):
-            #     return
+            if isinstance(activities, bool):
+                return
 
             if len(activities) == 0:
                 return

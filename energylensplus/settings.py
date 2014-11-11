@@ -91,7 +91,7 @@ from energylenserver.core.constants import wastage_threshold
 CELERYBEAT_SCHEDULE = {
     'send-report-every-hour': {
         'task': 'tasks.send_validation_report',
-        'schedule': timedelta(seconds=10 * 60),
+        'schedule': timedelta(seconds=15 * 60),
     },
     # 'send-wastage-notif': {
     #     'task': 'tasks.realtime_wastage_notif',
