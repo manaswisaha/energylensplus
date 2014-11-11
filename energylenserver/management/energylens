@@ -16,6 +16,7 @@ meterdata_logfile="$ELENSHOME/logs/meter_data.log"
 
 #Get the command option
 arg=$1
+cmd=$2
 
 if [ "$arg" = 'start' ]; then
 
@@ -107,6 +108,22 @@ elif [ "$arg" = 'status' ]; then
 	# 	echo "EnergyLensPlus Server has not been started. To start, type:"
 	# 	echo -e '\t energylens start <ip_addr:port_no>'
 	# fi
+
+elif [ "$arg" = 'celery' ]; then
+	if [ "$cmd" = 'start' ]; then
+		sudo /etc/init.d/celeryd start
+		sudo /etc/init.d/celerybeat start
+	
+	elif [ "$cmd" = 'stop' ]; then
+		sudo /etc/init.d/celerybeat stop
+		sudo /etc/init.d/celeryd stop
+	
+	elif [ "$cmd" = 'restart' ]; then
+		# Django Server
+		touch "$ELENSHOME/energylensplus/wsgi.py"
+		sudo /etc/init.d/celerybeat restart
+		sudo /etc/init.d/celeryd restart
+	fi
 else
-	echo 'Wrong command. Please type in this format-> source sensoract <start|stop|update|restart|status>'
+	echo 'Wrong command. Please type in this format-> energylens <start|stop|update|restart|status>'
 fi
