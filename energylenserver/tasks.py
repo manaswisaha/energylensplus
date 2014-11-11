@@ -29,6 +29,7 @@ from energylenserver.models import functions as mod_func
 
 # Core Algo imports
 from energylenserver.core import classifier
+from energylenserver.core.constants import wastage_threshold
 from energylenserver.core import functions as core_f
 from energylenserver.meter import edge_detection
 from energylenserver.core import user_attribution as attrib
@@ -43,6 +44,7 @@ from energylenserver.api import reporting as rpt
 
 # Common imports
 from energylenserver.common_imports import *
+from energylenserver.constants import apt_no_list
 
 # Enable Logging
 logger = logging.getLogger('energylensplus_django')
@@ -437,41 +439,67 @@ def apportion_energy(result_labels):
 
     except Exception, e:
         logger.error("[ApportionEnergyException]:: %s", str(e))
-        return
 
 
 @shared_task
-def determine_wastage(result_labels):
+def determine_wastage(apt_no):
     """
-    Determines energy wastage
-    :param edge:
-    :return determined wastage:
-
-    -generate hourly energy data
-    -generate energy wastage notifications
-
+    Determines energy wastage in real-time
     """
     try:
-        who, what, where, event = result_labels
+        end_time = int(time.time())
+        start_time = end_time - wastage_threshold
 
-        if (who == 'ignore' and what == 'ignore' and where == 'ignore'):
-            logger.debug("Ignoring event")
+        # Determine users at home
+        user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
+        n_users_at_home = len(user_list)
+
+        if n_users_at_home == 0:
+            logger.debug("No users at home")
             return
 
-        event_time = event.event_time
-        magnitude = event.edge.magnitude
+        # Build presence matrix for the ongoing activities
+        on_activity_records = []
+        users = mod_func.get_users(user_list)
+        for activity in on_activity_records:
 
-        logger.debug("Determines energy wastage:: [%s] :: %s" % (
-            time.ctime(event_time), str(magnitude)))
-        logger.debug("Activity: %s in %s uses %s", who, where, what)
+            act_loc = activity.location
 
-        energy_wasted = None
-        # Call module that determines energy wastage
-        logger.debug("Wastage Determined: %s", energy_wasted)
+            for user in user_list:
+                user_id = user.dev_id
+
+                # Build presence matrix
+                df = core_f.get_presence_matrix(
+                    apt_no, user_id, start_time, end_time, act_loc)
+                presence_df[str(user_id)] = df['label']
+
+            # Determine wastage - find rooms of activity that are empty
+            user_columns = presence_df.columns - ['start_time', 'end_time']
+            col_sum = presence_df.ix[:, user_columns].sum(axis=1, numeric_only=True)
+            w_slices_ix = presence_df.index[np.where(col_sum == 0)[0]]
+
+            # Send notifications to all the users
+            if len(w_slices_ix) > 0:
+                inform_all_users(apt_no, message, users)
+
+    except Exception, e:
+        logger.debug("[DetermineWastageRTException]:: %s", e)
+
+
+@shared_task(name='tasks.realtime_wastage_notif')
+def realtime_wastage_notif():
+    """
+    Determines energy wastage in real-time and sends notification to all the
+    users
+    """
+    try:
+        # Determine wastage for each apt no independently
+        for apt_no in apt_no_list:
+            determine_wastage.delay(apt_no)
 
     except Exception, e:
         logger.error("DetermineWastageException]:: %s", str(e))
-        return
+
 
 """
 Invokes the real-time feedback component
@@ -532,6 +560,39 @@ def send_validation_report():
 
 
 @shared_task
+def inform_all_users(apt_no, notif_message, users):
+    """
+    Informs the user by sending a notification to all the users
+    :return message:
+    """
+
+    import random
+    import string
+
+    try:
+        # Create notification for active users
+        for user in users:
+            reg_id = user.reg_id
+            notif_id = random.choice(string.digits)
+
+            # notif_message = ('Please turn off the Light in the Bedroom' + str(notif_id)) * 3
+            # Construct the message
+            message_to_send = {}
+            message_to_send['msg_type'] = 'response'
+            message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
+            message_to_send['options'] = {}
+            message_to_send['options']['id'] = notif_id
+            message_to_send['options']['message'] = notif_message
+
+            # Send the message
+            time_to_live = 30 * 60
+            send_notification(reg_id, message_to_send, time_to_live)
+            logger.debug("Notified user :: %s", user.name)
+    except Exception, e:
+        logger.debug("[InformAllUsersException]:: %s", e)
+
+
+@shared_task
 def inform_user(dev_id, notif_message):
     """
     Sends a notification to a specific user
@@ -563,50 +624,12 @@ def inform_user(dev_id, notif_message):
 
 
 @shared_task
-def inform_all_users(apt_no):
-    """
-    Informs the user by sending a notification to all the users
-    :return message:
-    Call: inform_users.delay(apt_no, message_to_send)
-    """
-
-    import random
-    import string
-
-    try:
-        # Get all the users in the apt_no where wastage was detected
-        users = mod_func.retrieve_users(apt_no)
-        if users is False:
-            logger.debug("No users that are active")
-            return
-        # Create notification for active users
-        for user in users:
-            reg_id = user.reg_id
-            notif_id = random.choice(string.digits)
-
-            notif_message = ('Please turn off the Light in the Bedroom' + str(notif_id)) * 3
-            # Construct the message
-            message_to_send = {}
-            message_to_send['msg_type'] = 'response'
-            message_to_send['api'] = ENERGY_WASTAGE_NOTIF_API
-            message_to_send['options'] = {}
-            message_to_send['options']['id'] = notif_id
-            message_to_send['options']['message'] = notif_message
-
-            # Send the message
-            send_notification(reg_id, message_to_send)
-            logger.debug("Notified user :: %s", user.name)
-    except Exception, e:
-        logger.debug("[InformAllUsersException]:: %s", e)
-
-
-@shared_task
-def send_notification(reg_id, message_to_send):
+def send_notification(reg_id, message_to_send, time_to_live=3600):
     """
     Sends a message to a specific user
     """
     try:
-        message = create_message(reg_id, message_to_send)
+        message = create_message(reg_id, message_to_send, time_to_live)
         client.send_message(message)
     except Exception, e:
         logger.debug("[SendingNotifException]:: %s", e)
