@@ -300,7 +300,7 @@ def get_inferred_activities(dev_id):
     """
     activities = []
 
-    '''
+    # '''
     # Temp code
     usage = random.randint(1000, size=7)
     activities.append(
@@ -318,12 +318,7 @@ def get_inferred_activities(dev_id):
 
     return activities
 
-    for r in records:
-        all_activities[r.id] = {'name': r.appliance, 'location': r.location,
-                                'usage': r.power, 'start_time': r.start_time,
-                                'end_time': r.end_time}
-
-    '''
+    # '''
 
     report_period = 3600  # 1 hour in seconds
     end_time = time.time()
