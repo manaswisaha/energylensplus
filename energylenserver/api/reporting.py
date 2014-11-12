@@ -223,6 +223,7 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
         {'id': 4, 'name': activity_name, 'location': 'Bedroom', "value": 120,
          "start_time": 1408179665, "end_time": 1408185065,
          "usage_times": [{"start_time": 1408183200, "end_time": 1408184100}],
+         "wastage_times": [],
          })
     return activities
     # '''
