@@ -81,7 +81,9 @@ try:
     manager = ClientManager(address=('localhost', 50000), authkey='abracadabra')
     manager.connect()
     client = manager.get_client_obj()
-    if client.isConnected():
+    if client is None or client == "":
+        logger.debug("GCM Client not connected")
+    elif client.isConnected():
         logger.debug("Got the GCM Client")
     else:
         logger.debug("GCM Client not connected")
