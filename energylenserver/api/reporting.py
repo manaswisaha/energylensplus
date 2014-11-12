@@ -109,7 +109,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
     perc_list.sort()
     # '''
 
-    '''
+    # '''
     # Retrieve records from the db
     records = mod_func.retrieve_activities(start_time, end_time, activity_name="all")
 
@@ -121,7 +121,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
     if isinstance(activities_df, bool):
         return options
-    '''
+    # '''
 
     if api == PERSONAL_ENERGY_API:
 
