@@ -23,7 +23,7 @@ from energylenserver.setup_django_envt import *
 # EnergyLens+ imports
 from energylenserver.api.reporting import *
 from energylenserver.api.reassign import *
-from energylenserver.models.functions import retrieve_metadata, mark_not_active
+from energylenserver.models import functions as mod_func
 
 from gcmxmppclient.messages import create_message, create_control_message
 from gcmxmppclient.settings import *
@@ -49,6 +49,8 @@ class MessageClient:
         self.unacked_messages_counter = 0
         self.start_time = time.time()
         self.prev_req_time = None
+        self.backoff = 1
+        self.backoff_msg = 2
         self.logger = logger
         self.elogger = exception_logger
 
@@ -94,6 +96,9 @@ class MessageClient:
                     if not self.connect_to_gcm_server():
                         self.logger.error("Authentication failed! Try again!")
                         sys.exit(1)
+                    else:
+                        logger.debug("Reconnected Successfully!")
+                        continue
 
             except Exception, e:
                 self.elogger.exception("[GCMConnClient EXCEPTION]: Start() ::%s", e)
@@ -141,7 +146,11 @@ class MessageClient:
                 '''
                 # Introduce a delay using exponential backoff
                 self.logger.warn("NEED TO STOP SENDING MESSAGES")
-                pass
+                self.logger.error('Waiting %s seconds before trying again' % self.backoff_msg)
+                time.sleep(self.backoff_msg)
+                self.backoff_msg = min(self.backoff_msg * 2, 320)
+
+                self.send_message(self, message)
         except Exception, e:
             self.logger.error("[GCMCLIENT EXCEPTION] SendMessage:%s", e)
 
@@ -216,7 +225,7 @@ class MessageClient:
             self.logger.debug("First request")
 
         # Get User Details
-        user = determine_user(reg_id)
+        user = mod_func.determine_user(reg_id)
         if not user:
             return False
         apt_no = user.apt_no
@@ -241,7 +250,7 @@ class MessageClient:
             activity_name = options['activity_name']
 
             activities = disaggregated_energy(user.dev_id, activity_name, start_time, end_time)
-            # appliances = retrieve_metadata(apt_no)
+            # appliances = mod_func.retrieve_metadata(apt_no)
 
             data_to_send['options']['activities'] = activities
             # data_to_send['options']['appliances'] = appliances
@@ -252,7 +261,7 @@ class MessageClient:
         elif api == GROUND_TRUTH_NOTIF_API:
             # API: ground_truth api
             activities = get_inferred_activities(user.dev_id)
-            appliances = retrieve_metadata(apt_no)
+            appliances = mod_func.retrieve_metadata(apt_no)
 
             data_to_send['options']['activities'] = activities
             data_to_send['options']['appliances'] = appliances
@@ -354,7 +363,7 @@ class MessageClient:
         elif error == "BAD_REGISTRATION":
             self.logger.error("BAD_REGISTRATION request received")
             # Mark the registration as "not active" in the database
-            if mark_not_active(message["from"]):
+            if mod_func.mark_not_active(message["from"]):
                 self.logger.debug("Successfully marked not active")
             else:
                 self.logger.debug("Successfully marked active")
@@ -363,9 +372,9 @@ class MessageClient:
             self.logger.error("CONNECTION_DRAINING")
 
         elif error == "DEVICE_UNREGISTERED":
-            self.logger.error("DEVICE_UNREGISTERED. \nDeleting record")
+            self.logger.error("DEVICE_UNREGISTERED")
             # Mark the registration as "not active" in the database
-            if mark_not_active(message["from"]):
+            if mod_func.mark_not_active(message["from"]):
                 self.logger.debug("Successfully marked not active")
             else:
                 self.logger.debug("Successfully marked active")
@@ -376,12 +385,15 @@ class MessageClient:
         elif error == "INVALID_JSON":
             self.logger.error("INVALID_JSON")
 
-        elif error == "QUOTA_EXCEEDED":
-            self.logger.error("QUOTA_EXCEEDED")
+        elif error == "DEVICE_MESSAGE_RATE_EXCEEDED":
+            self.logger.error("DEVICE_MESSAGE_RATE_EXCEEDED")
 
         elif error == "SERVICE_UNAVAILABLE":
             # Start exponential backoff with an intial delay of 1 second
             self.logger.error("SERVICE_UNAVAILABLE")
+            self.logger.error('Waiting %s seconds before trying again' % self.backoff)
+            time.sleep(self.backoff)
+            self.backoff = min(self.backoff * 2, 320)
 
     def handle_control_message(self, message):
         # Connection about to close from the CCS

@@ -339,8 +339,6 @@ def retrieve_metadata(apt_no):
     """
     try:
         records = Metadata.objects.filter(apt_no=apt_no)
-        logger.debug("Number of metadata entries: %s", str(records.count()))
-
     except Exception, e:
         logger.error("[GetMetadataException]:: %s", e)
         return False

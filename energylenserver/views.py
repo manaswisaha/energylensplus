@@ -513,7 +513,7 @@ def reassign_inference(request):
                 apt_no = user.apt_no
                 logger.debug("Apartment Number:%s", apt_no)
 
-            logger.debug("\nCorrecting inferences..")
+            logger.debug("Correcting inferences..")
             options = payload['options']
 
             # Reassign the specified activity and update the db
@@ -521,8 +521,6 @@ def reassign_inference(request):
 
             payload = {}
             payload['status'] = status
-
-            logger.debug("\nSending status for correction of inferences..")
 
             return HttpResponse(json.dumps(payload),
                                 content_type="application/json")

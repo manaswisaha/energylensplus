@@ -541,6 +541,7 @@ def send_validation_report():
             if records:
                 for r in records:
                     appliances.append({'location': r.location, 'appliance': r.appliance})
+            appliances.append({'location': "Unknown", 'appliance': "Unknown"})
 
             users = mod_func.retrieve_users(apt_no)
 

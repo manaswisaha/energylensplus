@@ -50,3 +50,4 @@ class Command(BaseCommand):
             logger.error("[GCMServerException] %s" % str(e))
         finally:
             logger.debug("GCM Client Connection Closed")
+            sys.exit(0)
