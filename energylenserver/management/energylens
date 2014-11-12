@@ -12,6 +12,7 @@ main_logfile="$ELENSHOME/logs/energylens.log"
 gcm_logfile="$ELENSHOME/logs/gcmserver.log"
 worker_logfile="$ELENSHOME/logs/energylens-worker.log"
 meterdata_logfile="$ELENSHOME/logs/meter_data.log"
+error_logfile="$ELENSHOME/logs/error.log"
 
 
 #Get the command option
@@ -61,12 +62,14 @@ elif [ "$arg" = 'stop' ]; then
 	   cp $gcm_logfile "$ELENSHOME/logs/old_logs/gcmserver"_`date +%F_%T`".log"
 	   cp $worker_logfile "$ELENSHOME/logs/old_logs/energylens-worker"_`date +%F_%T`".log"
 	   cp $meterdata_logfile "$ELENSHOME/logs/old_logs/meter_data"_`date +%F_%T`".log"
+	   cp $error_logfile "$ELENSHOME/logs/old_logs/error"_`date +%F_%T`".log"
 	   
 	   cat /dev/null > $default_logfile
 	   cat /dev/null > $main_logfile
 	   cat /dev/null > $gcm_logfile
 	   cat /dev/null > $worker_logfile
 	   cat /dev/null > $meterdata_logfile
+	   cat /dev/null > $error_logfile
 	fi
     cd $ELENSHOME
 	
