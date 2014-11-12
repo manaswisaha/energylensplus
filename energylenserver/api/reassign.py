@@ -20,15 +20,19 @@ def correct_inference(user, parameters):
             true_appl = activity['to_appliance']
             true_loc = activity['to_location']
             incorrect = activity['incorrect']
-            time_of_stay = activity['time_of_stay'] / 1000
+            time_of_stay = int(activity['time_of_stay']) / 1000
             to_occupant_dev_id = activity['to_occupant']
+            start_time = activity['start_time']
+            end_time = activity['end_time']
 
             logger.debug("ActivityID: %s", act_id)
             logger.debug("True Appliance: %s", true_appl)
             logger.debug("True Location: %s", true_loc)
-            logger.debug("Accuracy Status: %s", incorrect)
+            logger.debug("Incorrect Status: %s", incorrect)
             logger.debug("Time of stay: %s", time_of_stay)
             logger.debug("To Occupant: %s\n", to_occupant_dev_id)
+            logger.debug("To start time: %s\n", start_time)
+            logger.debug("To end time: %s\n", end_time)
 
             # Update activity
             if true_appl == "":
@@ -41,6 +45,10 @@ def correct_inference(user, parameters):
                     else:
                         logger.debug("Update unsuccessful!")
                         return False
+            # If correct
+            else:
+                # Copy the predicted appliances to true columns
+                pass
     except Exception, e:
         logger.error("[ReassignInferenceException]:: %s", str(e))
         return False
