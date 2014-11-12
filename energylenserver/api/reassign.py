@@ -21,7 +21,7 @@ def correct_inference(user, parameters):
             true_appl = activity['to_appliance']
             true_loc = activity['to_location']
             incorrect = activity['incorrect']
-            time_of_stay = int(activity['time_of_stay']) / 1000
+            time_of_stay = int(activity['time_of_stay']) / 1000.0
             to_occupant_dev_id = activity['to_occupant']
 
             logger.debug("ActivityID: %s", act_id)
