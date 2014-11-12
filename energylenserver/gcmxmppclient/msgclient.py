@@ -216,13 +216,25 @@ class MessageClient:
         data_to_send['api'] = api
         data_to_send['options'] = {}
 
+        # ---------- DEBUGGING CODE------------------
+        t_elap_start = (time.time() - self.start_time)
+        if t_elap_start > 3600:
+            t_elap_start /= 3600
+        elif t_elap_start > 60:
+            t_elap_start /= 60
         self.logger.debug("Handling request message..")
-        self.logger.debug("Time elapsed from the start:%s", (time.time() - self.start_time))
+        self.logger.debug("Time elapsed from the start:%s", t_elap_start)
         if self.prev_req_time is not None:
+            t_elap_prev = (time.time() - self.prev_req_time)
+            if t_elap_prev > 3600:
+                t_elap_prev /= 3600
+            elif t_elap_prev > 60:
+                t_elap_prev /= 60
             self.logger.debug(
-                "Time elapsed from the last request:%s", (time.time() - self.prev_req_time))
+                "Time elapsed from the last request:%s", t_elap_prev)
         else:
             self.logger.debug("First request")
+        # ---------- DEBUGGING CODE------------------
 
         # Get User Details
         user = mod_func.determine_user(reg_id)
