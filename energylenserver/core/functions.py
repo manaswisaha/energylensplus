@@ -134,13 +134,44 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
                                     'label': location_l},
                                    columns=['start_time', 'end_time', 'label'])
         duration_df.sort(['start_time'], inplace=True)
+        duration_df.reset_index(drop=True, inplace=True)
 
         return duration_df
 
     except Exception, e:
         logger.error("[StayDurationException]:: %s", e)
 
-    return duration_slices
+
+def merge_presence_matrix(presence_df):
+    """
+    Merge slices where user columns have the same value
+    """
+    try:
+        user_columns = presence_df.columns - ['start_time', 'end_time']
+
+        merged_presence_df = presence_df.copy()
+        for idx in presence_df.index[1:]:
+            prev_idx = idx - 1
+
+            row = presence_df.ix[idx]
+            prev_row = presence_df.ix[prev_idx]
+
+            flag = True
+            for col in user_columns:
+                if row[col] != prev_row[col]:
+                    flag = False
+                    break
+            # Merge
+            if flag:
+                merged_presence_df.ix[idx, 'start_time'] = presence_df.ix[prev_idx]['start_time']
+                merged_presence_df.drop(prev_idx, inplace=True)
+
+        merged_presence_df.reset_index(drop=True, inplace=True)
+        return merged_presence_df
+
+    except Exception, e:
+        logger.debug("[MergePMatrixException]:: %s", e)
+        return False
 
 
 def determine_phone_with_user(event_time, user_list):

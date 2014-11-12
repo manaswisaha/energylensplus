@@ -433,6 +433,9 @@ def apportion_energy(result_labels):
                 apt_no, user, start_time, end_time, act_loc)
             presence_df[str(user_id)] = df['label']
 
+        # Merge slices where the user columns have the same values
+        presence_df = core_f.merge_presence_matrix(presence_df)
+
         # Determine actual usage/wastage of a user based on
         # time of stay in the room of activity handling all complex cases
         apprt.calculate_consumption(user_list, presence_df, activity)
@@ -471,9 +474,11 @@ def determine_wastage(apt_no):
                 user_id = user.dev_id
 
                 # Build presence matrix
-                df = core_f.get_presence_matrix(
-                    apt_no, user_id, start_time, end_time, where)
+                df = core_f.get_presence_matrix(apt_no, user_id, start_time, end_time, where)
                 presence_df[str(user_id)] = df['label']
+
+            # Merge slices where the user columns have the same values
+            presence_df = core_f.merge_presence_matrix(presence_df)
 
             # Determine wastage - find rooms of activity that are empty
             user_columns = presence_df.columns - ['start_time', 'end_time']
