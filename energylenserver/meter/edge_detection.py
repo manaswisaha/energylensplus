@@ -135,8 +135,10 @@ def check_if_edge(df, index, power_stream):
     next_time = df.ix[i + 1]['time']
 
     # Indicates next time sample is missing
-    prev_missing_sample = (time - prev_time) > sampling_rate
-    next_missing_sample = (next_time - time) > sampling_rate
+    prev_missing_sample = (
+        (time - prev_time) > sampling_rate) and ((time - prev_time) < 2 * sampling_rate)
+    next_missing_sample = (
+        (next_time - time) > sampling_rate) and ((next_time - time) < 2 * sampling_rate)
 
     prev_curr_diff = int(math.fabs(curr - prev))
     curr_next_diff = int(math.fabs(next - curr))
