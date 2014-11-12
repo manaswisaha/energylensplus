@@ -459,18 +459,20 @@ def determine_wastage(apt_no):
             return
 
         # Build presence matrix for the ongoing activities
-        on_activity_records = []
+        on_event_records = mod_func.get_on_events(apt_no, end_time)
         users = mod_func.get_users(user_list)
-        for activity in on_activity_records:
+        for event in on_event_records:
 
-            act_loc = activity.location
+            what = event.appliance
+            where = event.location
 
-            for user in user_list:
+            presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
+            for user in users:
                 user_id = user.dev_id
 
                 # Build presence matrix
                 df = core_f.get_presence_matrix(
-                    apt_no, user_id, start_time, end_time, act_loc)
+                    apt_no, user_id, start_time, end_time, where)
                 presence_df[str(user_id)] = df['label']
 
             # Determine wastage - find rooms of activity that are empty
@@ -478,8 +480,19 @@ def determine_wastage(apt_no):
             col_sum = presence_df.ix[:, user_columns].sum(axis=1, numeric_only=True)
             w_slices_ix = presence_df.index[np.where(col_sum == 0)[0]]
 
-            # Send notifications to all the users
+            # Save and send notifications to all the users
             if len(w_slices_ix) > 0:
+                message = "Energy wastage detected in %s! %s left ON." % (
+                    where, what)
+                # Save
+                for user in users:
+                    wastage = EnergyWastageNotif(dev_id=user, time=time.time(),
+                                                 appliance=what,
+                                                 location=where,
+                                                 message=message)
+                    wastage.save()
+
+                # Inform
                 inform_all_users(apt_no, message, users)
 
     except Exception, e:

@@ -123,6 +123,7 @@ class EventLog(models.Model):
     dev_id = models.ForeignKey(RegisteredUsers)  # who
     event_type = models.CharField(max_length=20)  # ON/OFF
     matched = models.BooleanField(default=False)  # Only for ON edges
+    apt_no = models.IntegerField()
 
     class Meta:
         db_table = 'EventLog'

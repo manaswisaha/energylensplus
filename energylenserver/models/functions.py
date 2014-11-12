@@ -369,10 +369,33 @@ def get_on_events(apt_no, event_time):
     given apartment
     """
     try:
-        records = EventLog.objects.filter(apt_no=apt_no, event_time__lt=event_time)
-        logger.debug("Number of ON events: %s", str(records.count()))
+        records = EventLog.objects.filter(apt_no=apt_no, event_time__lt=event_time,
+                                          event_type="ON")
     except Exception, e:
         logger.error("[GetONEventException]:: %s", e)
+        return False
+
+    return records
+
+
+def get_ongoing_events(start_time, end_time):
+    """
+    Retrieves all activities of a user between the time period or
+    based on requested appliance
+    """
+    try:
+        if activity_name == "all":
+            # Retrieves all activities - for usage/wastage reports
+            records = EventLog.objects.filter(start_time__gte=start_time,
+                                              end_time__lte=end_time)
+        else:
+            # Retrieves the specified activities - for disaggregated activities
+            records = EventLog.objects.filter(start_time__gte=start_time,
+                                              end_time__lte=end_time,
+                                              appliance=activity_name)
+
+    except Exception, e:
+        logger.error("[GetOnActivitiesException]:: %s", e)
         return False
 
     return records
