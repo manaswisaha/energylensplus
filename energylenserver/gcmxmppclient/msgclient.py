@@ -71,7 +71,7 @@ class MessageClient:
         """
         Create a persistent XMPP connection to Google CCS Server
         """
-        if self.client is None:
+        if self.client is None or not self.client.isConnected():
             logger.debug("Not connected")
             self.client = xmpp.Client(SERVER, debug=['socket'])
             self.client.connect(server=(SERVER, PORT), secure=1, use_srv=False)
