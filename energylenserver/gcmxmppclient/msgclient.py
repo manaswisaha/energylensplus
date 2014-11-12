@@ -90,6 +90,7 @@ class MessageClient:
         while True:
             try:
                 self.client.Process(1)
+                logger.debug("Waiting...")
                 # Restore connection if connection broken
                 if not self.client.isConnected():
                     logger.debug("Reconnecting..")

@@ -1,8 +1,6 @@
 # Localization Parameters
 WIFI_THRESHOLD = -85
 
-# Stay duration
-stay_duration = 5 * 60  # 5 minutes
 
 # Audio Classification Parameters
 FS = 8000                       		# Sampling rate
@@ -21,5 +19,9 @@ lower_mdp_percent_change = 0.15
 # How much percent change from the metadata - to define the upper bound of predicted power
 upper_mdp_percent_change = 0.2
 
+
 # Wastage - duration threshold
 wastage_threshold = 5 * 60  # 5 minutes
+
+# Stay duration
+stay_duration = 2 * 60  # 2 minutes
