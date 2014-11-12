@@ -23,8 +23,6 @@ def correct_inference(user, parameters):
             incorrect = activity['incorrect']
             time_of_stay = int(activity['time_of_stay']) / 1000
             to_occupant_dev_id = activity['to_occupant']
-            start_time = activity['start_time']
-            end_time = activity['end_time']
 
             logger.debug("ActivityID: %s", act_id)
             logger.debug("True Appliance: %s", true_appl)
@@ -32,8 +30,13 @@ def correct_inference(user, parameters):
             logger.debug("Incorrect Status: %s", incorrect)
             logger.debug("Time of stay: %s", time_of_stay)
             logger.debug("To Occupant: %s", to_occupant_dev_id)
-            logger.debug("To start time: %s", start_time)
-            logger.debug("To end time: %s\n", end_time)
+
+            if "start_time" in activity:
+                start_time = activity['start_time']
+                logger.debug("To start time: %s", start_time)
+            if "end_time" in activity:
+                end_time = activity['end_time']
+                logger.debug("To end time: %s\n", end_time)
 
             # Update activity
             if incorrect:
