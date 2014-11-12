@@ -86,7 +86,7 @@ try:
     else:
         logger.debug("GCM Client not connected")
 except Exception, e:
-    elogger.exception("[InternalGCMClientConnectionException] %s", e)
+    elogger.error("[InternalGCMClientConnectionException] %s", e)
 # '''
 
 """
