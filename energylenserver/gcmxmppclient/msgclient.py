@@ -91,7 +91,7 @@ class MessageClient:
                 # Restore connection if connection broken
                 if not self.client.isConnected():
                     logger.debug("Reconnecting..")
-                    if not self.client.connect_to_gcm_server():
+                    if not self.connect_to_gcm_server():
                         self.logger.error("Authentication failed! Try again!")
                         sys.exit(1)
 
