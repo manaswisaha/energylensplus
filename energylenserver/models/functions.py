@@ -429,6 +429,7 @@ def update_activities(act_id, true_appl, true_loc):
         act_record = ActivityLog.objects.get(id=act_id)
 
         # Update activity
+        act_record
         act_record.true_appliance = true_appl
         act_record.true_location = true_loc
         act_record.save()

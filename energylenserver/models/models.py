@@ -161,6 +161,7 @@ class EnergyUsageLog(models.Model):
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     stayed_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
+    true_time_of_stay = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
     usage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
     shared = models.BooleanField(default=False)
