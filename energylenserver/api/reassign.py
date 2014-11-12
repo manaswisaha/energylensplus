@@ -15,6 +15,7 @@ def correct_inference(user, parameters):
     try:
         # Unbundle request
         activities = parameters['activities']
+        logger.debug("activities: %s", activities)
         for activity in activities:
             act_id = activity['activity_id']
             true_appl = activity['to_appliance']
