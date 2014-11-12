@@ -99,6 +99,7 @@ class MessageClient:
                         sys.exit(1)
                     else:
                         logger.debug("Reconnected Successfully!")
+                        self.register_handlers()
                         continue
 
             except Exception, e:
