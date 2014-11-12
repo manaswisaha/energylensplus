@@ -83,10 +83,8 @@ try:
     client = manager.get_client_obj()
     if client is None or client == "":
         logger.debug("GCM Client not connected")
-    elif client.isConnected():
-        logger.debug("Got the GCM Client")
     else:
-        logger.debug("GCM Client not connected")
+        logger.debug("Got the GCM Client: client obj type:: %s", type(client))
 except Exception, e:
     elogger.error("[InternalGCMClientConnectionException] %s", e)
 # '''
