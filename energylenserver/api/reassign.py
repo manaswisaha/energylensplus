@@ -40,12 +40,15 @@ def correct_inference(user, parameters):
             # Update activity
             if incorrect:
                 if len(true_appl) > 0 or len(true_loc) > 0:
+                    logger.debug("Appliance or location is incorrect!")
+                    '''
                     if mod_func.update_activities(act_id, true_appl, true_loc):
                         logger.debug("Update successful!")
                         return True
                     else:
                         logger.debug("Update unsuccessful!")
                         return False
+                    '''
             # If correct
             else:
                 # Copy the predicted appliances to true columns
