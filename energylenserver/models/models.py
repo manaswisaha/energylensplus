@@ -137,11 +137,12 @@ class ActivityLog(models.Model):
     """
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    true_start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    true_end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     appliance = models.CharField(max_length=50)
     location = models.CharField(max_length=50)
-    true_appliance = models.CharField(
-        max_length=50, null=True)
-    true_location = models.CharField(max_length=50, null=True)
+    true_appliance = models.CharField(max_length=50)
+    true_location = models.CharField(max_length=50)
     power = models.FloatField()  # Average of magnitude of the matched edges
     usage = models.FloatField()  # Power * activity_duration (hours bw start and end time)
     meter = models.ForeignKey(MeterInfo)
@@ -165,6 +166,7 @@ class EnergyUsageLog(models.Model):
     true_time_of_stay = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
     usage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
+    true_user = models.ForeignKey(RegisteredUsers)
     shared = models.BooleanField(default=False)
 
     class Meta:
@@ -183,6 +185,7 @@ class EnergyWastageLog(models.Model):
     left_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
     wastage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
+    true_user = models.ForeignKey(RegisteredUsers)
 
     class Meta:
         db_table = 'EnergyWastageLog'

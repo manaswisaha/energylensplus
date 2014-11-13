@@ -378,29 +378,6 @@ def get_on_events(apt_no, event_time):
     return records
 
 
-def get_ongoing_events(start_time, end_time):
-    """
-    Retrieves all activities of a user between the time period or
-    based on requested appliance
-    """
-    try:
-        if activity_name == "all":
-            # Retrieves all activities - for usage/wastage reports
-            records = EventLog.objects.filter(start_time__gte=start_time,
-                                              end_time__lte=end_time)
-        else:
-            # Retrieves the specified activities - for disaggregated activities
-            records = EventLog.objects.filter(start_time__gte=start_time,
-                                              end_time__lte=end_time,
-                                              appliance=activity_name)
-
-    except Exception, e:
-        logger.error("[GetOnActivitiesException]:: %s", e)
-        return False
-
-    return records
-
-
 def retrieve_activities(start_time, end_time, activity_name):
     """
     Retrieves all activities of a user between the time period or
@@ -442,39 +419,16 @@ def retrieve_finished_activities(start_time, end_time):
     return records
 
 
-def update_activities(act_id, true_appl, true_loc):
-    """
-    Updates the activities with the true appl/loc pair given by the UserWarning
-    """
-    try:
-        act_record = ActivityLog.objects.get(id=act_id)
-
-        # Update activity
-        act_record
-        act_record.true_appliance = true_appl
-        act_record.true_location = true_loc
-        act_record.save()
-    except ActivityLog.DoesNotExist:
-        logger.debug("[ActivityDoesNotExistException Occurred] "
-                     "No activity found with the given id: %s", act_id)
-        return False
-    except Exception, e:
-        logger.error("[UpdateActivitiesException]:: %s", str(e))
-        return False
-
-    return True
-
-
 def retrieve_usage_entries(dev_id, activity_id_list):
     """
     Retrieves usage entries of the given activity id list
     """
     try:
         if isinstance(dev_id, str):
-            usage_entries = EnergyUsageLog.objects.filter(activity_id__in=activity_id_list)
+            usage_entries = EnergyUsageLog.objects.filter(activity__in=activity_id_list)
         else:
             usage_entries = EnergyUsageLog.objects.filter(
-                dev_id=dev_id, activity_id__in=activity_id_list)
+                dev_id=dev_id, activity__in=activity_id_list)
 
     except EnergyUsageLog.DoesNotExist:
         logger.debug("[UsageDoesNotExistException Occurred] "
@@ -493,7 +447,7 @@ def retrieve_wastage_entries(dev_id, activity_id_list):
     """
     try:
         wastage_entries = EnergyWastageLog.objects.filter(
-            dev_id=dev_id, activity_id__in=activity_id_list)
+            dev_id=dev_id, activity__in=activity_id_list)
 
     except EnergyWastageLog.DoesNotExist:
         logger.debug("[WastageDoesNotExistException Occurred] "
