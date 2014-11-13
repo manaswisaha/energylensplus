@@ -1,7 +1,7 @@
 import time
 
 from energylenserver.models import functions as mod_func
-from energylenserver.models.models import ActivityLog, GroundTruthLog
+from energylenserver.models.models import GroundTruthLog
 
 # Enable Logging
 import logging
@@ -49,13 +49,7 @@ def correct_inference(user, parameters):
 
             try:
                 # Update activity
-                try:
-                    act_record = ActivityLog.objects.get(id=act_id)
-                except ActivityLog.DoesNotExist:
-                    logger.debug("[ActivityDoesNotExistException Occurred] "
-                                 "No activity found with the given id: %s", act_id)
-                    return False
-
+                act_record = mod_func.get_activity_by_id(act_id)
                 to_occupant = mod_func.get_user(to_occupant_dev_id)
 
                 gt_entry = GroundTruthLog(by_dev_id=submitted_by, act_id=act_record,

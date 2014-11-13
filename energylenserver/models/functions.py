@@ -378,6 +378,19 @@ def get_on_events(apt_no, event_time):
     return records
 
 
+def get_activity_by_id(act_id):
+    """
+    Retrieves activity records based on its id
+    """
+    try:
+        act_record = ActivityLog.objects.get(id=act_id)
+    except ActivityLog.DoesNotExist:
+        logger.debug("[ActivityDoesNotExistException Occurred] "
+                     "No activity found with the given id: %s", act_id)
+        return False
+    return act_record
+
+
 def retrieve_activities(start_time, end_time, activity_name):
     """
     Retrieves all activities of a user between the time period or
