@@ -1,4 +1,7 @@
+import time
+
 from energylenserver.models import functions as mod_func
+from energylenserver.models.models import ActivityLog, GroundTruthLog
 
 # Enable Logging
 import logging
@@ -10,7 +13,8 @@ def correct_inference(user, parameters):
     Reassigns an activity with the given parameters
     """
 
-    logger.debug("Reassign called for: %s", user.name)
+    submitted_by = user
+    logger.debug("Reassign called for: %s", submitted_by.name)
 
     try:
         # Unbundle request
@@ -23,39 +27,54 @@ def correct_inference(user, parameters):
             incorrect = activity['incorrect']
             time_of_stay = int(activity['time_of_stay'])
             to_occupant_dev_id = activity['to_occupant']
+            start_time = activity['start_time']
+            end_time = activity['end_time']
 
             logger.debug("ActivityID: %s", act_id)
+            logger.debug("Start time: %s", time.ctime(start_time))
+            logger.debug("End time: %s", time.ctime(end_time))
             logger.debug("True Appliance: %s", true_appl)
             logger.debug("True Location: %s", true_loc)
             logger.debug("Incorrect Status: %s", incorrect)
             logger.debug("Time of stay: %s", time_of_stay)
             logger.debug("To Occupant: %s", to_occupant_dev_id)
 
-            start_time = activity['start_time']
-            logger.debug("To start time: %s", start_time)
-
-            end_time = activity['end_time']
-            logger.debug("To end time: %s", end_time)
-
-            # Update activity
+            # ----- TESTING -----
             if incorrect:
-                logger.debug("Inference incorrect!")
-                if len(true_appl) > 0 or len(true_loc) > 0:
-                    pass
-                    '''
-                    if mod_func.update_activities(act_id, true_appl, true_loc):
-                        logger.debug("Update successful!")
-                        return True
-                    else:
-                        logger.debug("Update unsuccessful!")
-                        return False
-                    '''
-            # If correct
+                logger.debug("Inference incorrect!\n")
             else:
-                # Copy the predicted appliances to true columns
-                pass
-            logger.debug("")
+                logger.debug("Inference correct!\n")
+            continue
+            # ----- TESTING -----
+
+            try:
+                # Update activity
+                try:
+                    act_record = ActivityLog.objects.get(id=act_id)
+                except ActivityLog.DoesNotExist:
+                    logger.debug("[ActivityDoesNotExistException Occurred] "
+                                 "No activity found with the given id: %s", act_id)
+                    return False
+
+                to_occupant = mod_func.get_user(to_occupant_dev_id)
+
+                gt_entry = GroundTruthLog(by_dev_id=submitted_by, act_id=act_record,
+                                          incorrect=incorrect,
+                                          start_time=start_time, end_time=end_time,
+                                          appliance=true_appl, location=true_loc,
+                                          time_of_stay=time_of_stay,
+                                          occupant_dev_id=to_occupant)
+
+                gt_entry.save()
+
+            except Exception, e:
+                logger.error("[UpdateActivitiesException]:: %s", str(e))
+                return False
+
+        # TESTING CODE
+        return False
+
     except Exception, e:
         logger.error("[ReassignInferenceException]:: %s", str(e))
         return False
-    return False
+    return True

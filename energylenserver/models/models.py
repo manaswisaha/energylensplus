@@ -137,12 +137,8 @@ class ActivityLog(models.Model):
     """
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
-    true_start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
-    true_end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     appliance = models.CharField(max_length=50)
     location = models.CharField(max_length=50)
-    true_appliance = models.CharField(max_length=50)
-    true_location = models.CharField(max_length=50)
     power = models.FloatField()  # Average of magnitude of the matched edges
     usage = models.FloatField()  # Power * activity_duration (hours bw start and end time)
     meter = models.ForeignKey(MeterInfo)
@@ -163,10 +159,8 @@ class EnergyUsageLog(models.Model):
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     stayed_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
-    true_time_of_stay = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
     usage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
-    true_user = models.ForeignKey(RegisteredUsers)
     shared = models.BooleanField(default=False)
 
     class Meta:
@@ -185,10 +179,29 @@ class EnergyWastageLog(models.Model):
     left_for = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
     wastage = models.FloatField()
     dev_id = models.ForeignKey(RegisteredUsers)
-    true_user = models.ForeignKey(RegisteredUsers)
 
     class Meta:
         db_table = 'EnergyWastageLog'
+        app_label = app_label_str
+
+
+class GroundTruthLog(models.Model):
+
+    """
+    Stores the submitted ground truth information for the inferred activities
+    """
+    by_dev_id = models.ForeignKey(RegisteredUsers)
+    act_id = models.ForeignKey(ActivityLog)
+    incorrect = models.BooleanField(default=False)  # entry is correct
+    start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    appliance = models.CharField(max_length=50)
+    location = models.CharField(max_length=50)
+    time_of_stay = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
+    occupant_dev_id = models.ForeignKey(RegisteredUsers)
+
+    class Meta:
+        db_table = 'GroundTruthLog'
         app_label = app_label_str
 
 
