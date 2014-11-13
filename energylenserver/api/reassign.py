@@ -30,9 +30,15 @@ def correct_inference(user, parameters):
             start_time = activity['start_time']
             end_time = activity['end_time']
 
+            st_str = ''
+            if start_time != "":
+                st_str = time.ctime(start_time)
+            et_str = ''
+            if end_time != "":
+                et_str = time.ctime(end_time)
             logger.debug("ActivityID: %s", act_id)
-            logger.debug("Start time: %s", time.ctime(start_time))
-            logger.debug("End time: %s", time.ctime(end_time))
+            logger.debug("Start time: %s", st_str)
+            logger.debug("End time: %s", et_str)
             logger.debug("True Appliance: %s", true_appl)
             logger.debug("True Location: %s", true_loc)
             logger.debug("Incorrect Status: %s", incorrect)
