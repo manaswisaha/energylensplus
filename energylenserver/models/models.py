@@ -190,7 +190,7 @@ class GroundTruthLog(models.Model):
     """
     Stores the submitted ground truth information for the inferred activities
     """
-    by_dev_id = models.ForeignKey(RegisteredUsers)
+    by_dev_id = models.ForeignKey(RegisteredUsers, related_name=("Submitted by"))
     act_id = models.ForeignKey(ActivityLog)
     incorrect = models.BooleanField(default=False)  # entry is correct
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
@@ -198,7 +198,7 @@ class GroundTruthLog(models.Model):
     appliance = models.CharField(max_length=50)
     location = models.CharField(max_length=50)
     time_of_stay = models.DecimalField(unique=False, max_digits=10, decimal_places=3)
-    occupant_dev_id = models.ForeignKey(RegisteredUsers)
+    occupant_dev_id = models.ForeignKey(RegisteredUsers, related_name=("Actual user"))
 
     class Meta:
         db_table = 'GroundTruthLog'
