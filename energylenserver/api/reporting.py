@@ -72,11 +72,48 @@ def filter_user_activities(dev_id, activity_df):
         return False, False
 
 
-def determine_hourly_consumption(no_of_hours, activities_df, consumption_df):
+def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_df, consumption_df):
     """
     Determines the hourly usage/wastage based on activities
     """
-    hourly_consumption = []
+    hourly_consumption = [0] * no_of_hours
+
+    activities = {}
+    for idx in activities_df:
+        row = activities_df.ix[idx]
+        activities[row['id']] = {'power': row['power']}
+
+    i = 0
+    if "usage" in consumption_df.columns:
+        energy = "usage"
+    elif "wastage" in consumption_df.columns:
+        energy = "wastage"
+
+    st = start_time
+    while i < no_of_hours:
+
+        et = st + 3600
+        filtered_df = consumption_df[(consumption_df.start_time.isin(range(st, et))) |
+                                     (consumption_df.end_time.isin(range(st, et)))]
+
+        hour_usage = 0
+        for idx in filtered_df.index:
+            row = filtered_df.ix[idx]
+            energy_val = row[energy]
+            s_time = row['start_time']
+            e_time = row['end_time']
+            act_id = row['activity']
+            power = activities[act_id]
+            if s_time >= st and e_time < et:
+                hour_usage += energy_val
+            elif s_time >= st:
+                duration = et - s_time
+                hour_usage += duration * power
+            elif e_time < et:
+                duration = e_time - st
+                hour_usage += duration * power
+        hourly_consumption[i] = hour_usage
+        i += 1
 
     return hourly_consumption
 
@@ -93,13 +130,13 @@ def get_energy_report(dev_id, api, start_time, end_time):
         end_time_str = end_time.split(" ")
         if end_time_str[2] == "hours":
             no_of_hours = int(end_time_str[1])
-            logger.debug("Number of hours:%d", no_of_hours)
+            logger.debug("Number of hours: %d", no_of_hours)
     end_time = time.time()
     start_time = end_time - no_of_hours * 3600
 
     options = {}
 
-    # '''
+    '''
     # Temp
     usage_list = random.randint(1000, size=no_of_hours)
     logger.debug("Energy Usage:%s", usage_list)
@@ -107,9 +144,9 @@ def get_energy_report(dev_id, api, start_time, end_time):
     total_consumption = (total_usage * 100) / 40
     perc_list = constrained_sum_sample_pos(4, 100)
     perc_list.sort()
-    # '''
-
     '''
+
+    # '''
     # Retrieve records from the db
     records = mod_func.retrieve_activities(start_time, end_time, activity_name="all")
 
@@ -119,13 +156,13 @@ def get_energy_report(dev_id, api, start_time, end_time):
     all_activities_df = read_frame(records, verbose=False)
     activities_df, usage_df = filter_user_activities(dev_id, all_activities_df)
 
-    if isinstance(activities_df, bool):
+    if isinstance(activities_df, bool) or len(activities_df) == 0:
         return options
-    '''
+    # '''
 
     if api == PERSONAL_ENERGY_API:
 
-        # '''
+        '''
         options['total_usage'] = total_usage
         options['total_consumption'] = total_consumption
         options['hourly_usage'] = usage_list.tolist()
@@ -140,21 +177,31 @@ def get_energy_report(dev_id, api, start_time, end_time):
         options['activities'].append(
             {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
         return options
-        # '''
+        '''
 
         if len(activities_df) > 0:
-            hourly_usage = determine_hourly_consumption(no_of_hours, activities_df, usage_df)
+            hourly_usage = determine_hourly_consumption(
+                start_time, end_time, no_of_hours, activities_df, usage_df)
 
             if len(hourly_usage) > 0:
                 total_usage = sum(hourly_usage)
+                total_consumption = activities_df.usage.sum()
                 options['total_usage'] = total_usage
                 options['hourly_consumption'] = hourly_usage
+                options['total_consumption'] = total_consumption
 
                 logger.debug("Energy Usage:%s", hourly_usage)
 
+                options['activities'] = []
+                act_usage_df = activities_df.groupby(['appliance']).sum()
+
+                for appl in act_usage_df.index:
+                    options['activities'].append({'name': appl,
+                                                  'usage': act_usage_df.ix[appl]['usage']})
+
     elif api == ENERGY_WASTAGE_REPORT_API:
 
-        # '''
+        '''
         options['total_wastage'] = total_usage
         options['total_consumption'] = total_consumption
         # options['percent'] = (total_wastage / total_consumption) * 100
@@ -171,7 +218,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
             {'name': "Unknown", "wastage": total_usage * perc_list[0] / 100.})
 
         return options
-        # '''
+        '''
 
         if len(activities_df) > 0:
             # Get wastage entries
@@ -179,14 +226,24 @@ def get_energy_report(dev_id, api, start_time, end_time):
             w_entries = mod_func.retrieve_wastage_entries(dev_id, activity_id_list)
             wastage_df = read_frame(w_entries, verbose=False)
 
-            hourly_wastage = determine_hourly_consumption(no_of_hours, activities_df, wastage_df)
+            hourly_wastage = determine_hourly_consumption(
+                start_time, end_time, no_of_hours, activities_df, wastage_df)
 
             if len(hourly_wastage) > 0:
                 total_wastage = sum(hourly_wastage)
+                total_consumption = activities_df.usage.sum()
                 options['total_wastage'] = total_wastage
                 options['hourly_consumption'] = hourly_wastage
+                options['total_consumption'] = total_consumption
 
                 logger.debug("Energy Wastage: %s", hourly_wastage)
+
+                options['activities'] = []
+                act_wastage_df = activities_df.groupby(['appliance']).sum()
+
+                for appl in act_wastage_df.index:
+                    options['activities'].append({'name': appl,
+                                                  'wastage': act_wastage_df.ix[appl]['usage']})
 
     return options
 
@@ -197,7 +254,7 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
     """
     activities = []
 
-    # '''
+    '''
     activities.append(
         {'id': 1, 'name': activity_name, 'location': 'Dining Room', "value": 320,
          "start_time": 1408086307, "end_time": 1408095726,
@@ -226,7 +283,7 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
          "wastage_times": [],
          })
     return activities
-    # '''
+    '''
 
     no_of_hours = 12
     if not str(end_time).isdigit():
@@ -301,7 +358,7 @@ def get_inferred_activities(dev_id):
     """
     activities = []
 
-    # '''
+    '''
     # Temp code
     usage = random.randint(1000, size=7)
     activities.append(
@@ -319,7 +376,7 @@ def get_inferred_activities(dev_id):
 
     return activities
 
-    # '''
+    '''
 
     report_period = 3600  # 1 hour in seconds
     end_time = time.time()
