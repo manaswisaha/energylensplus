@@ -35,12 +35,13 @@ def correct_inference(user, parameters):
             logger.debug("To start time: %s", start_time)
 
             end_time = activity['end_time']
-            logger.debug("To end time: %s\n", end_time)
+            logger.debug("To end time: %s", end_time)
 
             # Update activity
             if incorrect:
+                logger.debug("Inference incorrect!")
                 if len(true_appl) > 0 or len(true_loc) > 0:
-                    logger.debug("Appliance or location is incorrect!")
+                    pass
                     '''
                     if mod_func.update_activities(act_id, true_appl, true_loc):
                         logger.debug("Update successful!")
@@ -53,8 +54,8 @@ def correct_inference(user, parameters):
             else:
                 # Copy the predicted appliances to true columns
                 pass
+            logger.debug("")
     except Exception, e:
         logger.error("[ReassignInferenceException]:: %s", str(e))
         return False
-
     return True
