@@ -58,4 +58,4 @@ def correct_inference(user, parameters):
     except Exception, e:
         logger.error("[ReassignInferenceException]:: %s", str(e))
         return False
-    return True
+    return False
