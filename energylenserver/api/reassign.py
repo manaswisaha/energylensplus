@@ -69,6 +69,6 @@ def correct_inference(user, parameters):
         return False
 
     except Exception, e:
-        logger.error("[ReassignInferenceException]:: %s", str(e))
+        logger.exception("[ReassignInferenceException]:: %s", str(e))
         return False
     return True
