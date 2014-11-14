@@ -38,7 +38,7 @@ if [ "$arg" = 'start' ]; then
 	sudo service apache2 start
 		
 	# Start Meter data collection service
-	# python manage.py getmeterdata &
+	python manage.py getmeterdata &
 	
 elif [ "$arg" = 'stop' ]; then
 	echo "Stopping EnergyLensPlus Server.."
@@ -92,7 +92,7 @@ elif [ "$arg" = 'restart' ]; then
 	sudo /etc/init.d/celeryd restart
 
 	# Start Meter data collection service
-	# python manage.py getmeterdata &
+	python manage.py getmeterdata &
 
 	
 elif [ "$arg" = 'update' ]; then
@@ -123,8 +123,10 @@ elif [ "$arg" = 'celery' ]; then
 		# Django Server
 		touch "$ELENSHOME/energylensplus/wsgi.py"
 		# Celery
-		sudo /etc/init.d/celeryd restart
-		sudo /etc/init.d/celerybeat restart
+		sudo /etc/init.d/celerybeat stop
+		sudo /etc/init.d/celeryd stop
+		sudo /etc/init.d/celeryd start
+		sudo /etc/init.d/celerybeat start
 	fi
 else
 	echo 'Wrong command. Please type in this format-> energylens <start|stop|update|restart|status>'
