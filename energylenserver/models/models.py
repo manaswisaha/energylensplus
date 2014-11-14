@@ -69,7 +69,7 @@ class Metadata(models.Model):
     appliance = models.CharField(max_length=50)
     location = models.CharField(max_length=50)
     power = models.FloatField()
-    user_presence_required = models.BooleanField(default=True)
+    presence_based = models.BooleanField(default=True)
     audio_based = models.BooleanField(default=True)
 
     def __unicode__(self):
