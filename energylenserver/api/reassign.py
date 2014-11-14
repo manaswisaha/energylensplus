@@ -30,6 +30,7 @@ def correct_inference(user, parameters):
             start_time = activity['start_time']
             end_time = activity['end_time']
 
+            # Debugging statements
             st_str = ''
             if start_time != "":
                 st_str = time.ctime(start_time)
@@ -43,8 +44,9 @@ def correct_inference(user, parameters):
             logger.debug("True Location: %s", true_loc)
             logger.debug("Incorrect Status: %s", incorrect)
             logger.debug("Time of stay: %s", time_of_stay)
-            logger.debug("To Occupant: %s", to_occupant_dev_id)
+            logger.debug("To Occupant: %s\n", to_occupant_dev_id)
 
+            '''
             # ----- TESTING -----
             if incorrect:
                 logger.debug("Inference incorrect!\n")
@@ -52,6 +54,7 @@ def correct_inference(user, parameters):
                 logger.debug("Inference correct!\n")
             continue
             # ----- TESTING -----
+            '''
 
             try:
                 # Update activity
@@ -72,7 +75,7 @@ def correct_inference(user, parameters):
                 return False
 
         # TESTING CODE
-        return False
+        # return False
 
     except Exception, e:
         logger.exception("[ReassignInferenceException]:: %s", str(e))
