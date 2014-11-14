@@ -87,19 +87,18 @@ CELERY_TASK_RESULT_EXPIRES = timedelta(seconds=60 * 60)
 CELERY_ENABLE_UTC = False
 CELERY_TIMEZONE = 'Asia/Kolkata'
 
-'''
+
 from energylenserver.core.constants import wastage_threshold
 CELERYBEAT_SCHEDULE = {
     'send-report-every-hour': {
         'task': 'tasks.send_validation_report',
         'schedule': timedelta(seconds=15 * 60),
     },
-    # 'send-wastage-notif': {
-    #     'task': 'tasks.realtime_wastage_notif',
-    #     'schedule': timedelta(seconds=wastage_threshold),
-    # },
+    'send-wastage-notif': {
+        'task': 'tasks.realtime_wastage_notif',
+        'schedule': timedelta(seconds=wastage_threshold),
+    },
 }
-'''
 
 # Logger Settings
 LOGGING = {

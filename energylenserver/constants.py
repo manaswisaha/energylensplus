@@ -1,6 +1,17 @@
 # Participating apartments
 apt_no_list = ['1201']  # , '101', '1003', '1002']
 
+# Appliance types
+appliance_dict = {'fan': {'audio': True, 'presence': True},
+                  'tv': {'audio': True, 'presence': True},
+                  'ac': {'audio': True, 'presence': True},
+                  'microwave': {'audio': True, 'presence': False},
+                  'music system': {'audio': True, 'presence': False},
+                  'geyser': {'audio': False, 'presence': False},
+                  'iron': {'audio': False, 'presence': True},
+
+                  }
+
 # Constants for sending response messages
 ERROR_INVALID_REQUEST = {"type": "ERROR", "code": 0, "message": "Invalid request made"}
 

@@ -345,6 +345,19 @@ def retrieve_metadata(apt_no):
 
     return records
 
+
+def retrieve_metadata_for_appliance(apt_no, appliance):
+    """
+    Retrieve appliances from Metadata for an apt and an appliance
+    """
+    try:
+        records = Metadata.objects.filter(apt_no=apt_no, appliance=appliance)
+    except Exception, e:
+        logger.error("[GetMetadataException]:: %s", e)
+        return False
+
+    return records
+
 """
 Inference Management Model methods
 """

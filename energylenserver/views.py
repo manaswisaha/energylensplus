@@ -15,6 +15,7 @@ from energylenserver.preprocessing import wifi
 from energylenserver.api.reassign import *
 from energylenserver.tasks import phoneDataHandler
 from energylenserver.models import functions as mod_func
+from energylenserver.constants import appliance_dict
 
 import os
 import sys
@@ -143,6 +144,43 @@ Training API
 """
 
 
+def determine_appliance_type(appliance):
+    """
+    Determines the appliance type
+    """
+
+    composite = False
+    if '+' in appliance:
+        composite = True
+        appl_list = appliance.split('+')
+        for i, appl in enumerate(appl_list):
+            appl_list[i] = appl.lower()
+    else:
+        appliance = appliance.lower()
+
+    if not composite:
+        if appliance in appliance_dict:
+            audio_based = appliance_dict[appliance]['audio']
+            presence_based = appliance_dict[appliance]['presence']
+        else:
+            audio_based = presence_based = True
+    else:
+        presence = False
+        for appl in appl_list:
+            if appl in appliance_dict:
+                audio_based = True
+                presence_based = appliance_dict[appl]['presence']
+                if presence_based and not presence:
+                    presence = True
+
+            else:
+                audio_based = presence_based = True
+        if presence:
+            presence_based = presence
+
+    return audio_based, presence_based
+
+
 @csrf_exempt
 def training_data(request):
     """
@@ -177,20 +215,26 @@ def training_data(request):
             power = training_compute_power(apt_no, start_time, end_time)
             logger.debug("Computed Power::%f", power)
 
+            # Determine appliance type - audio based and presence based
+            audio_based, presence_based = determine_appliance_type(appliance)
+
             # See if entry exists for appliance-location combination
             # Update power value if it exists
             try:
                 # Update power
                 r = Metadata.objects.get(apt_no__exact=apt_no, location__exact=location,
-                                         appliance__exact=appliance).update(power=power)
+                                         appliance__exact=appliance,
+                                         presence_based=presence_based,
+                                         audio_based=audio_based).update(power=power)
                 logger.debug(
                     "Metadata with entry:%d %s %s exists", r.apt_no, r.appliance, r.location)
                 logger.debug("Metadata record updated")
             except Metadata.DoesNotExist, e:
 
                 # Store metadata
-                user = Metadata(
-                    apt_no=apt_no, appliance=appliance, location=location, power=power)
+                user = Metadata(apt_no=apt_no,
+                                user_presence_required=presence_based, audio_based=audio_based,
+                                appliance=appliance, location=location, power=power)
                 user.save()
                 logger.debug("Metadata creation successful")
 
