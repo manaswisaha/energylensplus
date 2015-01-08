@@ -31,14 +31,17 @@ def train_audio_classfication_model(train_df, filename):
     """
 
     # Training features
-    features = train_df.columns[1:-1]
+    features = train_df.columns[3:-2]
 
     # Cleaning
-    train_df = train_df[train_df.mfcc1 != '-Infinity']
+    logger.debug("Train DF Dtype: %s", train_df.mfcc1.dtype)
+    if train_df.mfcc1.dtype != 'float64':
+        train_df = train_df[train_df.mfcc1 != '-Infinity']
 
     # Train SVM Model
+    logger.debug("Labels :%s", train_df['label'].unique())
     clf = SVC()
-    clf.fit(train_df[features], train_df['label'])
+    clf.fit(train_df[features], train_df['label'].tolist())
 
     # Saving model into a disk
     dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/audio/')
@@ -65,20 +68,19 @@ def determine_appliance(train_model, test_df):
 
     try:
         # Cleaning
-        test_df = test_df[test_df.mfcc1 != '-Infinity']
+        if test_df.mfcc1.dtype != 'float64':
+            test_df = test_df[test_df.mfcc1 != '-Infinity']
 
         # Features
-        features = test_df.columns[1:-1]
+        features = test_df.columns[3:-2]
 
-        # Run NB/GMM/SVM algorithm to generate sound events for the data points
-        clf = train_model
-        clf.fit(train_df[features], train_df['label'])
-        pred_label = clf.predict(test_df[features])
+        # Run NB/GMM/SVM algorithm to predict sound events for the data points
+        pred_label = train_model.predict(test_df[features])
 
         return pred_label
 
     except Exception, e:
-        logger.error("[AudioClassifierException]::%s", str(e))
+        logger.exception("[AudioClassifierException]::%s", str(e))
         return False
 
 
