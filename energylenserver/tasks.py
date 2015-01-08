@@ -13,11 +13,17 @@ from energylenserver.setup_django_envt import *
 
 import os
 import time
+import math
+import random
+import string
+from types import NoneType
 import pandas as pd
+import numpy as np
 import datetime as dt
 from multiprocessing.managers import BaseManager
 
 from celery import shared_task
+from django_pandas.io import read_frame
 
 """
 Imports from EnergyLens+
@@ -29,12 +35,13 @@ from energylenserver.models import functions as mod_func
 
 # Core Algo imports
 from energylenserver.core import classifier
-from energylenserver.core.constants import wastage_threshold
+from energylenserver.core.constants import wastage_threshold, upload_interval
 from energylenserver.core import functions as core_f
 from energylenserver.meter import edge_detection
 from energylenserver.core import user_attribution as attrib
 from energylenserver.core import apportionment as apprt
 from energylenserver.meter import edge_matching as e_match
+from energylenserver.core.functions import exists_in_metadata
 
 # GCM Client imports
 from energylenserver.gcmxmppclient.messages import create_message
@@ -47,6 +54,7 @@ from energylenserver.common_imports import *
 from energylenserver.constants import apt_no_list
 
 # Enable Logging
+upload_logger = logging.getLogger('energylensplus_upload')
 logger = logging.getLogger('energylensplus_django')
 elogger = logging.getLogger('energylensplus_error')
 meter_logger = logging.getLogger('energylensplus_meterdata')
@@ -109,8 +117,6 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     :return upload status:
     """
 
-    logger.debug("FILE:: %s", filename)
-
     try:
         # Create a dataframe for preprocessing
         if sensor_name != 'rawaudio':
@@ -145,9 +151,31 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
         # --Store data in the model--
         model[0]().insert_records(user, filepath, model[1])
 
-        logger.debug("Successful Upload! File: %s", filename)
+        logger.debug("FILE:: %s", filename)
+        '''
+        if sensor_name != 'rawaudio':
+            logger.debug("FILE:: %s", filename)
+            if len(df_csv) > 0:
+                logger.debug("%s[%s] -- [%s]", sensor_name,
+                             time.ctime(df_csv.ix[df_csv.index[0]]['time'] / 1000),
+                             time.ctime(df_csv.ix[df_csv.index[-1]]['time'] / 1000))
+            else:
+                logger.debug("%s empty!!", filename)
+        else:
+            logger.debug("FILE:: %s", filename)
+        '''
+        # Classify location
+        if sensor_name == 'wifi' and training_status is False:
+            logger.debug("Classifying new data for: %s with filename: %s", sensor_name, filename)
+            start_time = df_csv.ix[df_csv.index[0]]['time']
+            end_time = df_csv.ix[df_csv.index[-1]]['time']
+
+            location = classifier.localize_new_data(user.apt_no, start_time, end_time, user)
+            logger.debug("%s is in %s", user.name, location)
+
+        upload_logger.debug("Successful Upload! File: %s", filename)
     except Exception, e:
-        logger.debug("[PhoneDataHandlerException]:: %s", e)
+        logger.exception("[PhoneDataHandlerException]:: %s", e)
 
 
 @shared_task
@@ -172,18 +200,26 @@ def meterDataHandler(df, file_path):
     for idx in edges_df.index:
         edge = edges_df.ix[idx]
         edge_time = edge.time
+        magnitude = edge.magnitude
 
         try:
-
             meter = MeterInfo.objects.get(meter_uuid=uuid)
-            # Check if the edge exists
+
+            # Edge Filter: Forward edge only it exists in the metadata
+            in_metadata, md_power_diff = exists_in_metadata(
+                meter.apt_no, "all", math.fabs(magnitude), "dummy_metdata_df", meter_logger, "")
+            if not in_metadata:
+                meter_logger.debug("Detected edge of magnitude %d ignored", magnitude)
+                return
+
+            # Check if the edge exists in the database
             try:
                 record = Edges.objects.get(meter=meter, timestamp=edge_time)
             except Edges.DoesNotExist, e:
 
                 # --Store edge--
                 edge_r = Edges(timestamp=int(edge_time), time=dt.datetime.fromtimestamp(edge_time),
-                               magnitude=edge.magnitude, type=edge.type,
+                               magnitude=magnitude, type=edge.type,
                                curr_power=edge.curr_power, meter=meter)
                 edge_r.save()
 
@@ -225,6 +261,7 @@ def classify_edge(edge):
     """
 
     try:
+        return_error = 'ignore', 'ignore', 'ignore', 'ignore'
 
         apt_no = edge.meter.apt_no
         logger.debug("Apt.No.:: %d Classify edge type '%s' [%s] %d",
@@ -246,7 +283,7 @@ def classify_edge(edge):
 
         if n_users_at_home == 0:
             logger.debug("No user at home. Ignoring edge activity.")
-            return 'ignore', 'ignore', 'ignore', 'ignore'
+            return return_error
 
         # --- Classification --
         location_dict = {}
@@ -254,6 +291,7 @@ def classify_edge(edge):
 
         # Get user details
         users = mod_func.get_users(user_list)
+        logger.debug("Users at home: %s", users)
         for user in users:
             dev_id = user.dev_id
 
@@ -261,6 +299,8 @@ def classify_edge(edge):
             location = classifier.classify_location(apt_no, start_time, end_time, user)
             if location:
                 location_dict[dev_id] = location
+            else:
+                continue
 
             # Step 2: Determine appliance for every user
             appliance = classifier.classify_appliance(apt_no, start_time, end_time, user)
@@ -270,21 +310,62 @@ def classify_edge(edge):
         logger.debug("Determined Locations: %s", location_dict)
         logger.debug("Determined Appliances: %s", appliance_dict)
 
+        if len(location_dict) == 0 or len(appliance_dict) == 0:
+            return 'ignore', 'ignore', 'ignore', 'ignore'
+        elif False in location_dict or False in appliance_dict:
+            return 'ignore', 'ignore', 'ignore', 'ignore'
+
         # Step 3: Determine user based on location, appliance and metadata
         if n_users_at_home > 1:
             user = attrib.identify_user(apt_no, magnitude, location_dict, appliance_dict, user_list)
             who = user['dev_id']
             where = user['location']
             what = user['appliance']
+            logger.debug("Determined user: %s", who)
+            if isinstance(who, list):
+                user_records = []
+                for u in who:
+                    user_records.append(mod_func.get_user(u))
+                who = user_records
 
         elif n_users_at_home == 1:
-            user = user_list[0]
-            who = user_list
+            user_record = users.first()
+            user = user_record.dev_id
+            who = [user_record]
             where = location_dict[user]
             what = appliance_dict[user]
 
         logger.debug("[%s] :: Determined labels: %s %s %s" %
                      (time.ctime(event_time), who, where, what))
+
+        # ---FILTER start---
+        # Save only if the number of exisiting ongoing events for determined appliance
+        # in the inferred location with the specified magnitude does not exceed
+        # the number of appliances
+
+        if where != "Unknown":
+            # Determine the on going events
+            on_event_records = mod_func.get_on_events_by_location(apt_no, end_time, where)
+            n_on_event_records = on_event_records.count()
+            logger.debug("Number of ongoing events: %s", n_on_event_records)
+
+            if n_on_event_records == 0:
+                # Get number of appliances with the similar appliances in the inferred location
+                # Get Metadata
+                data = mod_func.retrieve_metadata(apt_no)
+                metadata_df = read_frame(data, verbose=False)
+
+                in_md_status, df_list = exists_in_metadata(
+                    apt_no, where, math.fabs(magnitude), metadata_df, logger, "DummyDevID")
+
+                no_of_appl = len(df_list)
+
+                if n_on_event_records >= no_of_appl:
+                    # Delete edge
+                    edge.delete()
+                    return return_error
+
+        # --- FILTER end---
 
         if edge.type == "rising":
             event_type = "ON"
@@ -300,20 +381,27 @@ def classify_edge(edge):
                 # and store 'who', 'what', 'where' labels
                 event = EventLog(edge=edge, event_time=event_time,
                                  location=where, appliance=what, dev_id=user,
-                                 event_type=event_type)
+                                 event_type=event_type, apt_no=apt_no)
                 event.save()
+
                 # ONLY FOR TESTING
-                message = "%s uses %s in %s" % (who, what, where)
-                send_notification(user, message)
+                message = "In %s, %s uses %s consuming %s Watts" % (
+                    where, user.name, what, magnitude)
+                inform_user(user.dev_id, message)
+                logger.debug("Notified User: %s", who)
+
+        # For "Unknown" label
         elif isinstance(who, str):
+            user_record = mod_func.get_user(123456789123456)
             # Create a record in the Event Log with edge id
             # and store 'who', 'what', 'where' labels
             event = EventLog(edge=edge, event_time=event_time,
-                             location=where, appliance=what, dev_id=user,
-                             event_type=event_type)
+                             location=where, appliance=what, dev_id=user_record,
+                             event_type=event_type, apt_no=apt_no)
             event.save()
+
     except Exception, e:
-        logger.error("[ClassifyEdgeException]:: %s", e)
+        logger.exception("[ClassifyEdgeException]:: %s", e)
         return 'ignore', 'ignore', 'ignore', 'ignore'
 
     return who, what, where, event
@@ -337,9 +425,9 @@ def find_time_slice(result_labels):
 
         # If no user at home or no identified users, skip off_event
         if (who == 'ignore' and what == 'ignore' and
-            where == 'ignore') or (who == 'not_found' and
-                                   what == 'not_found' and
-                                   where == 'not_found'):
+            where == 'ignore') or (who == 'Unknown' and
+                                   what == 'Unknown' and
+                                   where == 'Unknown'):
             return return_error
 
         apt_no = off_event.edge.meter.apt_no
@@ -381,7 +469,7 @@ def find_time_slice(result_labels):
         logger.debug("Time slice for activity: %s uses %s in %s between %s and %s",
                      who, what, where, time.ctime(start_time), time.ctime(end_time))
     except Exception, e:
-        logger.error("[FindTimeSliceException]:: %s", str(e))
+        logger.exception("[FindTimeSliceException]:: %s", str(e))
         return return_error
 
     return apt_no, start_time, end_time, activity
@@ -441,7 +529,7 @@ def apportion_energy(result_labels):
         apprt.calculate_consumption(user_list, presence_df, activity)
 
     except Exception, e:
-        logger.error("[ApportionEnergyException]:: %s", str(e))
+        logger.exception("[ApportionEnergyException]:: %s", str(e))
 
 
 @shared_task
@@ -449,9 +537,18 @@ def determine_wastage(apt_no):
     """
     Determines energy wastage in real-time
     """
+    logger.debug("Periodic Energy Wastage Detector started..")
     try:
-        end_time = int(time.time())
+        end_time = int(time.time() - upload_interval)
         start_time = end_time - wastage_threshold
+
+        # Determine the on going events
+        on_event_records = mod_func.get_on_events_by_location(apt_no, end_time, "all")
+        n_on_event_records = on_event_records.count()
+        logger.debug("Number of ongoing events: %s", n_on_event_records)
+
+        if n_on_event_records == 0:
+            return
 
         # Determine users at home
         user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
@@ -462,23 +559,42 @@ def determine_wastage(apt_no):
             return
 
         # Build presence matrix for the ongoing activities
-        on_event_records = mod_func.get_on_events(apt_no, end_time)
         users = mod_func.get_users(user_list)
+
+        pres_loc = {}
+        for user in users:
+            pres_loc[user.dev_id] = []
+
+        presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
         for event in on_event_records:
 
             what = event.appliance
             where = event.location
 
-            presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
             for user in users:
                 user_id = user.dev_id
 
+                if len(pres_loc[user_id]) > 0 and where in pres_loc[user_id]:
+                    continue
+
                 # Build presence matrix
                 df = core_f.get_presence_matrix(apt_no, user_id, start_time, end_time, where)
+                logger.debug("ERT DF: %s", df)
+                if isinstance(df, NoneType) or len(df) == 0:
+                    continue
                 presence_df[str(user_id)] = df['label']
+                presence_df['start_time'] = df['start_time']
+                presence_df['end_time'] = df['end_time']
+                pres_loc[user_id].append(where)
+
+            if isinstance(presence_df, NoneType) or len(presence_df) == 0:
+                logger.debug("Empty matrix formed")
+                return
 
             # Merge slices where the user columns have the same values
+            logger.debug("Presence DF: \n %s", presence_df)
             presence_df = core_f.merge_presence_matrix(presence_df)
+            logger.debug("Merged Presence Matrix:\n %s", presence_df)
 
             # Determine wastage - find rooms of activity that are empty
             user_columns = presence_df.columns - ['start_time', 'end_time']
@@ -487,7 +603,7 @@ def determine_wastage(apt_no):
 
             # Save and send notifications to all the users
             if len(w_slices_ix) > 0:
-                message = "Energy wastage detected in %s! %s left ON." % (
+                message = "Energy wastage detected in %s! %s is left ON." % (
                     where, what)
                 # Save
                 for user in users:
@@ -501,7 +617,7 @@ def determine_wastage(apt_no):
                 inform_all_users(apt_no, message, users)
 
     except Exception, e:
-        logger.debug("[DetermineWastageRTException]:: %s", e)
+        logger.exception("[DetermineWastageRTException]:: %s", e)
 
 
 @shared_task(name='tasks.realtime_wastage_notif')
@@ -516,7 +632,7 @@ def realtime_wastage_notif():
             determine_wastage.delay(apt_no)
 
     except Exception, e:
-        logger.error("DetermineWastageException]:: %s", str(e))
+        logger.exception("DetermineWastageException]:: %s", str(e))
 
 
 """
@@ -529,7 +645,7 @@ def send_validation_report():
     """
     Sends a ground truth validation report to all the users
     """
-    logger.debug("Sending periodic validation report..")
+    logger.debug("Creating periodic validation report..")
     try:
         # Get all the users
         users = mod_func.get_all_active_users()
@@ -580,7 +696,7 @@ def send_validation_report():
             send_notification(reg_id, data_to_send)
             logger.debug("Sent report to:: %s", user.name)
     except Exception, e:
-        logger.debug("[SendingReportException]:: %s", e)
+        logger.exception("[SendingReportException]:: %s", e)
 
 
 @shared_task
@@ -613,7 +729,7 @@ def inform_all_users(apt_no, notif_message, users):
             send_notification(reg_id, message_to_send, time_to_live)
             logger.debug("Notified user :: %s", user.name)
     except Exception, e:
-        logger.debug("[InformAllUsersException]:: %s", e)
+        logger.error("[InformAllUsersException]:: %s", e)
 
 
 @shared_task
@@ -625,7 +741,7 @@ def inform_user(dev_id, notif_message):
 
         # Get user
         user = mod_func.get_user(dev_id)
-        if users is False:
+        if user is False:
             logger.error("Specified user does not exist")
             return
 
@@ -644,7 +760,7 @@ def inform_user(dev_id, notif_message):
         send_notification(reg_id, message_to_send)
         logger.debug("Notified user :: %s", user.name)
     except Exception, e:
-        logger.debug("[InformUserException]:: %s", e)
+        logger.exception("[InformUserException]:: %s", e)
 
 
 @shared_task
@@ -656,7 +772,7 @@ def send_notification(reg_id, message_to_send, time_to_live=3600):
         message = create_message(reg_id, message_to_send, time_to_live)
         client.send_message(message)
     except Exception, e:
-        logger.debug("[SendingNotifException]:: %s", e)
+        logger.exception("[SendingNotifException]:: %s", e)
 
 """
 Test Task

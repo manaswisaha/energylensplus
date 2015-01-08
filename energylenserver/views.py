@@ -27,6 +27,7 @@ import datetime as dt
 
 # Enable Logging
 logger = logging.getLogger('energylensplus_django')
+upload_logger = logging.getLogger('energylensplus_upload')
 
 """
 Registration API
@@ -46,6 +47,17 @@ def register_device(request):
 
         if request.method == 'POST':
             logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
+
+            # Store the Unknown user if it does not exist
+            ukwn_count = RegisteredUsers.objects.filter(apt_no__exact=0000).count()
+            if ukwn_count == 0:
+
+                # Store user
+                ukwn_user = RegisteredUsers(dev_id=123456789123456, reg_id='ABCDEF', apt_no=0000,
+                                            name='Unknown', is_active=False,
+                                            email_id='', phone_model='Unknown')
+                ukwn_user.save()
+                logger.debug("Unknown user created!")
 
             # print request.body
             payload = json.loads(request.body)
@@ -201,6 +213,10 @@ def training_data(request):
             end_time = payload['end_time']
             location = payload['location']
             appliance = payload['appliance']
+            audio_based = payload['audio_based']
+            presence_based = payload['presence_based']
+
+            logger.debug("payload: %s", payload)
 
             # Check if it is a registered user
             user = mod_func.get_user(dev_id)
@@ -216,27 +232,37 @@ def training_data(request):
             logger.debug("Computed Power::%f", power)
 
             # Determine appliance type - audio based and presence based
-            audio_based, presence_based = determine_appliance_type(appliance)
+            # audio_based, presence_based = determine_appliance_type(appliance)
 
             # See if entry exists for appliance-location combination
             # Update power value if it exists
-            try:
-                # Update power
-                r = Metadata.objects.get(apt_no__exact=apt_no, location__exact=location,
-                                         appliance__exact=appliance,
-                                         presence_based=presence_based,
-                                         audio_based=audio_based).update(power=power)
-                logger.debug(
-                    "Metadata with entry:%d %s %s exists", r.apt_no, r.appliance, r.location)
-                logger.debug("Metadata record updated")
-            except Metadata.DoesNotExist, e:
+            if power >= thresmin:
+                try:
+                    # Update power
+                    records = Metadata.objects.filter(apt_no__exact=apt_no, location__exact=location,
+                                                      appliance__exact=appliance,
+                                                      presence_based=presence_based,
+                                                      audio_based=audio_based)
+                    if records.count() == 1:
+                        records.update(power=power)
+                        logger.debug(
+                            "Metadata with entry:%d %s %s exists", apt_no, appliance, location)
+                        logger.debug("Metadata record updated")
+                    else:
+                        # Store metadata
+                        metadata = Metadata(apt_no=apt_no,
+                                            presence_based=presence_based, audio_based=audio_based,
+                                            appliance=appliance, location=location, power=power)
+                        metadata.save()
+                        logger.debug("Metadata creation successful")
+                except Metadata.DoesNotExist, e:
 
-                # Store metadata
-                user = Metadata(apt_no=apt_no,
-                                user_presence_required=presence_based, audio_based=audio_based,
-                                appliance=appliance, location=location, power=power)
-                user.save()
-                logger.debug("Metadata creation successful")
+                    # Store metadata
+                    metadata = Metadata(apt_no=apt_no,
+                                        presence_based=presence_based, audio_based=audio_based,
+                                        appliance=appliance, location=location, power=power)
+                    metadata.save()
+                    logger.debug("Metadata creation successful")
 
             payload = {}
             payload['power'] = power
@@ -279,8 +305,8 @@ def import_from_file(filename, csvfile):
     if isinstance(user, bool):
         return False
 
-    logger.debug("User: %s", user.name)
-    # logger.debug("File size: %s", csvfile.size)
+    upload_logger.debug("User: %s", user.name)
+    # upload_logger.debug("File size: %s", csvfile.size)
 
     training_status = False
 
@@ -288,7 +314,7 @@ def import_from_file(filename, csvfile):
     if sensor_name == "Training":
         sensor_name = filename_l[3]
         training_status = True
-    logger.debug("Sensor: %s", sensor_name)
+    upload_logger.debug("Sensor: %s", sensor_name)
 
     # Save file in a temporary location
     new_filename = ('data_file_' + sensor_name + '_' + str(
@@ -300,34 +326,44 @@ def import_from_file(filename, csvfile):
     if sensor_name != 'rawaudio':
         try:
             df_csv = pd.read_csv(filepath, error_bad_lines=False)
-            t = df_csv.label
+
+            if "label" not in df_csv.columns:
+                upload_logger.error("[DataFileFormatIncorrect] Header missing!")
+                os.remove(filepath)
+                return False
 
             # --Preprocess records before storing--
             if sensor_name == 'wifi':
+                if len(df_csv) == 0:
+                    os.remove(filepath)
+                    upload_logger.error("[DataFileFormatIncorrect] "
+                                        "Empty wifi file sent. Upload not successful!")
+                    return True
+
                 df_csv = wifi.format_data(df_csv)
 
                 if df_csv is False:
                     os.remove(filepath)
-                    logger.error("[DataFileFormatIncorrect] "
-                                 "Incorrect wifi file sent. Upload not successful!")
+                    upload_logger.error("[DataFileFormatIncorrect] "
+                                        "Incorrect wifi file sent. Upload not successful!")
                     return False
 
                 # Create temp wifi csv file
                 os.remove(filepath)
                 df_csv.to_csv(filepath, index=False)
         except pd.parser.CParserError, e:
-            logger.error("[DataFileFormatIncorrect] Upload unsuccessful! :: %s", e)
+            upload_logger.exception("[DataFileFormatIncorrect] Upload unsuccessful! :: %s", e)
             os.remove(filepath)  # Commented for debugging
             return True
 
         except Exception, e:
             if str(e) == "Passed header=0 but only 0 lines in file":
-                logger.error(
+                upload_logger.exception(
                     "[Exception]:: Creation of dataframe failed! No lines found in the file!")
                 os.remove(filepath)
                 return False
             else:
-                logger.error("[DataFileFormatIncorrect] Header missing!::%s", str(e))
+                upload_logger.exception("[DataFileFormatIncorrect]:: %s", e)
                 os.remove(filepath)
                 return False
 
@@ -348,13 +384,13 @@ def upload_data(request):
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
-            logger.info("[POST Request Received] - %s" % sys._getframe().f_code.co_name)
+            upload_logger.info("[POST Request Received] - %s" % sys._getframe().f_code.co_name)
 
             payload = request.FILES
             file_container = payload['uploadedfile']
             filename = str(file_container.name)
             csvfile = file_container
-            logger.debug("File received:%s", filename)
+            upload_logger.debug("File received:%s", filename)
 
             # Store in the database
             if(import_from_file(filename, csvfile)):
@@ -366,7 +402,7 @@ def upload_data(request):
 
     except Exception, e:
 
-        logger.error("[UploadDataException Occurred]::%s", e)
+        upload_logger.error("[UploadDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 

@@ -116,7 +116,7 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
     # logger.debug ("Payload:%s", payload)
 
     meters = retrieve_meter_info(apt_no)
-    logger.debug("Meters: %s", meters)
+    # logger.debug("Meters: %s", meters)
 
     streams = []
     meter_type = []
