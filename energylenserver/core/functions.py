@@ -1,9 +1,15 @@
+import time
+import math
+import pandas as pd
 import numpy as np
-from constants import WIFI_THRESHOLD, stay_duration
-from energylenserver.models import functions as mod_func
 from django_pandas.io import read_frame
 
 from common_imports import *
+from constants import WIFI_THRESHOLD, stay_duration
+from constants import lower_mdp_percent_change, upper_mdp_percent_change
+from energylenserver.models import functions as mod_func
+
+
 """
 Contains common functions
 """
@@ -15,7 +21,8 @@ def get_max_class(pred_label_list):
     """
 
     pred_test_class = sorted(pred_label_list.unique().tolist())
-    pred_list = dict((i, list(pred_label_list).count(i)) for i in pred_test_class)
+    pred_label_list = pred_label_list.tolist()
+    pred_list = dict((i, pred_label_list.count(i)) for i in pred_test_class)
     logger.debug("Predicted list: %s", pred_list)
 
     grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
@@ -23,13 +30,65 @@ def get_max_class(pred_label_list):
     pred_label = grpcount_label[grpcount_label.lcount == grpcount_label.lcount.max()].index[0]
 
     # If count is greater than 50% then return the label else return Unknown
-    pred_label_count = pred_label_list.count(pred_label)
-    count_percent = (pred_label_count / len(pred_label_list)) * 100
-    if count_percent < 50.00:
+    total = 0
+    for key, value in pred_list.iteritems():
+        total += value
+    pred_label_count = float(pred_list[pred_label])
+    count_percent = (pred_label_count / total) * 100
+    logger.debug("Percentage: %s", count_percent)
+    if (count_percent == 50.0 and len(pred_list) == 2) or (count_percent < 50.0):
         pred_label = "Unknown"
-    logger.debug("Predicted Label: %s", pred_label)
+    logger.debug("Predicted Label: %s\n", pred_label)
 
     return pred_label
+
+
+def exists_in_metadata(apt_no, location, magnitude, metadata_df, l_logger, dev_id):
+    """
+    Checks if edge of specified magnitude exists in the metadata
+    """
+
+    if location == "all":
+        # Get Metadata
+        data = mod_func.retrieve_metadata(apt_no)
+        mdf = read_frame(data, verbose=False)
+    else:
+        # Extract metadata for the current location of the user
+        mdf = metadata_df[(metadata_df.location == location)]
+        l_logger.debug("Metadata: \n%s", mdf)
+
+    df_list = []
+    status = []
+    for md_i in mdf.index:
+        md_power = mdf.ix[md_i]['power']
+        md_appl = mdf.ix[md_i]['appliance']
+
+        min_md_power = math.floor(md_power - lower_mdp_percent_change * md_power)
+        max_md_power = math.ceil(md_power + upper_mdp_percent_change * md_power)
+
+        # Matching metadata with inferred
+        if magnitude >= min_md_power and magnitude <= max_md_power:
+
+            # Compare magnitude and metadata power draw
+            l_logger.debug("Appliance: %s Power: %s", md_appl, md_power)
+            l_logger.debug("For edge with magnitude %s :: [min_power=%s, max_power=%s]", magnitude,
+                           min_md_power, max_md_power)
+
+            md_power_diff = math.fabs(md_power - magnitude)
+            if location != "all":
+                df_list.append(
+                    pd.DataFrame({'dev_id': dev_id, 'md_appl': md_appl,
+                                  'md_power_diff': md_power_diff}, index=[magnitude]))
+            else:
+                df_list.append(mdf.ix[md_i])
+            status.append(True)
+        else:
+            status.append(False)
+
+    if True in status:
+        return True, df_list
+    else:
+        return False, df_list
 
 
 def determine_user_home_status(start_time, end_time, apt_no):
@@ -50,6 +109,9 @@ def determine_user_home_status(start_time, end_time, apt_no):
 
         # Get Home AP
         home_ap = mod_func.get_home_ap(apt_no)
+
+        # Setting the start time to be 5 minutes before the event time
+        start_time = start_time - 4 * 60
 
         # Get Wifi data
         data = mod_func.get_sensor_data("wifi", start_time, end_time, dev_id_list)
@@ -97,14 +159,25 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
     """
 
     # Get classified Wifi data
-    data = mod_func.get_labeled_data("wifi", start_time, end_time, act_location, [user])
+    # data = mod_func.get_labeled_data("wifi", start_time, end_time, act_location, [user])
+    data = mod_func.get_sensor_data("wifi", start_time, end_time, [user])
+
     labeled_df = read_frame(data, verbose=False)
     labeled_df.sort(['timestamp'], inplace=True)
+
+    logger.debug("Location: %s User:%s Labeled len: %d", act_location, user, len(labeled_df))
+
+    # Get classified accl data
+    accl_df = classify_movement(apt_no, start_time, end_time, user)
+
+    if len(labeled_df) == 0:
+        return pd.DataFrame()
 
     # Determine location change
     st_list = []
     et_list = []
     location_l = []
+    prev_location = "first"
     try:
         # Divide into stay_duration (of 5 min) slices
         s_time = start_time
@@ -118,11 +191,32 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             # Getting location of the slice
             sliced_df = labeled_df[
                 (labeled_df.timestamp >= s_time) & (labeled_df.timestamp <= e_time)]
-            location = get_max_class(sliced_df['label'])
-            if location == act_location:
-                location = 1
+            logger.debug("Between [%s] and [%s] sliced len:: %d", time.ctime(s_time),
+                         time.ctime(e_time), len(sliced_df))
+
+            if len(sliced_df) > 0:
+                location = get_max_class(sliced_df['label'])
+
+                if location == act_location:
+                    location = 1
+                else:
+                    location = 0
+
             else:
                 location = 0
+
+            # Check for location change. Accept only if accl shows movement
+            if not isinstance(prev_location, str):
+                accl_sliced_df = accl_df[
+                    (accl_df.timestamp >= s_time) & (accl_df.timestamp <= e_time)]
+                accl = get_max_class(accl_sliced_df['label'])
+
+                if prev_location != location:
+                    if accl != "On User":
+                        location = prev_location
+
+            prev_location = location
+
             st_list.append(s_time)
             et_list.append(e_time)
             location_l.append(location)
@@ -139,7 +233,7 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
         return duration_df
 
     except Exception, e:
-        logger.error("[StayDurationException]:: %s", e)
+        logger.exception("[StayDurationException]:: %s", e)
 
 
 def merge_presence_matrix(presence_df):
@@ -170,7 +264,7 @@ def merge_presence_matrix(presence_df):
         return merged_presence_df
 
     except Exception, e:
-        logger.debug("[MergePMatrixException]:: %s", e)
+        logger.exception("[MergePMatrixException]:: %s", e)
         return False
 
 
