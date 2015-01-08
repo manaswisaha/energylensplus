@@ -1,9 +1,12 @@
+import math
 import pandas as pd
 import numpy as np
+from django_pandas.io import read_frame
 
 from common_imports import *
 from constants import lower_mdp_percent_change, upper_mdp_percent_change
 from energylenserver.models import functions as mod_func
+from functions import exists_in_metadata
 
 """
 User Attribution Module
@@ -22,32 +25,21 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
 
     magnitude = math.fabs(magnitude)
 
-    for dev_id in user_list:
+    users = location.keys()
+
+    df_list = []
+    for dev_id in users:
         loc_user = location[dev_id]
+        logger.debug("Location: %s", loc_user)
 
         # Ignore if location is unknown
         if loc_user == "Unknown":
             continue
 
-        # Extract metadata for the current location of the user
-        mdf = metadata_df[(metadata_df.location == loc_user)]
-        for md_i in mdf.index:
-            md_power = mdf.ix[md_i]['power']
-            md_appl = mdf.ix[md_i]['appliance']
+        # Check if edge exists in the metadata for the current location
+        in_metadata, df_list = exists_in_metadata(
+            apt_no, loc_user, magnitude, metadata_df, logger, dev_id)
 
-            min_md_power = math.floor(md_power - lower_mdp_percent_change * md_power)
-            max_md_power = math.ceil(md_power + upper_mdp_percent_change * md_power)
-
-            # Compare magnitude and metadata power draw
-            logger.debug("For edge with magnitude %s :: [min_power=%s, max_power=%s]", magnitude,
-                         min_md_power, max_md_power)
-
-            # Matching metadata with inferred
-            if magnitude >= min_md_power and magnitude <= max_md_power:
-                md_power_diff = math.fabs(md_power - magnitude)
-                df_list.append(
-                    pd.DataFrame({'dev_id': dev_id, 'md_appl': md_appl,
-                                  'md_power_diff': md_power_diff}, index=[magnitude]))
     if len(df_list) == 0:
         logger.debug("Edge did not match with the metadata for any user.")
         logger.debug("Location classification is incorrect")
@@ -64,7 +56,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
     # DF with contending users for the edge
     poss_user = pd.concat(df_list)
     poss_user = poss_user.reset_index(drop=True)
-    print "Possible User - Time Slice Contenders\n", poss_user
+    logger.debug("Possible User - Time Slice Contenders\n %s", poss_user)
 
     if len(poss_user) > 0:
         contending_users = poss_user.dev_id.unique().tolist()
@@ -79,11 +71,11 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
         else:
             # There are contending users for this edge
             # Matching appliance for resolving conflict
-            for user in contending_users:
-                appl = appliance[user]
+            for user_i in contending_users:
+                appl = appliance[user_i]
                 poss_user = poss_user[poss_user.md_appl == appl]
                 if len(poss_user) == 0:
-                    idx = poss_user.index[np.where(poss_user.dev_id == user)[0]]
+                    idx = poss_user.index[np.where(poss_user.dev_id == user_i)[0]]
                     # Remove records
                     poss_user = poss_user.drop(idx)
 
