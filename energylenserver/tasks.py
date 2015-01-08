@@ -186,11 +186,20 @@ def meterDataHandler(df, file_path):
 
     meter_uuid_folder = os.path.dirname(file_path)
     uuid = meter_uuid_folder.split('/')[-1]
+    meter = MeterInfo.objects.get(meter_uuid=uuid)
+
+    # Start the process only if participants are registered
+    users_count = RegisteredUsers.objects.filter(apt_no=meter.apt_no).count()
+
+    if users_count == 0:
+        return
+
     meter_logger.debug("Detecting Edges for UUID:: %s", uuid)
 
     # -- Detect Edge --
     edges_df = edge_detection.detect_and_filter_edges(df)
-    # Store edges into db
+
+    # -- Store edges into db --
 
     if len(edges_df) == 0:
         meter_logger.debug("No edges detected")
@@ -203,7 +212,6 @@ def meterDataHandler(df, file_path):
         magnitude = edge.magnitude
 
         try:
-            meter = MeterInfo.objects.get(meter_uuid=uuid)
 
             # Edge Filter: Forward edge only it exists in the metadata
             in_metadata, md_power_diff = exists_in_metadata(
