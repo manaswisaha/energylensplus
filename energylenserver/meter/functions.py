@@ -38,21 +38,23 @@ def training_compute_power(apt_no, start_time, end_time):
     logger.debug("Orig:: ST: %s ET:%s", timestamp_to_str(
         start_time, date_format), timestamp_to_str(end_time, date_format))
 
-    '''
+    # '''
     # --- Negligible time difference ---
     # Measure the difference between time of the phone with the meter data
     # Once measured, set the global variable in the constants
     # For now, taking it as 5 seconds
-    time_diff = -5  # If phone is ahead, subtract from the time sent
-    time_diff = 5  # If phone is behind, add to the time sent
+    time_diff = 0  # If phone is ahead, subtract from the time sent
+    # time_diff = 5  # If phone is behind, add to the time sent
 
     # Convert time to seconds and add/subtract the difference time
-    # start_time = start_time + time_diff
-    # end_time = end_time + time_diff
-    '''
+    start_time = start_time + time_diff
+    end_time = end_time + time_diff
+    logger.debug("New:: ST: %s ET:%s", timestamp_to_str(
+        start_time, date_format), timestamp_to_str(end_time, date_format))
+    # '''
 
     # Adding 5 to fetch extra to account for missing values??
-    edge_window = winmax * sampling_rate
+    edge_window = winmax * sampling_rate + 5
 
     # Add a window to the given event time duration
     s_time = start_time - edge_window
@@ -63,8 +65,8 @@ def training_compute_power(apt_no, start_time, end_time):
 
     # Retrieve power data from smap server for both meters
     # between <start_time> and <end_time>
-    if apt_no == 1201:
-        time.sleep(6)
+    # if apt_no == 1201:
+    time.sleep(winmax)
     streams_df_list = get_meter_data_for_time_slice(apt_no, s_time, e_time)
 
     if len(streams_df_list) == 0:
@@ -100,21 +102,21 @@ def training_compute_power(apt_no, start_time, end_time):
         # Temp code -- END
 
         # Add a window around the event edges
-        s_time = edge_time - edge_window
+        s_time = edge_time - edge_window - (5 * sampling_rate)
         e_time = edge_time + edge_window
 
-        # logger.debug("Start time: %s", s_time)
-        # logger.debug("End time: %s", e_time)
+        logger.debug("Start time: %s", s_time)
+        logger.debug("End time: %s", e_time)
 
         # For checking the edge, filter df to include data only in the window of <winmax> seconds
         # around the event time
         streams_df_new = [df[(df.time >= s_time) & (df.time <= e_time)]
                           for df in streams_df_list]
-        # logger.debug("NewStreams:\n%s", streams_df_new)
+        logger.debug("Streams %d:\n%s", i, streams_df_new)
 
         # Detect edges for both meters
         edge_list.append(detect_edges_from_meters(streams_df_new))
-    # logger.debug("Edges_i:\n%s", edge_list)
+    logger.debug("\nEdges_i:\n\n%s", edge_list)
 
     # -------
     # Accumulate start/end edges from each meter
@@ -157,7 +159,7 @@ def training_compute_power(apt_no, start_time, end_time):
                 power_df = power_df[power_df.magnitude < 0]
                 meter_edges_list[l_ix]["end"] = power_df
 
-    # logger.debug("Edges: \n%s", meter_edges_list)
+    logger.debug("Edges: \n%s", meter_edges_list)
 
     if len(meter_edges_list) == 0:
         # No edges detected
@@ -169,6 +171,9 @@ def training_compute_power(apt_no, start_time, end_time):
     # Determine in which meter, edge was detected and compute power
     # -------
     for meter_edges in meter_edges_list:
+        if "start" not in meter_edges or "end" not in meter_edges:
+            logger.debug("Keywords missing (start/end)!")
+            continue
         start_df = meter_edges["start"]
         end_df = meter_edges["end"]
 
@@ -180,9 +185,33 @@ def training_compute_power(apt_no, start_time, end_time):
             # Compute power
             power = compute_power(start_mag, end_mag)
             logger.debug("Power consumed:%s", power)
+
         elif start_len > 1 and end_len > 1:
             # Compare based on the power magnitude
             logger.debug("CONFUSION!!")
+        elif start_len > 1 or end_len > 1:
+            if start_len > 1:
+                start_mag = start_df.ix[start_df.index[0]]["magnitude"]
+
+                power = start_mag * percent_change
+                min_mag = start_mag - power
+                max_mag = start_mag - power
+
+                end_mag_list = [end_df.ix[idx]["magnitude"]
+                                for idx in end_df.index
+                                if end_df.ix[idx]["magnitude"] >= min_mag
+                                and end_df.ix[idx]["magnitude"] <= max_mag]
+                if len(end_mag_list) > 1:
+                    logger.debug("CONFUSION!!")
+                elif len(end_mag_list) == 1:
+                    end_mag = end_mag_list[0]
+                    # Compute power
+                    power = compute_power(start_mag, end_mag)
+                    logger.debug("Power consumed:%s", power)
+                    return power
+                else:
+                    logger.debug("No matching end edges found")
+
     return power
 
 
