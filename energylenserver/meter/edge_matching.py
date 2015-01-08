@@ -2,6 +2,7 @@
 Edge Matching Module
 """
 
+import math
 import numpy as np
 import pandas as pd
 
@@ -24,6 +25,15 @@ def match_events(apt_no, off_event):
     # Extract rising edges occurring before the fall edge
     # with similar power
     on_events = mod_func.get_on_events(apt_no, off_time)
+    if on_events.count() == 0:
+        return False
+
+    # Filter i: Remove all on events greater than 24 hours from off event
+    new_on_events = []
+    for event in on_events:
+        on_time = event.event_time
+        if (off_time - on_time) <= 24 * 60 * 60:
+            new_on_events.append(event)
 
     # Filter 1: Match falling with rising edges where its magnitude is between
     # a power threshold window
@@ -32,12 +42,15 @@ def match_events(apt_no, off_event):
     max_mag = off_mag - power
 
     filtered_on_events = [{'id': on_event.id, 'mag_diff': math.fabs(off_mag -
-                                                                    on_events.edge.magnitude),
+                                                                    on_event.edge.magnitude),
                            'location': on_event.location, 'appliance': on_event.appliance}
-                          for on_event in on_events
-                          if on_events.edge.magnitude >= min_mag
-                          and on_events.edge.magnitude <= max_mag]
+                          for on_event in new_on_events
+                          if on_event.edge.magnitude >= min_mag
+                          and on_event.edge.magnitude <= max_mag]
     logger.debug("Filtered on events based on magnitude range: %s", filtered_on_events)
+
+    if len(filtered_on_events) == 0:
+        return False
 
     # Resolve conflicts by --
     # Filter 2: Taking the rising edge which is the closest to the off magnitude
@@ -58,6 +71,8 @@ def match_events(apt_no, off_event):
     filtered_df = filtered_df.ix[np.where(filtered_df.mag_diff == min_mag_diff)[0]]
 
     logger.debug("Matched ON DF:%s \n", filtered_df)
+    if len(filtered_df) == 0:
+        return False
 
     # Filter 3: Matching with the same location and appliance
     filtered_df = filtered_df[(filtered_df.location == off_location) &

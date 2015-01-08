@@ -81,7 +81,9 @@ def calculate_consumption(user_list, presence_df, activity):
         # Energy Wastage
         w_slices_ix = presence_df.index[np.where(col_sum == 0)[0]]
 
+        # Storing Energy Usage/Wastage in the database
         for idx in w_slices_ix:
+            shared = False
             w_idx = np.where(presence_df.index == idx)[0] - 1
             row = presence_df.ix[w_idx]
             if row['sum'] == 1:
@@ -99,6 +101,7 @@ def calculate_consumption(user_list, presence_df, activity):
                     usage = get_energy_consumption(st, et, power)
                     if n_users > 1:
                         usage = usage / n_users
+                        shared = True
 
                     # If left_for exceeds a threshold period then it is a wastage
                     left_for = et - st
@@ -111,9 +114,6 @@ def calculate_consumption(user_list, presence_df, activity):
                                                          dev_id=user)
                         wastage_entry.save()
                     else:
-                        shared = False
-                        if n_users > 1:
-                            shared = True
                         # Declare it as an usage
                         usage_entry = EnergyUsageLog(activity=activity,
                                                      start_time=st, end_time=et,
