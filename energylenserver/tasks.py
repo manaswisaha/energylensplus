@@ -186,12 +186,12 @@ def meterDataHandler(df, file_path):
 
     meter_uuid_folder = os.path.dirname(file_path)
     uuid = meter_uuid_folder.split('/')[-1]
-    meter = MeterInfo.objects.get(meter_uuid=uuid)
 
     # Start the process only if participants are registered
-    users_count = RegisteredUsers.objects.filter(apt_no=meter.apt_no).count()
-
-    if users_count == 0:
+    try:
+        meter = MeterInfo.objects.get(meter_uuid=uuid)
+    except MeterInfo.DoesNotExist, e:
+        meter_logger.debug("No registered users for this apt meter")
         return
 
     meter_logger.debug("Detecting Edges for UUID:: %s", uuid)
