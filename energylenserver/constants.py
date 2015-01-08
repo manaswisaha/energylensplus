@@ -9,7 +9,7 @@ appliance_dict = {'fan': {'audio': True, 'presence': True},
                   'music system': {'audio': True, 'presence': False},
                   'geyser': {'audio': False, 'presence': False},
                   'iron': {'audio': False, 'presence': True},
-
+                  'grinder': {'audio': True, 'presence': True},
                   }
 
 # Constants for sending response messages

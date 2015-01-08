@@ -19,9 +19,12 @@ lower_mdp_percent_change = 0.15
 # How much percent change from the metadata - to define the upper bound of predicted power
 upper_mdp_percent_change = 0.2
 
+# Upload interval
+upload = 2  # 2 minutes
+upload_interval = upload * 60  # in seconds
 
 # Wastage - duration threshold
-wastage_threshold = 5 * 60  # 5 minutes
+wastage_threshold = upload * 5 * 60  # 5 minutes
 
 # Stay duration
-stay_duration = 2 * 60  # 2 minutes
+stay_duration = 3 * 60  # 3 minutes
