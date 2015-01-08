@@ -80,15 +80,17 @@ class Client:
             self.msg_count[i] = 0
             self.current_file[i] = ""
 
-        self.setup_connection()
+        # self.setup_connection()
 
     def setup_connection(self):
         """
         Establishes a persistent connection with the sMap server
         """
+        logger.debug("Setting up connection...")
 
         if self.conn:
             self.conn.close()
+            logger.error("Connection Closed")
 
         self.backoff_network_error = 0.25
         self.backoff_http_error = 5
@@ -105,29 +107,33 @@ class Client:
         Starts listening to the open stream
         """
 
+        logger.debug("Opening data stream")
         while True:
             self.setup_connection()
             try:
+                logger.debug("Waiting for data..")
                 self.conn.perform()
             except:
                 # Network error, use linear back off up to 16 seconds
-                logger.error('Network error: %s' % self.conn.errstr())
-                logger.error('Waiting %s seconds before trying again' % self.backoff_network_error)
+                logger.error('[ERROR] Network error: %s' % self.conn.errstr())
+                logger.error('[ERROR] Waiting %s seconds before trying again' %
+                             self.backoff_network_error)
                 time.sleep(self.backoff_network_error)
                 self.backoff_network_error = min(self.backoff_network_error + 1, 16)
                 continue
             # HTTP Error
             sc = self.conn.getinfo(pycurl.HTTP_CODE)
+            logger.error('[ERROR] CODE', sc)
             if sc == 420:
                 # Rate limit, use exponential back off starting with 1 minute and double
                 # each attempt
-                logger.error('Rate limit, waiting %s seconds' % self.backoff_rate_limit)
+                logger.error('[ERROR] Rate limit, waiting %s seconds' % self.backoff_rate_limit)
                 time.sleep(self.backoff_rate_limit)
                 self.backoff_rate_limit *= 2
             else:
                 # HTTP error, use exponential back off up to 320 seconds
-                logger.error('HTTP error %s, %s' % (sc, self.conn.errstr()))
-                logger.error('Waiting %s seconds' % self.backoff_http_error)
+                logger.error('[ERROR] HTTP error %s, %s' % (sc, self.conn.errstr()))
+                logger.error('[ERROR] Waiting %s seconds' % self.backoff_http_error)
                 time.sleep(self.backoff_http_error)
                 self.backoff_http_error = min(self.backoff_http_error * 2, 320)
 
@@ -154,7 +160,7 @@ class Client:
                     # logger.debug("Readings: \n%s", readings)
                 except ValueError:
                     # Log error
-                    logger.debug("Invalid JSON string passed. Ignoring data:%s", data)
+                    logger.debug("Invalid JSON string passed. Ignoring data: %s", data)
                     string_to_log = ["[" + time.ctime(time.time()) + "]", str(data)]
                     logger.debug("%s", string_to_log)
                     return
@@ -182,7 +188,7 @@ class Client:
                         self.write_to_file(file_path, record)
 
                     # 2*winmin + 1 is the minimum number of values needed for edge detection
-                    elif msg_count in range(2, 9):
+                    elif msg_count in range(2, 2 * winmin + 2):
                         file_path = self.current_file[uuid]
                         self.write_to_file(file_path, record)
 
@@ -242,6 +248,9 @@ class Client:
 
         except KeyboardInterrupt:
             logger.error("\n\nInterrupted by user, shutting down..")
+            self.conn.close()
+            logger.error("Connection Closed")
+
             sys.exit(0)
 
 
@@ -257,6 +266,9 @@ class Command(BaseCommand):
         global dst_folder, payload, uuid_list
 
         base_dir = settings.BASE_DIR
+
+        logger.debug("\n")
+        logger.debug("Starting Meter Data Service..")
 
         try:
             dst_folder = os.path.join(base_dir, 'energylenserver/' + dst_folder)
@@ -306,12 +318,16 @@ class Command(BaseCommand):
 
             # Open persistent HTTP connection to sMAP
             c = Client()
-            c.setup_connection()
+            # c.setup_connection()
             c.start()
         except KeyboardInterrupt:
             logger.error("\n\nInterrupted by user, shutting down..")
-            sys.exit(0)
+            c.conn.close()
+            logger.error("Connection Closed")
 
         except Exception, e:
             logger.error("[GetMeterDataException] %s\n" % str(e))
+            c.conn.close()
+            logger.error("Connection Closed")
+
             sys.exit(1)
