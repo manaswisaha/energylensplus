@@ -104,7 +104,7 @@ def get_users(user_list):
     Get active users based on the list
     """
     try:
-        users = RegisteredUsers.objects.filter(is_active=True, reg_id__in=user_list)
+        users = RegisteredUsers.objects.filter(is_active=True, dev_id__in=user_list)
     except Exception, e:
         logger.error("[GetUsersException Occurred]:: %s", str(e))
         return False
@@ -383,9 +383,32 @@ def get_on_events(apt_no, event_time):
     """
     try:
         records = EventLog.objects.filter(apt_no=apt_no, event_time__lt=event_time,
-                                          event_type="ON")
+                                          event_type="ON", matched=False)
     except Exception, e:
         logger.error("[GetONEventException]:: %s", e)
+        return False
+
+    return records
+
+from django.db.models import Q
+
+
+def get_on_events_by_location(apt_no, event_time, location):
+    """
+    Retrieves all the on events before the specified time in
+    given apartment
+    """
+    try:
+        if location == "all":
+            records = EventLog.objects.filter(~Q(location="Unknown"), apt_no=apt_no,
+                                              event_time__lt=event_time, event_type="ON",
+                                              matched=False)
+        else:
+            records = EventLog.objects.filter(~Q(location="Unknown"), apt_no=apt_no,
+                                              event_time__lt=event_time, event_type="ON",
+                                              location=location, matched=False)
+    except Exception, e:
+        logger.error("[GetONEventByLocationException]:: %s", e)
         return False
 
     return records

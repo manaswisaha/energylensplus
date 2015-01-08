@@ -72,26 +72,60 @@ def format_data_for_classification(data_df):
     """
 
     timestamp = data_df.timestamp
-    label = data_df.label
     mac_list = sorted(data_df.macid.unique())
+    unique_time = timestamp.unique()
+    logger.debug("Total rows: %d", len(data_df))
 
     # Output frame
     columns = ['time'] + mac_list + ['label']
-    op_df = pd.DataFrame({'time': timestamp, 'label': label}, columns=columns)
-
-    mac_ssid_map = {}
-    for mac in mac_list:
-        mac_ssid_map[mac] = []
+    op_df = pd.DataFrame({'time': unique_time}, columns=columns, index=[unique_time])
 
     for idx in data_df.index:
+        t = data_df.ix[idx]['timestamp']
         macid = data_df.ix[idx]['macid']
-        ssid = data_df.ix[idx]['ssid']
+        rssi = data_df.ix[idx]['rssi']
+        label = data_df.ix[idx]['label']
 
-        mac_ssid_map[macid].append(ssid)
+        op_df.ix[t, macid] = rssi
+        op_df.ix[t, 'label'] = label
+
+    op_df.reset_index(drop=True)
+
+    '''
+    mac_rssi_map = {}
+    for mac in mac_list:
+        mac_rssi_map[mac] = []
+
+    # Create Label list
+    label_list = []
+    for t in unique_time:
+        filtered_df = data_df[data_df.timestamp == t]
+        tmp_mac_map = {}
+        for idx in filtered_df.index:
+            macid = filtered_df.ix[idx]['macid']
+            rssi = filtered_df.ix[idx]['rssi']
+
+            if macid in tmp_mac_map:
+                tmp_mac_map[macid] += rssi
+                tmp_mac_map[macid] /= 2
+            else:
+                tmp_mac_map[macid] = rssi
+
+        mac_rssi_map[macid].append(tmp_mac_map[macid])
+
+        l = filtered_df.label.unique().tolist()
+        label_list.append(l[0])
+
+    logger.debug("Len of MACRSSIMAP: %d", len(mac_rssi_map[macid]))
+    logger.debug("Len of LabelList: %d", len(label_list))
+    logger.debug("Len of OPDF: %d", len(op_df))
+
+    op_df['label'] = label_list
+    '''
 
     # Create frame
     for mac in mac_list:
-        op_df[mac] = mac_ssid_map[mac]
+        op_df[mac].fillna(-200, inplace=True)
 
     op_df.sort(['time'], inplace=True)
 

@@ -31,15 +31,21 @@ def determine_location(train_df, test_df):
     """
     Determines the location of the user at the specified time
     """
+    logger.debug("Localization started...")
 
     try:
+        if len(train_df) == 0 or len(test_df) == 0:
+            return False
         # Get RSSI columns
         train_col_names = train_df.columns[1:len(train_df.columns) - 1]
         test_col_names = test_df.columns[1:len(test_df.columns) - 1]
 
         # Find the common rssi columns
         features = list(set(test_col_names) & set(train_col_names))
-        logger.debug("WiFi Features:: %s", features)
+
+        if len(features) == 0:
+            logger.debug("features empty")
+            return "Unknown"
 
         # Localizing the user
         # Run KNN or NNSS algorithm to generate locations for the data points
@@ -51,5 +57,5 @@ def determine_location(train_df, test_df):
         return pred_label
 
     except Exception, e:
-        logger.error("[WiFiClassifierException]::%s", str(e))
+        logger.exception("[WiFiClassifierException]::%s", str(e))
         return False
