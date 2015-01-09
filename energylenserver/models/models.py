@@ -71,7 +71,6 @@ class Metadata(models.Model):
     power = models.FloatField()
     presence_based = models.BooleanField(default=True)
     audio_based = models.BooleanField(default=True)
-    movable = models.BooleanField(default=True)
 
     def __unicode__(self):
         return self.dev_id.apt_no + "-" + self.appliance + "-" + self.location
