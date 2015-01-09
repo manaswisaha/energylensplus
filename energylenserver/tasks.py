@@ -308,14 +308,16 @@ def classify_edge(edge):
             dev_id = user.dev_id
 
             # Step 1: Determine location for every user
-            location = classifier.classify_location(apt_no, start_time, end_time, user, edge)
+            location = classifier.classify_location(
+                apt_no, start_time, end_time, user, edge, n_users_at_home)
             if location:
                 location_dict[dev_id] = location
             else:
                 continue
 
             # Step 2: Determine appliance for every user
-            appliance = classifier.classify_appliance(apt_no, start_time, end_time, user, edge)
+            appliance = classifier.classify_appliance(
+                apt_no, start_time, end_time, user, edge, n_users_at_home)
             if appliance:
                 appliance_dict[dev_id] = appliance
 

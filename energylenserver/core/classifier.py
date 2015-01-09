@@ -284,7 +284,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
         return False
 
 
-def classify_location(apt_no, start_time, end_time, user, edge):
+def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home):
     logger.debug("[Classifying location]..")
 
     try:
@@ -304,8 +304,9 @@ def classify_location(apt_no, start_time, end_time, user, edge):
 
         if "none" not in location_list and "Unknown" not in location_list:
             location = func.get_max_class(test_df['label'])
-            location = correct_label(location, test_df['label'], edge)
-            data.update(label=location)
+            if n_users_at_home == 1:
+                location = correct_label(location, test_df['label'], edge)
+                data.update(label=location)
             return location
         # '''
 
@@ -340,7 +341,8 @@ def classify_location(apt_no, start_time, end_time, user, edge):
         else:
             location = func.get_max_class(sliced_df['pred_label'])
 
-        location = correct_label(location, sliced_df['pred_label'], edge)
+        if n_users_at_home == 1:
+            location = correct_label(location, sliced_df['pred_label'], edge)
         data.update(label=location)
 
         # data = data_all.filter(dev_id__in=[dev_id],
@@ -388,7 +390,8 @@ def classify_appliance(apt_no, start_time, end_time, user, edge):
         else:
             appliance = func.get_max_class(sliced_df['pred_label'])
 
-        appliance = correct_label(appliance, sliced_df['pred_label'], edge)
+        if n_users_at_home == 1:
+            appliance = correct_label(appliance, sliced_df['pred_label'], edge)
         data.update(label=appliance)
         return appliance
 
