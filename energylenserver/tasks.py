@@ -194,7 +194,8 @@ def meterDataHandler(df, file_path):
         meter_logger.debug("No registered users for this apt meter")
         return
 
-    meter_logger.debug("Detecting Edges for UUID:: %s", uuid)
+    apt_no = meter.apt_no
+    meter_logger.debug("Detecting Edges for Apt:: %s UUID:: %s", apt_no, uuid)
 
     # -- Detect Edge --
     edges_df = edge_detection.detect_and_filter_edges(df)
@@ -216,7 +217,7 @@ def meterDataHandler(df, file_path):
             # Edge Filter: Forward edge only it exists in the metadata
             data = mod_func.retrieve_metadata(apt_no)
             metadata_df = read_frame(data, verbose=False)
-            in_metadata, md_power_diff = exists_in_metadata(meter.apt_no, "all", "all",
+            in_metadata, md_power_diff = exists_in_metadata(apt_no, "all", "all",
                                                             math.fabs(magnitude),
                                                             metadata_df,
                                                             meter_logger, "dummy_user")
