@@ -8,7 +8,7 @@ from common_imports import *
 from constants import WIFI_THRESHOLD, stay_duration
 from constants import lower_mdp_percent_change, upper_mdp_percent_change
 from energylenserver.models import functions as mod_func
-from classifier import classify_movement
+from energylenserver.core.classifier import classify_movement
 
 
 """
