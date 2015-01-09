@@ -38,11 +38,12 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
 
         # Check if edge exists in the metadata for the current location
         in_metadata, df_list = exists_in_metadata(
-            apt_no, loc_user, magnitude, metadata_df, logger, dev_id)
+            apt_no, loc_user, "all", magnitude, metadata_df, logger, dev_id)
 
     if len(df_list) == 0:
         logger.debug("Edge did not match with the metadata for any user.")
-        logger.debug("Location classification is incorrect")
+        logger.debug(
+            "Location classification is incorrect or appliance exhibited a different signature")
 
         user['dev_id'] = "Unknown"
         user['location'] = "Unknown"
@@ -117,7 +118,9 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
                     # Users share the time slice having the same magnitude
                     users = poss_user['dev_id'].unique().tolist()
                     if len(users) > 0:
-                        user['dev_id'] = users
+                        logger.debug("Shared event! Selecting random user..")
+                        # Selecting a random user
+                        user['dev_id'] = [users[0]]
                         user['location'] = location[users[0]]
                         user['appliance'] = appliance[users[0]]
                     else:

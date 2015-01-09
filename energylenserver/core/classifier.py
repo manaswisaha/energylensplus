@@ -32,6 +32,73 @@ stars = 40
 base_dir = settings.BASE_DIR
 
 
+def correct_label(label, pred_label, label_type, edge):
+    """
+    Classified label correction using Metadata
+    Procedure: Match with the Metadata. If doesn't match then correct based on magnitude
+    """
+    apt_no = edge.meter.apt_no
+    magnitude = edge.magnitude
+    old_label = label
+
+    # Get Metadata
+    data = mod_func.retrieve_metadata(apt_no)
+    metadata_df = read_frame(data, verbose=False)
+
+    if label_type == "location":
+        in_metadata, matched_md = exists_in_metadata(
+            apt_no, label, "all", magnitude, metadata_df, logger, "dummy_user")
+    else:
+        in_metadata, matched_md = exists_in_metadata(
+            apt_no, "all", label, magnitude, metadata_df, logger, "dummy_user")
+
+    if not in_metadata:
+        # Select the one closest to the metadata
+
+        in_metadata, matched_md = exists_in_metadata(
+            apt_no, "not_all", "not_all", magnitude, metadata_df, logger, "dummy_user")
+
+        if in_metadata:
+            matched_md = matched_md[
+                matched_md.md_power_diff == matched_md.md_power_diff.min()]
+            logger.debug(
+                "Entry with least distance from the metadata:\n %s", matched_md)
+            if label_type == "location":
+                unique_label = matched_md.md_loc.unique().tolist()
+            else:
+                unique_label = matched_md.md_appl.unique().tolist()
+
+            if len(unique_label) == 1:
+                label = unique_label[0]
+            else:
+                # Multiple matched entries - select the one with the
+                # maximum count in the pred_label
+                idict = func.list_count_items(pred_label)
+
+                # Remove the entries not in unique label list
+                filtered_l = [key for key in idict.keys() if key in unique_label]
+
+                # Get the max count
+                new_label_list = []
+                for key in filtered_l:
+                    for l in pred_label:
+                        if key == l:
+                            new_label_list.append(key)
+
+                label = func.get_max_class(new_label_list)
+
+        else:
+            # No matching metadata found
+            # Cause: different power consumption of an appliance
+            # Solution: Select the one with the highest value
+            new_label_list = [l for l in pred_label if l != old_label]
+            label = func.get_max_class(new_label_list)
+
+    logger.debug("Corrected Label: %s --> %s", old_label, label)
+
+    return label
+
+
 def get_trained_model(sensor, apt_no, phone_model):
     """
     Get trained model or train model if isn't trained
@@ -217,7 +284,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
         return False
 
 
-def classify_location(apt_no, start_time, end_time, user):
+def classify_location(apt_no, start_time, end_time, user, edge):
     logger.debug("[Classifying location]..")
 
     try:
@@ -237,6 +304,8 @@ def classify_location(apt_no, start_time, end_time, user):
 
         if "none" not in location_list and "Unknown" not in location_list:
             location = func.get_max_class(test_df['label'])
+            location = correct_label(location, test_df['label'], edge)
+            data.update(label=location)
             return location
         # '''
 
@@ -270,6 +339,8 @@ def classify_location(apt_no, start_time, end_time, user):
             location = "Unknown"
         else:
             location = func.get_max_class(sliced_df['pred_label'])
+
+        location = correct_label(location, sliced_df['pred_label'], edge)
         data.update(label=location)
 
         # data = data_all.filter(dev_id__in=[dev_id],
@@ -289,7 +360,7 @@ def classify_location(apt_no, start_time, end_time, user):
     return location
 
 
-def classify_appliance(apt_no, start_time, end_time, user):
+def classify_appliance(apt_no, start_time, end_time, user, edge):
     logger.debug("[Classifying appliance]..")
     logger.debug("-" * stars)
 
@@ -306,7 +377,7 @@ def classify_appliance(apt_no, start_time, end_time, user):
 
         # Classify
         pred_label = audio.determine_appliance(train_model, test_df)
-        test_df['label'] = pred_label
+        test_df['pred_label'] = pred_label
 
         # Save appliance label to the database
         sliced_df = test_df[
@@ -315,7 +386,9 @@ def classify_appliance(apt_no, start_time, end_time, user):
         if len(sliced_df) == 0:
             appliance = "Unknown"
         else:
-            appliance = func.get_max_class(sliced_df['label'])
+            appliance = func.get_max_class(sliced_df['pred_label'])
+
+        appliance = correct_label(appliance, sliced_df['pred_label'], edge)
         data.update(label=appliance)
         return appliance
 

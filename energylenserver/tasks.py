@@ -214,8 +214,12 @@ def meterDataHandler(df, file_path):
         try:
 
             # Edge Filter: Forward edge only it exists in the metadata
-            in_metadata, md_power_diff = exists_in_metadata(
-                meter.apt_no, "all", math.fabs(magnitude), "dummy_metdata_df", meter_logger, "")
+            data = mod_func.retrieve_metadata(apt_no)
+            metadata_df = read_frame(data, verbose=False)
+            in_metadata, md_power_diff = exists_in_metadata(meter.apt_no, "all", "all",
+                                                            math.fabs(magnitude),
+                                                            metadata_df,
+                                                            meter_logger, "dummy_user")
             if not in_metadata:
                 meter_logger.debug("Detected edge of magnitude %d ignored", magnitude)
                 return
@@ -304,14 +308,14 @@ def classify_edge(edge):
             dev_id = user.dev_id
 
             # Step 1: Determine location for every user
-            location = classifier.classify_location(apt_no, start_time, end_time, user)
+            location = classifier.classify_location(apt_no, start_time, end_time, user, edge)
             if location:
                 location_dict[dev_id] = location
             else:
                 continue
 
             # Step 2: Determine appliance for every user
-            appliance = classifier.classify_appliance(apt_no, start_time, end_time, user)
+            appliance = classifier.classify_appliance(apt_no, start_time, end_time, user, edge)
             if appliance:
                 appliance_dict[dev_id] = appliance
 
@@ -470,8 +474,8 @@ def find_time_slice(result_labels):
         activity = ActivityLog(start_time=start_time, end_time=end_time,
                                location=where, appliance=what,
                                power=power, usage=usage,
-                               start_event=matched_on_event.edge,
-                               end_event=off_event.edge)
+                               start_event=matched_on_event,
+                               end_event=off_event)
         activity.save()
 
         logger.debug("Time slice for activity: %s uses %s in %s between %s and %s",
@@ -517,6 +521,24 @@ def apportion_energy(result_labels):
             logger.error("No user at home. Something went wrong!")
             return
 
+        # Determine appliance type
+        act_appl = activity.appliance
+        md_entry = mod_func.retrieve_metadata_for_appliance(apt_no, act_appl)[0]
+
+        # For non-presence based appliances e.g Geyser, Microwave, Music System, Fridge
+        if not md_entry.presence_based:
+            power = activity.power
+            usage = get_energy_consumption(st, et, power)
+            stayed_for = end_time - start_time
+            user = activity.start_event.dev_id
+            usage_entry = EnergyUsageLog(activity=activity,
+                                         start_time=start_time, end_time=end_time,
+                                         stayed_for=stayed_for, usage=usage,
+                                         dev_id=user, shared=False)
+            usage_entry.save()
+            return
+
+        # For presence based appliances, apportion based on stay duration
         act_loc = activity.location
 
         presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
@@ -578,6 +600,12 @@ def determine_wastage(apt_no):
 
             what = event.appliance
             where = event.location
+
+            # Go ahead only if it is a presence based appliance
+            md_entry = mod_func.retrieve_metadata_for_appliance(apt_no, what)[0]
+
+            if not md_entry.presence_based:
+                continue
 
             for user in users:
                 user_id = user.dev_id

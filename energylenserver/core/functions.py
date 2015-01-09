@@ -8,6 +8,7 @@ from common_imports import *
 from constants import WIFI_THRESHOLD, stay_duration
 from constants import lower_mdp_percent_change, upper_mdp_percent_change
 from energylenserver.models import functions as mod_func
+from classifier import classify_movement
 
 
 """
@@ -15,14 +16,23 @@ Contains common functions
 """
 
 
+def list_count_items(ilist):
+    """
+    Groups the items based on item and stores the counts for each
+    """
+    igroup = sorted(ilist.unique().tolist())
+    ilist = ilist.tolist()
+    idict = dict((i, ilist.count(i)) for i in igroup)
+
+    return idict
+
+
 def get_max_class(pred_label_list):
     """
     Returns the label with the maximum count
     """
 
-    pred_test_class = sorted(pred_label_list.unique().tolist())
-    pred_label_list = pred_label_list.tolist()
-    pred_list = dict((i, pred_label_list.count(i)) for i in pred_test_class)
+    pred_list = list_count_items(pred_label_list)
     logger.debug("Predicted list: %s", pred_list)
 
     grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
@@ -43,18 +53,20 @@ def get_max_class(pred_label_list):
     return pred_label
 
 
-def exists_in_metadata(apt_no, location, magnitude, metadata_df, l_logger, dev_id):
+def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_logger, dev_id):
     """
     Checks if edge of specified magnitude exists in the metadata
     """
 
-    if location == "all":
-        # Get Metadata
-        data = mod_func.retrieve_metadata(apt_no)
-        mdf = read_frame(data, verbose=False)
-    else:
+    if appliance == "all" and location == "all":
+        mdf = metadata_df.copy()
+    elif appliance == "all" and location != "all":
         # Extract metadata for the current location of the user
         mdf = metadata_df[(metadata_df.location == location)]
+        l_logger.debug("Metadata: \n%s", mdf)
+    elif appliance != "all" and location == "all":
+            # Extract metadata for the current appliance of the user
+        mdf = metadata_df[(metadata_df.appliance == appliance)]
         l_logger.debug("Metadata: \n%s", mdf)
 
     df_list = []
@@ -62,6 +74,7 @@ def exists_in_metadata(apt_no, location, magnitude, metadata_df, l_logger, dev_i
     for md_i in mdf.index:
         md_power = mdf.ix[md_i]['power']
         md_appl = mdf.ix[md_i]['appliance']
+        md_loc = mdf.ix[md_i]['location']
 
         min_md_power = math.floor(md_power - lower_mdp_percent_change * md_power)
         max_md_power = math.ceil(md_power + upper_mdp_percent_change * md_power)
@@ -75,9 +88,9 @@ def exists_in_metadata(apt_no, location, magnitude, metadata_df, l_logger, dev_i
                            min_md_power, max_md_power)
 
             md_power_diff = math.fabs(md_power - magnitude)
-            if location != "all":
+            if location != "all" or appliance != "all":
                 df_list.append(
-                    pd.DataFrame({'dev_id': dev_id, 'md_appl': md_appl,
+                    pd.DataFrame({'dev_id': dev_id, 'md_loc': md_loc, 'md_appl': md_appl,
                                   'md_power_diff': md_power_diff}, index=[magnitude]))
             else:
                 df_list.append(mdf.ix[md_i])
