@@ -71,6 +71,7 @@ class Metadata(models.Model):
     power = models.FloatField()
     presence_based = models.BooleanField(default=True)
     audio_based = models.BooleanField(default=True)
+    movable = models.BooleanField(default=True)
 
     def __unicode__(self):
         return self.dev_id.apt_no + "-" + self.appliance + "-" + self.location
@@ -142,8 +143,8 @@ class ActivityLog(models.Model):
     power = models.FloatField()  # Average of magnitude of the matched edges
     usage = models.FloatField()  # Power * activity_duration (hours bw start and end time)
     meter = models.ForeignKey(MeterInfo)
-    start_event = models.ForeignKey(Edges, related_name=("ON event"))
-    end_event = models.ForeignKey(Edges, related_name=("OFF event"))
+    start_event = models.ForeignKey(EventLog, related_name=("ON event"))
+    end_event = models.ForeignKey(EventLog, related_name=("OFF event"))
 
     class Meta:
         db_table = 'ActivityLog'
