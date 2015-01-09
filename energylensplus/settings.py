@@ -152,6 +152,11 @@ LOGGING = {
             'propagate': True,
             'level': 'DEBUG',
         },
+        'energylensplus_upload': {
+            'handlers': ['file'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
         'energylensplus_django': {
             'handlers': ['main_django'],
             'propagate': True,
