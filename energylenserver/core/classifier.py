@@ -16,6 +16,7 @@ from django_pandas.io import read_frame
 from django.conf import settings
 from sklearn.externals import joblib
 
+from common_imports import *
 from energylenserver.core import audio
 from energylenserver.core import location as lc
 from energylenserver.core import movement as acl
@@ -25,11 +26,76 @@ from energylenserver.common_imports import *
 from energylenserver.core import functions as func
 from energylenserver.models import functions as mod_func
 from energylenserver.preprocessing import wifi as pre_p
-from common_imports import *
+from constants import lower_mdp_percent_change, upper_mdp_percent_change
 
 
 stars = 40
 base_dir = settings.BASE_DIR
+
+
+def classify_activity(metadata_df, magnitude):
+    """
+    Uses metadata matching to determine appliance and location
+    """
+
+    # Detecting location and appliance in use
+    for md_i in metadata_df.index:
+        md_power = mdf.ix[md_i]['power']
+        md_appl = mdf.ix[md_i]['appliance']
+        md_loc = mdf.ix[md_i]['location']
+
+        min_md_power = math.floor(md_power - lower_mdp_percent_change * md_power)
+        max_md_power = math.ceil(md_power + upper_mdp_percent_change * md_power)
+
+        # Matching metadata with inferred
+        if magnitude >= min_md_power and magnitude <= max_md_power:
+            md_power_diff = math.fabs(md_power - magnitude)
+            if location != "all" or appliance != "all":
+                df_list.append(
+                    pd.DataFrame({'dev_id': dev_id, 'md_loc': md_loc, 'md_appl': md_appl,
+                                  'md_power_diff': md_power_diff}, index=[magnitude]))
+            else:
+                df_list.append(mdf.ix[md_i])
+
+    # Determine location and appliance
+    for idx in df_list:
+        md_idx = md_dict[ts_idx]['md_idx']
+        md_diff = md_dict[ts_idx]['md_power_diff']
+        if len(md_idx) > 0:
+            print "\nMD", ts_idx, md_idx, md_diff
+
+            min_item = min(md_diff)
+            indices = [i for i, x in enumerate(md_diff) if x == min_item]
+            print "Minimum Item:", min_item
+            print "Minimum Indices", indices
+            print "Length indices", len(indices)
+
+            if len(indices) > 1:
+                # If all the appliances and corresponding location are same,
+                # then assign with it else error
+                md_idxes = [md_idx[i] for i in indices]
+                appl = [md_df.ix[mdid]['appliance'] for mdid in md_idxes]
+                loc = [md_df.ix[mdid]['location'] for mdid in md_idxes]
+                if len(set(appl)) == 1 and len(set(loc)) != 1:
+                    location.append("Not Found")
+                    appliance.append(md_df.ix[mdid]['appliance'])
+                elif len(set(appl)) != 1 and len(set(loc)) == 1:
+                    location.append(md_df.ix[mdid]['location'])
+                    appliance.append("Not Found")
+                elif len(set(appl)) == 1 and len(set(loc)) == 1:
+                    location.append(md_df.ix[mdid]['location'])
+                    appliance.append(md_df.ix[mdid]['appliance'])
+                else:
+                    location.append("Not Found")
+                    appliance.append("Not Found")
+            else:
+                mdid = md_idx[indices[0]]
+                location.append(md_df.ix[mdid]['location'])
+                appliance.append(md_df.ix[mdid]['appliance'])
+        else:
+            print "\nNFMD", ts_idx, md_idx, md_diff
+            location.append("Not Found")
+            appliance.append("Not Found")
 
 
 def correct_label(label, pred_label, label_type, edge):

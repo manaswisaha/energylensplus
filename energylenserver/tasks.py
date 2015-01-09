@@ -353,7 +353,7 @@ def classify_edge(edge):
                      (time.ctime(event_time), who, where, what))
 
         # ---FILTER start---
-        # Save only if the number of exisiting ongoing events for determined appliance
+        # Save only if the number of existing ongoing events for determined appliance
         # in the inferred location with the specified magnitude does not exceed
         # the number of appliances
 
@@ -370,7 +370,7 @@ def classify_edge(edge):
                 metadata_df = read_frame(data, verbose=False)
 
                 in_md_status, df_list = exists_in_metadata(
-                    apt_no, where, math.fabs(magnitude), metadata_df, logger, "DummyDevID")
+                    apt_no, where, "all", math.fabs(magnitude), metadata_df, logger, "dummy_user")
 
                 no_of_appl = len(df_list)
 
@@ -418,7 +418,7 @@ def classify_edge(edge):
         logger.exception("[ClassifyEdgeException]:: %s", e)
         return 'ignore', 'ignore', 'ignore', 'ignore'
 
-    return who, what, where, event
+    return who[0], what, where, event
 
 
 @shared_task
@@ -439,8 +439,7 @@ def find_time_slice(result_labels):
 
         # If no user at home or no identified users, skip off_event
         if (who == 'ignore' and what == 'ignore' and
-            where == 'ignore') or (who == 'Unknown' and
-                                   what == 'Unknown' and
+            where == 'ignore') or (what == 'Unknown' and
                                    where == 'Unknown'):
             return return_error
 
