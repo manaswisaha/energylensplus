@@ -105,18 +105,18 @@ def training_compute_power(apt_no, start_time, end_time):
         s_time = edge_time - edge_window - (5 * sampling_rate)
         e_time = edge_time + edge_window
 
-        logger.debug("Start time: %s", s_time)
-        logger.debug("End time: %s", e_time)
+        # logger.debug("Start time: %s", s_time)
+        # logger.debug("End time: %s", e_time)
 
         # For checking the edge, filter df to include data only in the window of <winmax> seconds
         # around the event time
         streams_df_new = [df[(df.time >= s_time) & (df.time <= e_time)]
                           for df in streams_df_list]
-        logger.debug("Streams %d:\n%s", i, streams_df_new)
+        # logger.debug("Streams %d:\n%s", i, streams_df_new)
 
         # Detect edges for both meters
         edge_list.append(detect_edges_from_meters(streams_df_new))
-    logger.debug("\nEdges_i:\n\n%s", edge_list)
+    # logger.debug("\nEdges_i:\n\n%s", edge_list)
 
     # -------
     # Accumulate start/end edges from each meter
@@ -159,7 +159,7 @@ def training_compute_power(apt_no, start_time, end_time):
                 power_df = power_df[power_df.magnitude < 0]
                 meter_edges_list[l_ix]["end"] = power_df
 
-    logger.debug("Edges: \n%s", meter_edges_list)
+    # logger.debug("Edges: \n%s", meter_edges_list)
 
     if len(meter_edges_list) == 0:
         # No edges detected
