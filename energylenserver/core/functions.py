@@ -8,7 +8,6 @@ from common_imports import *
 from constants import WIFI_THRESHOLD, stay_duration
 from constants import lower_mdp_percent_change, upper_mdp_percent_change
 from energylenserver.models import functions as mod_func
-from energylenserver.core.classifier import classify_movement
 
 
 """
@@ -153,11 +152,26 @@ def determine_user_home_status(start_time, end_time, apt_no):
     return user_list
 
 
-def detect_location_change(duration_df):
-    """
-    Determines if there are any location changes between two time slices
-    """
-    pass
+def classify_movement(apt_no, start_time, end_time, user):
+    logger.debug("[Classifying motion]..")
+    logger.debug("-" * stars)
+
+    try:
+        dev_id = user.dev_id
+
+        # Get test data
+        data = mod_func.get_sensor_data("accelerometer", start_time, end_time, [dev_id])
+        test_df = read_frame(data, verbose=False)
+
+        # Classify
+        pred_label = acl.classify_accl_thres(test_df)
+        test_df['label'] = pred_label
+
+        return test_df
+
+    except Exception, e:
+        logger.exception("[ClassifyMovementException]::%s", e)
+        return False
 
 
 def get_presence_matrix(apt_no, user, start_time, end_time, act_location):

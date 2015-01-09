@@ -466,25 +466,3 @@ def classify_appliance(apt_no, start_time, end_time, user, edge):
         return False
 
     return appliance
-
-
-def classify_movement(apt_no, start_time, end_time, user):
-    logger.debug("[Classifying motion]..")
-    logger.debug("-" * stars)
-
-    try:
-        dev_id = user.dev_id
-
-        # Get test data
-        data = mod_func.get_sensor_data("accelerometer", start_time, end_time, [dev_id])
-        test_df = read_frame(data, verbose=False)
-
-        # Classify
-        pred_label = acl.classify_accl_thres(test_df)
-        test_df['label'] = pred_label
-
-        return test_df
-
-    except Exception, e:
-        logger.exception("[ClassifyMovementException]::%s", e)
-        return False
