@@ -105,14 +105,14 @@ def training_compute_power(apt_no, start_time, end_time):
         s_time = edge_time - edge_window - (5 * sampling_rate)
         e_time = edge_time + edge_window
 
-        # logger.debug("Start time: %s", s_time)
-        # logger.debug("End time: %s", e_time)
+        logger.debug("Start time: %s", s_time)
+        logger.debug("End time: %s", e_time)
 
         # For checking the edge, filter df to include data only in the window of <winmax> seconds
         # around the event time
         streams_df_new = [df[(df.time >= s_time) & (df.time <= e_time)]
                           for df in streams_df_list]
-        # logger.debug("Streams %d:\n%s", i, streams_df_new)
+        logger.debug("Streams %d:\n%s", i, streams_df_new)
 
         # Detect edges for both meters
         edge_list.append(detect_edges_from_meters(streams_df_new))
@@ -159,7 +159,7 @@ def training_compute_power(apt_no, start_time, end_time):
                 power_df = power_df[power_df.magnitude < 0]
                 meter_edges_list[l_ix]["end"] = power_df
 
-    # logger.debug("Edges: \n%s", meter_edges_list)
+    logger.debug("Edges: \n%s", meter_edges_list)
 
     if len(meter_edges_list) == 0:
         # No edges detected
@@ -174,43 +174,59 @@ def training_compute_power(apt_no, start_time, end_time):
         if "start" not in meter_edges or "end" not in meter_edges:
             logger.debug("Keywords missing (start/end)!")
             continue
+
         start_df = meter_edges["start"]
         end_df = meter_edges["end"]
+
+        end_df = end_df.magnitude.abs()
 
         start_len = len(start_df)
         end_len = len(end_df)
         if start_len == 1 and end_len == 1:
             start_mag = start_df.ix[start_df.index[0]]["magnitude"]
-            end_mag = math.fabs(end_df.ix[end_df.index[0]]["magnitude"])
+            end_mag = end_df.ix[end_df.index[0]]["magnitude"]
             # Compute power
             power = compute_power(start_mag, end_mag)
             logger.debug("Power consumed:%s", power)
 
         elif start_len > 1 and end_len > 1:
             # Compare based on the power magnitude
-            logger.debug("CONFUSION!!")
+            logger.debug("Double CONFUSION!!")
+
         elif start_len > 1 or end_len > 1:
             if start_len > 1:
-                start_mag = start_df.ix[start_df.index[0]]["magnitude"]
+                less_df = end_df.copy()
+                more_df = start_df.copy()
+            elif end_len > 1:
+                less_df = start_df.copy()
+                more_df = end_df.copy()
 
-                power = start_mag * percent_change
-                min_mag = start_mag - power
-                max_mag = start_mag - power
+            less_mag = less_df.ix[less_df.index[0]]["magnitude"]
 
-                end_mag_list = [end_df.ix[idx]["magnitude"]
-                                for idx in end_df.index
-                                if end_df.ix[idx]["magnitude"] >= min_mag
-                                and end_df.ix[idx]["magnitude"] <= max_mag]
-                if len(end_mag_list) > 1:
-                    logger.debug("CONFUSION!!")
-                elif len(end_mag_list) == 1:
-                    end_mag = end_mag_list[0]
-                    # Compute power
-                    power = compute_power(start_mag, end_mag)
-                    logger.debug("Power consumed:%s", power)
-                    return power
-                else:
-                    logger.debug("No matching end edges found")
+            power = less_mag * percent_change
+            min_mag = less_mag - power
+            max_mag = less_mag + power
+
+            more_mag_list = [{'mag': more_df.ix[idx]["magnitude"],
+                              'diff': math.fabs(more_df.ix[idx]["magnitude"] - less_mag)}
+                             for idx in more_df.index
+                             if more_df.ix[idx]["magnitude"] >= min_mag
+                             and more_df.ix[idx]["magnitude"] <= max_mag]
+
+            if len(more_mag_list) == 0:
+                logger.debug("No matching end edges found")
+                return power
+
+            more_mag_df = pd.DataFrame(more_mag_list, columns=['mag', 'diff'])
+            more_mag_df = more_mag_df[more_mag_df.diff == more_mag_df.diff.min()]
+            more_mag_df.reset_index(drop=True, inplace=True)
+
+            more_mag = more_mag_df.ix[0]["mag"]
+
+            # Compute power
+            power = compute_power(less_mag, more_mag)
+            logger.debug("Power consumed:%s", power)
+            return power
 
     return power
 
