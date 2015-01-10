@@ -103,7 +103,7 @@ def detect_edges(df):
             edges_df = pd.concat([rise_df, fall_df])
             edges_df = edges_df.set_index('index', drop=True)
 
-        logger.debug("Edges: %s\n", edges_df)
+        # logger.debug("Edges: %s\n", edges_df)
         return edges_df
     except Exception, e:
         logger.exception("[DetectEdgesException]:: %s", e)

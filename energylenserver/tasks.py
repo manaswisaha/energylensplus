@@ -223,7 +223,7 @@ def meterDataHandler(df, file_path):
                                                             meter_logger, "dummy_user")
             if not in_metadata:
                 meter_logger.debug("Detected edge of magnitude %d ignored", magnitude)
-                return
+                continue
 
             # Check if the edge exists in the database
             try:
