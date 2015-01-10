@@ -197,8 +197,11 @@ def meterDataHandler(df, file_path):
     apt_no = meter.apt_no
     meter_logger.debug("Detecting Edges for Apt:: %s UUID:: %s", apt_no, uuid)
 
-    # -- Detect Edge --
-    edges_df = edge_detection.detect_and_filter_edges(df)
+    try:
+        # -- Detect Edge --
+        edges_df = edge_detection.detect_and_filter_edges(df)
+    except Exception, e:
+        meter_logger.exception("[OuterDetectEdgeException]:: %s", str(e))
 
     # -- Store edges into db --
 
@@ -230,9 +233,9 @@ def meterDataHandler(df, file_path):
                 # Edge Filter: filter periodic edges of similar mag
                 # Cause: fridge or washing machine
                 obj = Edges.objects.filter(meter=meter).latest('timestamp')
-                prev_time = obj.timestamp
-                prev_mag = obj.magnitude
-                diff = prev_mag / magnitude
+                prev_time = int(obj.timestamp)
+                prev_mag = math.fabs(obj.magnitude)
+                diff = prev_mag / math.fabs(magnitude)
                 if (diff > 0.8 and diff <= 1) and (edge_time - prev_time < 60):
                     return
                 record = Edges.objects.get(meter=meter, timestamp=edge_time)

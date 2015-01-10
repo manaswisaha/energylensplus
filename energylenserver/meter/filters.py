@@ -94,7 +94,8 @@ def filter_unmon_appl_edges(df):
 
     # Removing a sequence of rise and fall edges which
     # have magnitude within 1% of each other
-    # 'time', 'magnitude', 'type', 'curr_power'
+
+    df_orig = df.copy()
     idx_list = []
     prev_idx = 0
     prev = df.ix[prev_idx]
@@ -114,8 +115,8 @@ def filter_unmon_appl_edges(df):
 
     print df_index
     df_index = df_index - idx_list
-    df = df.ix[df_index].sort(['time'])
-    return df
+    df_orig = df_orig.ix[df_index].sort(['time'])
+    return df_orig
 
 
 def filter_transitional_edges(df):

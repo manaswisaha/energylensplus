@@ -54,11 +54,10 @@ def detect_and_filter_edges(df):
     if len(edges_df) == 0:
         return edges_df
 
-    logger.debug("Before Edges: %s\n", edges_df)
+    logger.debug("Before Edges: \n%s", edges_df)
     edges_df = filter_unmon_appl_edges(edges_df)
+    logger.debug("After Edges: \n%s", edges_df)
     edges_df = filter_transitional_edges(edges_df)
-
-    logger.debug("After Edges: %s\n", edges_df)
 
     return edges_df
 
@@ -111,6 +110,7 @@ def detect_edges(df):
             # Final set of edges
             edges_df = pd.concat([rise_df, fall_df])
             edges_df = edges_df.set_index('index', drop=True)
+            edges_df.reset_index(drop=True, inplace=True)
 
         # logger.debug("Edges: %s\n", edges_df)
         return edges_df
@@ -196,7 +196,7 @@ def check_if_edge(df, index, power_stream):
             if mag_abs <= 50:
                 per_current_val = int(0.45 * mag_abs)
             else:
-                per_current_val = int(0.25 * mag_abs)
+                per_current_val = int(100)
 
         # Removes spikes
         if math.fabs(curr_nextnext_diff) < thresmin:

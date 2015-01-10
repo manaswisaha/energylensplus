@@ -178,10 +178,15 @@ def training_compute_power(apt_no, start_time, end_time):
         start_df = meter_edges["start"]
         end_df = meter_edges["end"]
 
-        end_df = end_df.magnitude.abs()
-
         start_len = len(start_df)
         end_len = len(end_df)
+
+        if start_len == 0 or end_len == 0:
+            logger.debug("Start/End edge set is empty")
+            logger.debug("Power consumed: %s", power)
+            return power
+
+        end_df["magnitude"] = end_df.magnitude.abs()
         if start_len == 1 and end_len == 1:
             start_mag = start_df.ix[start_df.index[0]]["magnitude"]
             end_mag = end_df.ix[end_df.index[0]]["magnitude"]
