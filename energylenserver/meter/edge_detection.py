@@ -137,7 +137,6 @@ def check_if_edge(df, index, power_stream):
         per_thresmin = int(0.5 * thresmin)
 
         time = df.ix[i]['time']
-        # per_current_val = int(0.25 * curr)
 
         # Checking for missing time samples
         prev_time = df.ix[i - 1]['time']
@@ -182,8 +181,13 @@ def check_if_edge(df, index, power_stream):
                 curr_nextnext_diff, curr_prevwin_diff))
         '''
 
-        # logger.debug("[" + t.ctime(time) + "] currnextnextDIFF:" +
-        # str(math.fabs(curr_nextnext_diff))
+        # For falling edge: for comparison with curr_next_diff
+        if magnitude < 0:
+            mag_abs = math.fabs(magnitude)
+            if mag_abs <= 50:
+                per_current_val = int(0.45 * mag_abs)
+            else:
+                per_current_val = int(0.35 * mag_abs)
 
         # Removes spikes
         if math.fabs(curr_nextnext_diff) < thresmin:
@@ -233,7 +237,7 @@ def check_if_edge(df, index, power_stream):
         # Falling Edge
         elif (prev_curr_diff < thresmin and math.floor(magnitude) <= -thresmin
               and ((curr_next_diff != 0) or (curr_next_diff > prev_curr_diff))
-              and math.fabs(curr_prevwin_diff) < thresmin and curr_next_diff >= thresmin):
+              and math.fabs(curr_prevwin_diff) < thresmin and curr_next_diff >= per_current_val):
 
             logger.debug("Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), magnitude))
             logger.debug("tprev=[{0}] prev={1}".format(t.ctime(tprev), prev))
