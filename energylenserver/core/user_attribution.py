@@ -6,6 +6,7 @@ from django_pandas.io import read_frame
 from common_imports import *
 from constants import lower_mdp_percent_change, upper_mdp_percent_change
 from energylenserver.models import functions as mod_func
+from classifier import classify_activity
 from functions import exists_in_metadata
 
 """
@@ -23,7 +24,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
     data = mod_func.retrieve_metadata(apt_no)
     metadata_df = read_frame(data, verbose=False)
 
-    magnitude = math.fabs(magnitude)
+    m_magnitude = math.fabs(magnitude)
 
     users = location.keys()
 
@@ -38,12 +39,21 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
 
         # Check if edge exists in the metadata for the current location
         in_metadata, df_list = exists_in_metadata(
-            apt_no, loc_user, "all", magnitude, metadata_df, logger, dev_id)
+            apt_no, loc_user, "all", m_magnitude, metadata_df, logger, dev_id)
 
     if len(df_list) == 0:
         logger.debug("Edge did not match with the metadata for any user.")
-        logger.debug(
-            "Location classification is incorrect or appliance exhibited a different signature")
+        logger.debug("Location classification is incorrect or Unknown")
+
+        if m_magnitude < 0:
+            # May indicate a non-presence based appliance e.g. Microwave
+            # -- Use metadata i.e. meter only approach
+            where, what = classify_activity(metadata_df, m_magnitude)
+
+            user['dev_id'] = "Unknown"
+            user['location'] = where
+            user['appliance'] = what
+            return user
 
         user['dev_id'] = "Unknown"
         user['location'] = "Unknown"
@@ -128,6 +138,6 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
                         user['location'] = "Unknown"
                         user['appliance'] = "Unknown"
 
-    logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
+    logger.debug("Matched user(s) for edge with mag %d: %s", m_magnitude, user)
 
     return user

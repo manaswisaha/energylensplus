@@ -66,7 +66,7 @@ def detect_edges(df):
 
         ix_list_l = df.index
         first_idx = ix_list_l[0]
-        for idx in range(first_idx + 1, ix_list_l[-1] - winmin + 1):
+        for idx in range(first_idx + 1, ix_list_l[-1] - winmax + 1):
             edge_type, edge = check_if_edge(df, idx, "power")
             if edge_type == "rising":
                 rise_edges.append(edge)
@@ -167,6 +167,7 @@ def check_if_edge(df, index, power_stream):
         # logger.debug("CR [%s] MAG: %s Curr: %s", t.ctime(tcurr), magnitude, curr)
         # logger.debug("CW [%s] Currwin: %s", t.ctime(tcurrwin), currwin)
 
+        '''
         if curr_next_diff >= thresmin and math.fabs(magnitude) >= thresmin:
             logger.debug("EDGETEST::{0}:: TIME: [{1}] MAG::{2}".format(
                 i, t.ctime(time), magnitude))
@@ -178,6 +179,7 @@ def check_if_edge(df, index, power_stream):
                 curr_next_diff, prev_curr_diff))
             logger.debug("curr_nextnext_diff::{0} curr_prevwin_diff::{1}".format(
                 curr_nextnext_diff, curr_prevwin_diff))
+        '''
 
         # logger.debug("[" + t.ctime(time) + "] currnextnextDIFF:" +
         # str(math.fabs(curr_nextnext_diff))
