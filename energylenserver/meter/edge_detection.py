@@ -156,6 +156,14 @@ def check_if_edge(df, index, power_stream):
 
         magnitude = curr_nextwin_diff
 
+        if magnitude > 0:
+            # Indicates a rising edge
+            # Use the winmax window for determining the edge
+            currwin = int(round(df.ix[i + winmax][power_stream]))
+            tcurrwin = int(round(df.ix[i + winmax]['time']))
+            curr_nextwin_diff = int(currwin - curr)
+            magnitude = curr_nextwin_diff
+
         # logger.debug("CR [%s] MAG: %s Curr: %s", t.ctime(tcurr), magnitude, curr)
         # logger.debug("CW [%s] Currwin: %s", t.ctime(tcurrwin), currwin)
 

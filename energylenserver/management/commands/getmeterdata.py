@@ -187,12 +187,12 @@ class Client:
                         self.current_file[uuid] = file_path
                         self.write_to_file(file_path, record)
 
-                    # 2*winmin + 1 is the minimum number of values needed for edge detection
-                    elif msg_count in range(2, 2 * winmin + 2):
+                    # 2*winmax + 1 is the minimum number of values needed for edge detection
+                    elif msg_count in range(2, 2 * winmax + 2):
                         file_path = self.current_file[uuid]
                         self.write_to_file(file_path, record)
 
-                        if msg_count == 2 * winmin + 1:
+                        if msg_count == 2 * winmax + 1:
                             logger.debug("[Detecting edges]...")
                             # Reset current file and msg count for the uuid
                             self.msg_count[uuid] = 0
