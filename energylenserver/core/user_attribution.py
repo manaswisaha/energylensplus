@@ -4,7 +4,6 @@ import numpy as np
 from django_pandas.io import read_frame
 
 from common_imports import *
-from constants import lower_mdp_percent_change, upper_mdp_percent_change
 from energylenserver.models import functions as mod_func
 from classifier import classify_activity
 from functions import exists_in_metadata
