@@ -358,7 +358,7 @@ def get_inferred_activities(dev_id):
     """
     activities = []
 
-    '''
+    # '''
     # Temp code
     usage = random.randint(1000, size=7)
     activities.append(
@@ -376,7 +376,7 @@ def get_inferred_activities(dev_id):
 
     return activities
 
-    '''
+    # '''
 
     report_period = 3600  # 1 hour in seconds
     end_time = time.time()
