@@ -103,9 +103,10 @@ def detect_edges(df):
             edges_df = pd.concat([rise_df, fall_df])
             edges_df = edges_df.set_index('index', drop=True)
 
+        logger.debug("Edges: %s\n", edges_df)
         return edges_df
     except Exception, e:
-        logger.error("[DetectEdgesException]:: %s", e)
+        logger.exception("[DetectEdgesException]:: %s", e)
 
 
 def check_if_edge(df, index, power_stream):
@@ -263,6 +264,6 @@ def check_if_edge(df, index, power_stream):
                 # logger.debug("Fall: None of the conditions satisfied: [" + t.ctime(time) + "]"
                 pass
     except Exception, e:
-        logger.error("[CheckEdgesException]:: %s", e)
+        logger.exception("[CheckEdgesException]:: %s", e)
 
     return "Not an edge", {}

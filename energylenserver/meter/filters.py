@@ -22,7 +22,6 @@ def filter_select_maxtime_edge(df):
     # and which are close to each other in terms of magnitude
     # with maximum timestamp
 
-    # Rising Edges
     tmp_df = df.copy()
     # tmp_df['ts'] = (df.time / 100).astype('int')
     tmp_df['tmin'] = [str(dt.datetime.fromtimestamp(i).hour) + '-' +

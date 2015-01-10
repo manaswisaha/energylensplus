@@ -83,7 +83,7 @@ def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_lo
         if magnitude >= min_md_power and magnitude <= max_md_power:
 
             # Compare magnitude and metadata power draw
-            l_logger.debug("Appliance: %s Power: %s", md_appl, md_power)
+            l_logger.debug("Location: %s Appliance: %s Power: %s", md_loc, md_appl, md_power)
             l_logger.debug("For edge with magnitude %s :: [min_power=%s, max_power=%s]", magnitude,
                            min_md_power, max_md_power)
 
