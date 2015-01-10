@@ -227,6 +227,14 @@ def meterDataHandler(df, file_path):
 
             # Check if the edge exists in the database
             try:
+                # Edge Filter: filter periodic edges of similar mag
+                # Cause: fridge or washing machine
+                obj = Edges.objects.filter(meter=meter).latest('timestamp')
+                prev_time = obj.timestamp
+                prev_mag = obj.magnitude
+                diff = prev_mag / magnitude
+                if (diff > 0.8 and diff <= 1) and (edge_time - prev_time < 60):
+                    return
                 record = Edges.objects.get(meter=meter, timestamp=edge_time)
             except Edges.DoesNotExist, e:
 

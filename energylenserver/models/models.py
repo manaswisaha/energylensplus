@@ -109,6 +109,7 @@ class Edges(models.Model):
     class Meta:
         db_table = 'Edges'
         app_label = app_label_str
+        get_latest_by = 'timestamp'
 
 
 class EventLog(models.Model):

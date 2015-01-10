@@ -10,7 +10,7 @@ pwinmin = 3
 # Common for both edges
 if sampling_rate in [1, 2, 3]:
     winmin = 3  # 3
-    winmax = 6  # 6
+    winmax = 7  # 7
 else:
     winmin = 1
     winmax = 3

@@ -90,9 +90,39 @@ def filter_unmon_appl_edges(df):
     Filters out appliances that are not of interest
     e.g. washing machine, fridge and geyser
     """
-    # --Filter out fridge--
+    # --Filter out washing machine--
 
-    # --Filter out washing machine
+    # Removing a sequence of rise and fall edges which
+    # have magnitude within 1% of each other
+    # 'time', 'magnitude', 'type', 'curr_power'
+    idx_list = []
+    prev_idx = 0
+    prev = df.ix[prev_idx]
+    df_index = df.index
+    df.magnitude = (df.magnitude.abs()).astype('int')
+    df.sort(['time'], inplace=True)
+    for idx in df.index[1:]:
+        curr = df.ix[idx]
+        diff = prev['magnitude'] / curr['magnitude']
+        if (diff > 0.8 and diff <= 1) and (curr['time'] - prev['time'] < 60):
+            if prev_idx not in idx_list:
+                idx_list.append(prev_idx)
+            if idx not in idx_list:
+                idx_list.append(idx)
+        prev = df.ix[idx]
+        prev_idx = idx
+
+    print df_index
+    df_index = df_index - idx_list
+    df = df.ix[df_index].sort(['time'])
+    return df
+
+
+def filter_transitional_edges(df):
+    """
+    Filters out gradually rising/falling edges that are
+    generated when an appliance state is changed
+    """
     return df
 
 

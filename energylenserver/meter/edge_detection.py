@@ -21,24 +21,10 @@ logger = logging.getLogger('energylensplus_meterdata')
 stars = 30
 
 
-def detect_and_filter_edges(df):
-    """
-    1. Detect edges
-    2. Perform Preprocessing Step 1a: Filter appliances that are not of interest
-    e.g. washing machine, fridge and geyser
-
-    :param df:
-    :return edges:
-    """
-    edges_df = detect_edges(df)
-    edges_df = filter_unmon_appl_edges(edges_df)
-
-    return edges_df
-
-
 def detect_edges_from_meters(streams_df):
     """
     Detect edges from both meters
+    Usage: Computing Metadata calculation
     """
     stream_edges = {}
     for i, df_i in enumerate(streams_df):
@@ -52,6 +38,24 @@ def detect_edges_from_meters(streams_df):
         # logger.debug("Stream edges:\n%s", stream_edges)
     logger.debug("Training Data Computation over")
     return stream_edges
+
+
+def detect_and_filter_edges(df):
+    """
+    Entry function for edge detection
+    1. Detect edges
+    2. Perform Preprocessing Step 1a: Filter appliances that are not of interest
+    e.g. washing machine, fridge and geyser
+
+    :param df:
+    :return edges:
+    """
+    edges_df = detect_edges(df)
+    logger.debug("Edges: %s\n", edges_df)
+    edges_df = filter_unmon_appl_edges(edges_df)
+    edges_df = filter_transitional_edges(edges_df)
+
+    return edges_df
 
 
 def detect_edges(df):
