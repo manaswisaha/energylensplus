@@ -51,10 +51,14 @@ def detect_and_filter_edges(df):
     :return edges:
     """
     edges_df = detect_edges(df)
-    if len(edges_df) > 0:
-        logger.debug("Edges: %s\n", edges_df)
+    if len(edges_df) == 0:
+        return edges_df
+
+    logger.debug("Before Edges: %s\n", edges_df)
     edges_df = filter_unmon_appl_edges(edges_df)
     edges_df = filter_transitional_edges(edges_df)
+
+    logger.debug("After Edges: %s\n", edges_df)
 
     return edges_df
 
