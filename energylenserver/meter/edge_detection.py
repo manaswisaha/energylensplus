@@ -192,7 +192,7 @@ def check_if_edge(df, index, power_stream):
             if mag_abs <= 50:
                 per_current_val = int(0.45 * mag_abs)
             else:
-                per_current_val = int(0.35 * mag_abs)
+                per_current_val = int(0.25 * mag_abs)
 
         # Removes spikes
         if math.fabs(curr_nextnext_diff) < thresmin:
