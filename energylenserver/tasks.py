@@ -331,7 +331,7 @@ def classify_edge(edge):
 
                 now_time = int(time.time())
                 if (now_time - event_time) < 30 * 60:
-                    edgeHandler.apply_async(args=[edge], countdown=2 * 60)
+                    edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                 else:
                     edge.delete()
                 return return_error
@@ -347,7 +347,7 @@ def classify_edge(edge):
 
                 now_time = int(time.time())
                 if (now_time - event_time) < 30 * 60:
-                    edgeHandler.apply_async(args=[edge], countdown=2 * 60)
+                    edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                 else:
                     edge.delete()
                 return return_error
@@ -618,9 +618,10 @@ def determine_wastage(apt_no):
 
         on_events = []
 
+        # Retrieve last hour's events
         for event in on_event_records:
             on_time = event.event_time
-            if (now_time - on_time) <= 24 * 60 * 60:
+            if (now_time - on_time) <= 60 * 60:
                 on_events.append(event)
 
         if len(on_events) == 0:
@@ -664,7 +665,7 @@ def determine_wastage(apt_no):
 
                 # Build presence matrix
                 df = core_f.get_presence_matrix(apt_no, user, start_time, end_time, where)
-                logger.debug("ERT DF: %s", df)
+
                 if isinstance(df, NoneType) or len(df) == 0:
                     continue
                 presence_df[str(user_id)] = df['label']
@@ -677,7 +678,7 @@ def determine_wastage(apt_no):
                 return
 
             # Merge slices where the user columns have the same values
-            logger.debug("Presence DF: \n %s", presence_df)
+            # logger.debug("Presence DF: \n %s", presence_df)
             presence_df = core_f.merge_presence_matrix(presence_df)
             logger.debug("Merged Presence Matrix:\n %s", presence_df)
 

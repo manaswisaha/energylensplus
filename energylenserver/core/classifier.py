@@ -49,7 +49,18 @@ def get_trained_model(sensor, apt_no, phone_model):
             filename_arr = file_i.split("_")
             # Use model if exists
             if filename_arr[0] == str(apt_no) and filename_arr[1] == phone_model:
-                model = joblib.load(dst_folder + file_i)
+                no_appl_model = filename_arr[2]
+                # Number of appliances in the metadata
+                data = mod_func.retrieve_metadata(apt_no)
+                metadata_df = read_frame(data, verbose=False)
+                m_appl_count = len(metadata_df.appliance.unique())
+
+                if no_appl_model >= m_appl_count:
+                    model = joblib.load(dst_folder + file_i)
+                else:
+                    # Else create a new training model
+                    model = audio.train_audio_classfication_model(sensor, apt_no, phone_model)
+
             # Else create a new training model
             else:
                 model = audio.train_audio_classfication_model(sensor, apt_no, phone_model)
@@ -304,7 +315,7 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
             test_df = pre_p_a.format_data_for_classification(test_df)
 
             # Extract features
-            test_df = audio.extract_features(df, "test", apt_no)
+            test_df = audio.extract_features(test_df, "test", apt_no)
 
             # Classify
             pred_label = audio.determine_appliance(sensor, train_model, test_df)

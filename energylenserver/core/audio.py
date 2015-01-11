@@ -22,8 +22,9 @@ from django_pandas.io import read_frame
 
 from constants import *
 from common_imports import *
-from energylenserver.preprocessing import audio as pre_p_a
 from energylenserver.audio.features import MFCC
+from energylenserver.models import functions as mod_func
+from energylenserver.preprocessing import audio as pre_p_a
 
 base_dir = settings.BASE_DIR
 
@@ -50,11 +51,11 @@ def train_audio_classfication_model(sensor, apt_no, phone_model):
         train_df = pre_p_a.format_data_for_classification(train_df)
 
         # Extract features
-        train_df = extract_features(df, "train", apt_no)
+        train_df = extract_features(train_df, "train", apt_no)
         features = train_df.columns[2:-2]
 
     classes = train_df['label'].unique()
-    logger.debug("Appliances Clases :%s", classes)
+    logger.debug("Appliances Classes :%s", classes)
 
     # Train SVM Model
     clf = SVC()
@@ -93,7 +94,7 @@ def determine_appliance(sensor, train_model, test_df):
             # Features
             features = test_df.columns[3:-2]
         else:
-            features = train_df.columns[2:-2]
+            features = test_df.columns[2:-2]
 
         # Run NB/GMM/SVM algorithm to predict sound events for the data points
         pred_label = train_model.predict(test_df[features])
@@ -125,21 +126,20 @@ def extract_features(df, dataset_type, apt_no):
 
             for class_i in classes:
                 df_new = df[df.comb_label == class_i]
-                filename = dst_folder + class_i + "_" + apt_no + ".csv"
+                filename = (dst_folder + str(int(time.time())) + class_i + "_" +
+                            str(apt_no) + "_" + ".csv")
                 df_new.to_csv(filename, index=False)
 
                 # Store created files in csv_files
                 csv_files.append(filename)
 
-            logger.debug("Files: %s", csv_files)
+            # logger.debug("Files: %s", csv_files)
             df_arr = [pd.read_csv(i) for i in csv_files]
 
             # Delete all the created csv files
-            for the_file in os.listdir(dst_folder):
-                file_path = os.path.join(dst_folder, the_file)
+            for the_file in csv_files:
                 try:
-                    # if os.path.isfile(file_path):
-                    os.unlink(file_path)
+                    os.unlink(the_file)
                 except Exception, e:
                     logger.exception("[MFCCFileDeletionException]:: %s", e)
         else:
@@ -149,7 +149,6 @@ def extract_features(df, dataset_type, apt_no):
         Audio Processing:
             Converting signal into frames, apply window to each frame
             and extract features from each frame
-
         """
 
         feature_vec = []
@@ -167,7 +166,6 @@ def extract_features(df, dataset_type, apt_no):
             """
             Preprocessing:
                 framing, windowing, filtering
-
             """
 
             if raw_values.ndim > 1:
@@ -176,13 +174,21 @@ def extract_features(df, dataset_type, apt_no):
 
             # Framing
             frames = (len(raw_values) - MFCC.FRAME_LEN) / MFCC.FRAME_SHIFT + 1
-            # print "Number of frames::", frames
+            # logger.debug("Number of frames::%s", frames)
 
+            # Windowing
             for f in range(frames):
 
-                # Windowing
-                frame = raw_values[
-                    f * MFCC.FRAME_SHIFT: f * MFCC.FRAME_SHIFT + MFCC.FRAME_LEN] * MFCC.WINDOW
+                try:
+                    sliced_raw_val = raw_values[
+                        f * MFCC.FRAME_SHIFT: f * MFCC.FRAME_SHIFT + MFCC.FRAME_LEN]
+                    frame = sliced_raw_val * MFCC.WINDOW
+                except Exception, e:
+                    logger.exception("WindowException: %s", e)
+                    filename = dst_folder + str(time.time()) + 'rawvwindow_issue.txt'
+                    sliced_raw_val.tofile(filename, sep=" ", format="%s")
+                    continue
+
                 time_val = timestamp[f * MFCC.FRAME_SHIFT: f * MFCC.FRAME_SHIFT + MFCC.FRAME_LEN]
 
                 time_i = time_val[0]

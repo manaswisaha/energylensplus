@@ -114,18 +114,4 @@ def extract(frame):
     X = dot(D, log(dot(M, X)))
     frame_features = X
 
-    # Show the MFCC spectrum before normalization
-    # if show:
-    #     figure().show()
-    #     subplot(2,1,2)
-    #     show_MFCC_spectrum(feature)
-    # Mean & variance normalization
-    # if feature.shape[0] > 1:
-    #     mu = mean(feature, axis=0)
-    #     sigma = std(feature, axis=0)
-    #     feature = (feature - mu) / sigma
-    # Show the MFCC
-    # subplot(2,1,1)
-    # show_MFCC(feature)
-    # draw()
     return frame_features

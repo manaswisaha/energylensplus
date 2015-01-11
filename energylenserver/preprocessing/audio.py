@@ -49,14 +49,14 @@ def format_data_for_classification(df):
 
     # For the entry at the last index
     idx = df.index[-1]
-    curr_time = df.ix[idx]['timestamp']
+    curr_time = float(df.ix[idx]['timestamp'])
     label = df.ix[idx]['label']
     location = df.ix[idx]['location']
     values = df.ix[idx]['value']
     values = values.split(',')
     len_values = len(values)
-    logger.debug("Length: %s", len_values)
-    logger.debug("Fraction: %s", frac)
+    # logger.debug("Length: %s", len_values)
+    # logger.debug("Fraction: %s", frac)
 
     time_to_add = curr_time
     for j in values:
@@ -70,5 +70,6 @@ def format_data_for_classification(df):
     df = pd.DataFrame(
         {'time': time_l, 'value': value_l, 'label': label_l,
                          'location': location_l}, columns=columns)
+    df['value'] = df['value'].astype('int')
 
     return df
