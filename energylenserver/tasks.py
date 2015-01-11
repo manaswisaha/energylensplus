@@ -329,7 +329,11 @@ def classify_edge(edge):
                 continue
             elif location == no_test_data:
 
-                edgeHandler.apply_async(args=[edge], countdown=2 * 60)
+                now_time = int(time.time())
+                if (now_time - event_time) < 30 * 60:
+                    edgeHandler.apply_async(args=[edge], countdown=2 * 60)
+                else:
+                    edge.delete()
                 return return_error
             else:
                 location_dict[dev_id] = location
@@ -341,7 +345,11 @@ def classify_edge(edge):
                 continue
             elif appliance == no_test_data:
 
-                edgeHandler.apply_async(args=[edge], countdown=2 * 60)
+                now_time = int(time.time())
+                if (now_time - event_time) < 30 * 60:
+                    edgeHandler.apply_async(args=[edge], countdown=2 * 60)
+                else:
+                    edge.delete()
                 return return_error
             else:
                 appliance_dict[dev_id] = appliance
