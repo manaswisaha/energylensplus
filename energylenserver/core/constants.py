@@ -28,3 +28,7 @@ wastage_threshold = upload * 5 * 60  # 5 minutes
 
 # Stay duration
 stay_duration = 3 * 60  # 3 minutes
+
+
+# Return errors
+wifi_no_test_data = "Insufficient test data"

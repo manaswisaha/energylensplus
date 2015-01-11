@@ -27,7 +27,7 @@ from energylenserver.common_imports import *
 from energylenserver.core import functions as func
 from energylenserver.models import functions as mod_func
 from energylenserver.preprocessing import wifi as pre_p
-from constants import lower_mdp_percent_change, upper_mdp_percent_change
+from constants import lower_mdp_percent_change, upper_mdp_percent_change, wifi_no_test_data
 
 
 base_dir = settings.BASE_DIR
@@ -310,7 +310,7 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
         logger.debug("Pre-labeled locations: %s", location_list)
         if len(location_list) == 0:
             logger.debug("Insufficient test data")
-            return False
+            return wifi_no_test_data
 
         if "none" not in location_list and "Unknown" not in location_list:
             location = func.get_max_class(test_df['label'])

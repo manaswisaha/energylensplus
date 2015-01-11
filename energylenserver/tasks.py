@@ -256,6 +256,7 @@ def meterDataHandler(df, file_path):
             meter_logger.error("[EdgeSaveException]:: %s", str(e))
 
 
+@shared_task
 def edgeHandler(edge):
     """
     Starts the classification pipeline and relays edges based on edge type
@@ -322,10 +323,13 @@ def classify_edge(edge):
             # Step 1: Determine location for every user
             location = classifier.classify_location(
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
-            if location:
-                location_dict[dev_id] = location
-            else:
+            if isinstance(location, bool):
                 continue
+            elif location == wifi_no_test_data:
+                edgeHandler.async((edge), countdown=2)
+                return return_error
+            else:
+                location_dict[dev_id] = location
 
             # Step 2: Determine appliance for every user
             appliance = classifier.classify_appliance(
@@ -337,9 +341,9 @@ def classify_edge(edge):
         logger.debug("Determined Appliances: %s", appliance_dict)
 
         if len(location_dict) == 0 or len(appliance_dict) == 0:
-            return 'ignore', 'ignore', 'ignore', 'ignore'
+            return return_error
         elif False in location_dict or False in appliance_dict:
-            return 'ignore', 'ignore', 'ignore', 'ignore'
+            return return_error
 
         # Step 3: Determine user based on location, appliance and metadata
         if n_users_at_home > 1:
