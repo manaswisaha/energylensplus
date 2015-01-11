@@ -32,6 +32,10 @@ def get_max_class(pred_label_list):
     Returns the label with the maximum count
     """
 
+    if len(pred_label_list) == 0:
+        logger.debug("Predicted label list empty!")
+        return "Unknown"
+
     pred_list = list_count_items(pred_label_list)
     logger.debug("Predicted list: %s", pred_list)
 
@@ -58,7 +62,8 @@ def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_lo
     Checks if edge of specified magnitude exists in the metadata
     """
 
-    if appliance == "all" and location == "all":
+    if (appliance == "all" and location == "all") or (appliance == "not_all"
+                                                      and location == "not_all"):
         mdf = metadata_df.copy()
     elif appliance == "all" and location != "all":
         # Extract metadata for the current location of the user
@@ -155,7 +160,6 @@ def determine_user_home_status(start_time, end_time, apt_no):
 
 def classify_movement(apt_no, start_time, end_time, user):
     logger.debug("[Classifying motion]..")
-    logger.debug("-" * stars)
 
     try:
         dev_id = user.dev_id
@@ -186,9 +190,10 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
     return  duration_df
     """
 
+    dev_id = user.dev_id
     # Get classified Wifi data
     # data = mod_func.get_labeled_data("wifi", start_time, end_time, act_location, [user])
-    data = mod_func.get_sensor_data("wifi", start_time, end_time, [user])
+    data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
 
     labeled_df = read_frame(data, verbose=False)
     labeled_df.sort(['timestamp'], inplace=True)
@@ -272,8 +277,9 @@ def merge_presence_matrix(presence_df):
         user_columns = presence_df.columns - ['start_time', 'end_time']
 
         merged_presence_df = presence_df.copy()
+
+        prev_idx = presence_df.index[0]
         for idx in presence_df.index[1:]:
-            prev_idx = idx - 1
 
             row = presence_df.ix[idx]
             prev_row = presence_df.ix[prev_idx]
@@ -287,6 +293,8 @@ def merge_presence_matrix(presence_df):
             if flag:
                 merged_presence_df.ix[idx, 'start_time'] = presence_df.ix[prev_idx]['start_time']
                 merged_presence_df.drop(prev_idx, inplace=True)
+
+            prev_idx = idx
 
         merged_presence_df.reset_index(drop=True, inplace=True)
         return merged_presence_df

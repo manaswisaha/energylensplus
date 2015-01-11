@@ -11,6 +11,7 @@ Author: Manaswi Saha
 
 import os
 import time
+import pandas as pd
 
 from django_pandas.io import read_frame
 from django.conf import settings
@@ -28,134 +29,7 @@ from energylenserver.preprocessing import wifi as pre_p
 from constants import lower_mdp_percent_change, upper_mdp_percent_change
 
 
-stars = 40
 base_dir = settings.BASE_DIR
-
-
-def classify_activity(metadata_df, magnitude):
-    """
-    Uses metadata matching to determine appliance and location
-    """
-
-    # Check for existence
-    md_list = []
-    for md_i in metadata_df.index:
-        md_power = metadata_df.ix[md_i]['power']
-        md_appl = metadata_df.ix[md_i]['appliance']
-        md_loc = metadata_df.ix[md_i]['location']
-
-        min_md_power = math.floor(md_power - lower_mdp_percent_change * md_power)
-        max_md_power = math.ceil(md_power + upper_mdp_percent_change * md_power)
-
-        # Matching metadata with inferred
-        if magnitude >= min_md_power and magnitude <= max_md_power:
-            md_power_diff = math.fabs(md_power - magnitude)
-            md_list.append(pd.DataFrame({'md_loc': md_loc, 'md_appl': md_appl,
-                                         'md_power_diff': md_power_diff},
-                                        index=[magnitude]))
-
-    # Determine location and appliance in use
-    fil_md_df = pd.concat(md_list)
-    fil_md_df.reset_index(drop=True, inplace=True)
-
-    if len(fil_md_df) == 0:
-        location = "Unknown"
-        appliance = "Unknown"
-        return location, appliance
-
-    fil_md_df = fil_md_df[fil_md_df.md_power_diff == fil_md_df.md_power_diff.min()]
-    fil_md_df.reset_index(drop=True, inplace=True)
-
-    if len(fil_md_df) > 1:
-        # If all the appliances and corresponding location are same,
-        # then assign with it else error
-        u_appl_count = len(fil_md_df.md_appl.unique().tolist())
-        u_loc_count = len(fil_md_df.md_loc.unique().tolist())
-
-        # Appliance assignment
-        if u_appl_count == 1:
-            appliance = fil_md_df.ix[0]['md_appl']
-        else:
-            appliance = "Unknown"
-
-        # Location assignment
-        if u_loc_count == 1:
-            location = fil_md_df.ix[0]['md_loc']
-        else:
-            location = "Unknown"
-
-    else:
-        location = fil_md_df.ix[0]['md_loc']
-        appliance = fil_md_df.ix[0]['md_appl']
-
-    return location, appliance
-
-
-def correct_label(label, pred_label, label_type, edge):
-    """
-    Classified label correction using Metadata
-    Procedure: Match with the Metadata. If doesn't match then correct based on magnitude
-    """
-    apt_no = edge.meter.apt_no
-    magnitude = edge.magnitude
-    old_label = label
-
-    # Get Metadata
-    data = mod_func.retrieve_metadata(apt_no)
-    metadata_df = read_frame(data, verbose=False)
-
-    if label_type == "location":
-        in_metadata, matched_md = exists_in_metadata(
-            apt_no, label, "all", magnitude, metadata_df, logger, "dummy_user")
-    else:
-        in_metadata, matched_md = exists_in_metadata(
-            apt_no, "all", label, magnitude, metadata_df, logger, "dummy_user")
-
-    if not in_metadata:
-        # Select the one closest to the metadata
-
-        in_metadata, matched_md = exists_in_metadata(
-            apt_no, "not_all", "not_all", magnitude, metadata_df, logger, "dummy_user")
-
-        if in_metadata:
-            matched_md = matched_md[
-                matched_md.md_power_diff == matched_md.md_power_diff.min()]
-            logger.debug(
-                "Entry with least distance from the metadata:\n %s", matched_md)
-            if label_type == "location":
-                unique_label = matched_md.md_loc.unique().tolist()
-            else:
-                unique_label = matched_md.md_appl.unique().tolist()
-
-            if len(unique_label) == 1:
-                label = unique_label[0]
-            else:
-                # Multiple matched entries - select the one with the
-                # maximum count in the pred_label
-                idict = func.list_count_items(pred_label)
-
-                # Remove the entries not in unique label list
-                filtered_l = [key for key in idict.keys() if key in unique_label]
-
-                # Get the max count
-                new_label_list = []
-                for key in filtered_l:
-                    for l in pred_label:
-                        if key == l:
-                            new_label_list.append(key)
-
-                label = func.get_max_class(new_label_list)
-
-        else:
-            # No matching metadata found
-            # Cause: different power consumption of an appliance
-            # Solution: Select the one with the highest value
-            new_label_list = [l for l in pred_label if l != old_label]
-            label = func.get_max_class(new_label_list)
-
-    logger.debug("Corrected Label: %s --> %s", old_label, label)
-
-    return label
 
 
 def get_trained_model(sensor, apt_no, phone_model):
@@ -343,8 +217,84 @@ def localize_new_data(apt_no, start_time, end_time, user):
         return False
 
 
+def correct_label(label, pred_label, label_type, edge):
+    """
+    Classified label correction using Metadata
+    Procedure: Match with the Metadata. If doesn't match then correct based on magnitude
+    """
+    logger.debug("[Correcting Labeling]")
+    logger.debug("-" * stars)
+
+    apt_no = edge.meter.apt_no
+    magnitude = math.fabs(edge.magnitude)
+    old_label = label
+
+    # Get Metadata
+    data = mod_func.retrieve_metadata(apt_no)
+    metadata_df = read_frame(data, verbose=False)
+
+    if label_type == "location":
+        in_metadata, matched_md = func.exists_in_metadata(
+            apt_no, label, "all", magnitude, metadata_df, logger, "dummy_user")
+    else:
+        in_metadata, matched_md = func.exists_in_metadata(
+            apt_no, "all", label, magnitude, metadata_df, logger, "dummy_user")
+
+    if not in_metadata:
+        # Select the one closest to the metadata
+
+        logger.debug("Label not found in Metadata. Checking all entries..")
+
+        in_metadata, matched_md_list = func.exists_in_metadata(
+            apt_no, "not_all", "not_all", magnitude, metadata_df, logger, "dummy_user")
+
+        if in_metadata:
+            matched_md = pd.concat(matched_md_list)
+            matched_md = matched_md[
+                matched_md.md_power_diff == matched_md.md_power_diff.min()]
+            logger.debug(
+                "Entry with least distance from the metadata:\n %s", matched_md)
+            if label_type == "location":
+                unique_label = matched_md.md_loc.unique().tolist()
+            else:
+                unique_label = matched_md.md_appl.unique().tolist()
+
+            if len(unique_label) == 1:
+                label = unique_label[0]
+            else:
+                # Multiple matched entries - select the one with the
+                # maximum count in the pred_label
+                idict = func.list_count_items(pred_label)
+
+                # Remove the entries not in unique label list
+                filtered_l = [key for key in idict.keys() if key in unique_label]
+
+                # Get the max count
+                new_label_list = []
+                for key in filtered_l:
+                    for l in pred_label:
+                        if key == l:
+                            new_label_list.append(key)
+
+                label = func.get_max_class(new_label_list)
+
+        else:
+            # No matching metadata found
+            # Cause: different power consumption of an appliance
+            # Solution: Select the one with the highest value
+
+            logger.debug("No metadata found")
+            new_label_list = [l for l in pred_label if l != old_label]
+            label = func.get_max_class(new_label_list)
+
+    logger.debug("Corrected Label: %s --> %s", old_label, label)
+
+    return label
+
+
 def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home):
-    logger.debug("[Classifying location]..")
+    logger.debug("[Classifying location]")
+    logger.debug("-" * stars)
 
     try:
         pmodel = user.phone_model
@@ -364,7 +314,7 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
         if "none" not in location_list and "Unknown" not in location_list:
             location = func.get_max_class(test_df['label'])
             if n_users_at_home == 1:
-                location = correct_label(location, test_df['label'], edge)
+                location = correct_label(location, test_df['label'], 'location', edge)
                 data.update(label=location)
             return location
         # '''
@@ -401,7 +351,7 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
             location = func.get_max_class(sliced_df['pred_label'])
 
         if n_users_at_home == 1:
-            location = correct_label(location, sliced_df['pred_label'], edge)
+            location = correct_label(location, sliced_df['pred_label'], 'location', edge)
         data.update(label=location)
 
         # data = data_all.filter(dev_id__in=[dev_id],
@@ -421,8 +371,8 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
     return location
 
 
-def classify_appliance(apt_no, start_time, end_time, user, edge):
-    logger.debug("[Classifying appliance]..")
+def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home):
+    logger.debug("[Classifying appliance]")
     logger.debug("-" * stars)
 
     try:
@@ -436,21 +386,31 @@ def classify_appliance(apt_no, start_time, end_time, user, edge):
         data = mod_func.get_sensor_data("audio", start_time, end_time, [dev_id])
         test_df = read_frame(data, verbose=False)
 
-        # Classify
-        pred_label = audio.determine_appliance(train_model, test_df)
-        test_df['pred_label'] = pred_label
+        if len(test_df) == 0:
+            appliance = "Unknown"
+            logger.debug("No audio test data")
+        else:
 
-        # Save appliance label to the database
+            # Classify
+            pred_label = audio.determine_appliance(train_model, test_df)
+            test_df['pred_label'] = pred_label
+
+            appliance = func.get_max_class(test_df['pred_label'])
+
+        '''
         sliced_df = test_df[
-            (test_df.timestamp >= (start_time + 45)) & (test_df.timestamp) <= end_time]
+            (test_df.timestamp >= (start_time + 60)) & (test_df.timestamp) <= end_time]
 
         if len(sliced_df) == 0:
             appliance = "Unknown"
         else:
             appliance = func.get_max_class(sliced_df['pred_label'])
+        '''
 
         if n_users_at_home == 1:
-            appliance = correct_label(appliance, sliced_df['pred_label'], edge)
+            appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge)
+
+        # Save appliance label to the database
         data.update(label=appliance)
         return appliance
 
@@ -459,3 +419,62 @@ def classify_appliance(apt_no, start_time, end_time, user, edge):
         return False
 
     return appliance
+
+
+def classify_activity(metadata_df, magnitude):
+    """
+    Uses metadata matching to determine appliance and location
+    """
+
+    # Check for existence
+    md_list = []
+    for md_i in metadata_df.index:
+        md_power = metadata_df.ix[md_i]['power']
+        md_appl = metadata_df.ix[md_i]['appliance']
+        md_loc = metadata_df.ix[md_i]['location']
+
+        min_md_power = math.floor(md_power - lower_mdp_percent_change * md_power)
+        max_md_power = math.ceil(md_power + upper_mdp_percent_change * md_power)
+
+        # Matching metadata with inferred
+        if magnitude >= min_md_power and magnitude <= max_md_power:
+            md_power_diff = math.fabs(md_power - magnitude)
+            md_list.append(pd.DataFrame({'md_loc': md_loc, 'md_appl': md_appl,
+                                         'md_power_diff': md_power_diff},
+                                        index=[magnitude]))
+
+    # Determine location and appliance in use
+    fil_md_df = pd.concat(md_list)
+    fil_md_df.reset_index(drop=True, inplace=True)
+
+    if len(fil_md_df) == 0:
+        location = "Unknown"
+        appliance = "Unknown"
+        return location, appliance
+
+    fil_md_df = fil_md_df[fil_md_df.md_power_diff == fil_md_df.md_power_diff.min()]
+    fil_md_df.reset_index(drop=True, inplace=True)
+
+    if len(fil_md_df) > 1:
+        # If all the appliances and corresponding location are same,
+        # then assign with it else error
+        u_appl_count = len(fil_md_df.md_appl.unique().tolist())
+        u_loc_count = len(fil_md_df.md_loc.unique().tolist())
+
+        # Appliance assignment
+        if u_appl_count == 1:
+            appliance = fil_md_df.ix[0]['md_appl']
+        else:
+            appliance = "Unknown"
+
+        # Location assignment
+        if u_loc_count == 1:
+            location = fil_md_df.ix[0]['md_loc']
+        else:
+            location = "Unknown"
+
+    else:
+        location = fil_md_df.ix[0]['md_loc']
+        appliance = fil_md_df.ix[0]['md_appl']
+
+    return location, appliance

@@ -5,7 +5,7 @@ from django_pandas.io import read_frame
 
 from common_imports import *
 from energylenserver.models import functions as mod_func
-from classifier import classify_activity
+from classifier import classify_activity, correct_label
 from functions import exists_in_metadata
 
 """
@@ -13,10 +13,12 @@ User Attribution Module
 """
 
 
-def identify_user(apt_no, magnitude, location, appliance, user_list):
+def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
     """
     Identifies the occupant who performed the inferred activity
     """
+    logger.debug("[Identifying users]")
+    logger.debug("-" * stars)
     user = {}
 
     # Get Metadata
@@ -37,8 +39,10 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
             continue
 
         # Check if edge exists in the metadata for the current location
-        in_metadata, df_list = exists_in_metadata(
+        in_metadata, tmp_list = exists_in_metadata(
             apt_no, loc_user, "all", m_magnitude, metadata_df, logger, dev_id)
+
+        df_list = df_list + tmp_list
 
     if len(df_list) == 0:
         logger.debug("Edge did not match with the metadata for any user.")
@@ -74,20 +78,28 @@ def identify_user(apt_no, magnitude, location, appliance, user_list):
             # Indicates that there is single contender
             dev_id = contending_users[0]
 
+            appliance = correct_label(appliance[dev_id], [appliance[dev_id]], 'appliance', edge)
+
             user['dev_id'] = [dev_id]
             user['location'] = location[dev_id]
-            user['appliance'] = appliance[dev_id]
+            user['appliance'] = appliance
 
         else:
             # There are contending users for this edge
             # Matching appliance for resolving conflict
+            idx_list = []
+            poss_user_orig = poss_user.copy()
             for user_i in contending_users:
                 appl = appliance[user_i]
-                poss_user = poss_user[poss_user.md_appl == appl]
-                if len(poss_user) == 0:
-                    idx = poss_user.index[np.where(poss_user.dev_id == user_i)[0]]
+                logger.debug("User: %s Appl: %s", user_i, appl)
+                poss_user = poss_user_orig[poss_user_orig.md_appl == appl]
+                if len(poss_user) != 0:
+                    #     idx = poss_user.index[np.where(poss_user.dev_id == user_i)[0]]
                     # Remove records
-                    poss_user = poss_user.drop(idx)
+                    #     poss_user = poss_user.drop(idx)
+                    # else:
+                    idx_list += poss_user.index.tolist()
+            poss_user = poss_user_orig.ix[idx_list]
 
             logger.debug("Filtered entry for multiple contending users:\n %s", poss_user)
             contending_users = poss_user.dev_id.unique().tolist()

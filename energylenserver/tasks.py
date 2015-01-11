@@ -237,7 +237,7 @@ def meterDataHandler(df, file_path):
                 prev_mag = math.fabs(obj.magnitude)
                 diff = prev_mag / math.fabs(magnitude)
                 if (diff > 0.8 and diff <= 1) and (edge_time - prev_time < 60):
-                    return
+                    continue
                 record = Edges.objects.get(meter=meter, timestamp=edge_time)
             except Edges.DoesNotExist, e:
 
@@ -343,7 +343,8 @@ def classify_edge(edge):
 
         # Step 3: Determine user based on location, appliance and metadata
         if n_users_at_home > 1:
-            user = attrib.identify_user(apt_no, magnitude, location_dict, appliance_dict, user_list)
+            user = attrib.identify_user(
+                apt_no, magnitude, location_dict, appliance_dict, user_list, edge)
             who = user['dev_id']
             where = user['location']
             what = user['appliance']
@@ -614,8 +615,11 @@ def determine_wastage(apt_no):
             what = event.appliance
             where = event.location
 
+            if what == "Unknown":
+                continue
+
             # Go ahead only if it is a presence based appliance
-            md_entry = mod_func.retrieve_metadata_for_appliance(apt_no, what)[0]
+            md_entry = (mod_func.retrieve_metadata_for_appliance(apt_no, what))[0]
 
             if not md_entry.presence_based:
                 continue
@@ -627,7 +631,7 @@ def determine_wastage(apt_no):
                     continue
 
                 # Build presence matrix
-                df = core_f.get_presence_matrix(apt_no, user_id, start_time, end_time, where)
+                df = core_f.get_presence_matrix(apt_no, user, start_time, end_time, where)
                 logger.debug("ERT DF: %s", df)
                 if isinstance(df, NoneType) or len(df) == 0:
                     continue
