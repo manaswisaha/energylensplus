@@ -651,11 +651,12 @@ def determine_wastage(apt_no):
 
             # Determine wastage - find rooms of activity that are empty
             user_columns = presence_df.columns - ['start_time', 'end_time']
-            col_sum = presence_df.ix[:, user_columns].sum(axis=1, numeric_only=True)
-            w_slices_ix = presence_df.index[np.where(col_sum == 0)[0]]
+            last_idx = presence_df.index[-1]
+            col_sum = presence_df.ix[last_idx, user_columns].sum(axis=1, numeric_only=True)
+            # w_slices_ix = presence_df.index[np.where(col_sum == 0)[0]]
 
             # Save and send notifications to all the users
-            if len(w_slices_ix) > 0:
+            if col_sum == 0:
                 message = "Energy wastage detected in %s! %s is left ON." % (
                     where, what)
                 # Save
