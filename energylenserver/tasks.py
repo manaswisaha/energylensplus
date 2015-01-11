@@ -329,7 +329,7 @@ def classify_edge(edge):
                 continue
             elif location == no_test_data:
 
-                edgeHandler.apply_async(args=[edge], countdown=timedelta(seconds=120))
+                edgeHandler.apply_async(args=[edge], countdown=2 * 60)
                 return return_error
             else:
                 location_dict[dev_id] = location
