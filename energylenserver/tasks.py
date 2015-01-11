@@ -596,7 +596,8 @@ def determine_wastage(apt_no):
     """
     logger.debug("Periodic Energy Wastage Detector started..")
     try:
-        end_time = int(time.time() - upload_interval)
+        now_time = int(time.time())
+        end_time = now_time - upload_interval
         start_time = end_time - wastage_threshold
 
         # Determine the on going events
@@ -605,6 +606,16 @@ def determine_wastage(apt_no):
         logger.debug("Number of ongoing events: %s", n_on_event_records)
 
         if n_on_event_records == 0:
+            return
+
+        on_events = []
+
+        for event in on_event_records:
+            on_time = event.event_time
+            if (now_time - on_time) <= 24 * 60 * 60:
+                on_events.append(event)
+
+        if len(on_events) == 0:
             return
 
         # Determine users at home
@@ -623,7 +634,7 @@ def determine_wastage(apt_no):
             pres_loc[user.dev_id] = []
 
         presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
-        for event in on_event_records:
+        for event in on_events:
 
             what = event.appliance
             where = event.location
