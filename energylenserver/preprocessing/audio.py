@@ -23,8 +23,8 @@ def format_data_for_classification(df):
     value_l = []
     frac = 0.0
     for idx in df.index[:-1]:
-        curr_time = long(df.ix[idx]['timestamp'])
-        next_time = long(df.ix[idx + 1]['timestamp'])
+        curr_time = float(df.ix[idx]['timestamp'])
+        next_time = float(df.ix[idx + 1]['timestamp'])
         diff = next_time - curr_time
 
         label = df.ix[idx]['label']
@@ -32,7 +32,7 @@ def format_data_for_classification(df):
         values = df.ix[idx]['value']
         values = values.split(',')
         len_values = len(values)
-        # print "Length", len_values
+        # logger.debug("Length: %s", len_values)
 
         frac = float(diff) / len_values
 
@@ -41,7 +41,7 @@ def format_data_for_classification(df):
 
         time_to_add = curr_time
         for j in values:
-            time_l.append(long(time_to_add))
+            time_l.append(float(time_to_add))
             value_l.append(j)
             label_l.append(label)
             location_l.append(location)
@@ -55,12 +55,12 @@ def format_data_for_classification(df):
     values = df.ix[idx]['value']
     values = values.split(',')
     len_values = len(values)
-    # logger.debug("Length: %s", len_values)
-    # logger.debug("Fraction: %s", frac)
+    logger.debug("Length: %s", len_values)
+    logger.debug("Fraction: %s", frac)
 
     time_to_add = curr_time
     for j in values:
-        time_l.append(long(time_to_add))
+        time_l.append(float(time_to_add))
         value_l.append(j)
         label_l.append(label)
         location_l.append(location)
