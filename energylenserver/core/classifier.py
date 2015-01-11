@@ -398,6 +398,9 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
 
             appliance = func.get_max_class(test_df['pred_label'])
 
+            if n_users_at_home == 1:
+                appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge)
+
         '''
         sliced_df = test_df[
             (test_df.timestamp >= (start_time + 60)) & (test_df.timestamp) <= end_time]
@@ -407,9 +410,6 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
         else:
             appliance = func.get_max_class(sliced_df['pred_label'])
         '''
-
-        if n_users_at_home == 1:
-            appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge)
 
         # Save appliance label to the database
         data.update(label=appliance)
