@@ -29,7 +29,7 @@ def format_data_for_classification(df):
 
         label = df.ix[idx]['label']
         location = df.ix[idx]['location']
-        values = df.ix[idx]['values']
+        values = df.ix[idx]['value']
         values = values.split(',')
         len_values = len(values)
         # print "Length", len_values
@@ -52,7 +52,7 @@ def format_data_for_classification(df):
     curr_time = df.ix[idx]['timestamp']
     label = df.ix[idx]['label']
     location = df.ix[idx]['location']
-    values = df.ix[idx]['values']
+    values = df.ix[idx]['value']
     values = values.split(',')
     len_values = len(values)
     # logger.debug("Length: %s", len_values)
