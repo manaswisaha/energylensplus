@@ -337,7 +337,13 @@ def classify_edge(edge):
             # Step 2: Determine appliance for every user
             appliance = classifier.classify_appliance(
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
-            if appliance:
+            if isinstance(appliance, bool):
+                continue
+            elif appliance == no_test_data:
+
+                edgeHandler.apply_async(args=[edge], countdown=2 * 60)
+                return return_error
+            else:
                 appliance_dict[dev_id] = appliance
 
         logger.debug("Determined Locations: %s", location_dict)

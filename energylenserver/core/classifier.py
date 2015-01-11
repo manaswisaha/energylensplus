@@ -296,8 +296,8 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
         test_df = read_frame(data, verbose=False)
 
         if len(test_df) == 0:
-            appliance = "Unknown"
             logger.debug("No audio test data")
+            return no_test_data
         else:
 
             # Format data for classification
