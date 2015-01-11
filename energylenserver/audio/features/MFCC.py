@@ -17,7 +17,6 @@
 
 from numpy import *
 from numpy.linalg import *
-from matplotlib.pyplot import *
 # from constants import *
 
 
@@ -130,23 +129,3 @@ def extract(frame):
     # show_MFCC(feature)
     # draw()
     return frame_features
-
-
-def show_MFCC(mfcc):
-    """
-    Show the MFCC as an image.
-    """
-    imshow(mfcc.T, aspect="auto", interpolation="none")
-    title("MFCC features")
-    xlabel("Frame")
-    ylabel("Dimension")
-
-
-def show_MFCC_spectrum(mfcc):
-    """
-    Show the spectrum reconstructed from MFCC as an image.
-    """
-    imshow(dot(invD, mfcc.T), aspect="auto", interpolation="none", origin="lower")
-    title("MFCC spectrum")
-    xlabel("Frame")
-    ylabel("Band")
