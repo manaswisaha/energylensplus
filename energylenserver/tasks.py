@@ -653,6 +653,7 @@ def determine_wastage(apt_no):
             user_columns = presence_df.columns - ['start_time', 'end_time']
             last_idx = presence_df.index[-1]
             col_sum = presence_df.ix[last_idx, user_columns].sum(axis=1, numeric_only=True)
+            logger.debug("Occupants count:%s", col_sum)
             # w_slices_ix = presence_df.index[np.where(col_sum == 0)[0]]
 
             # Save and send notifications to all the users
