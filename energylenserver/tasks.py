@@ -326,7 +326,7 @@ def classify_edge(edge):
             if isinstance(location, bool):
                 continue
             elif location == wifi_no_test_data:
-                edgeHandler.async((edge), countdown=2)
+                edgeHandler.apply_async((edge), countdown=2)
                 return return_error
             else:
                 location_dict[dev_id] = location
