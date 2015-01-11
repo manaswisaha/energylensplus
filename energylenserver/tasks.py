@@ -37,7 +37,7 @@ from energylenserver.models import functions as mod_func
 
 # Core Algo imports
 from energylenserver.core import classifier
-from energylenserver.core.constants import wastage_threshold, upload_interval, wifi_no_test_data
+from energylenserver.core.constants import wastage_threshold, upload_interval, no_test_data
 from energylenserver.core import functions as core_f
 from energylenserver.meter import edge_detection
 from energylenserver.core import user_attribution as attrib
@@ -327,7 +327,7 @@ def classify_edge(edge):
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
             if isinstance(location, bool):
                 continue
-            elif location == wifi_no_test_data:
+            elif location == no_test_data:
 
                 edgeHandler.apply_async(args=[edge], countdown=timedelta(seconds=120))
                 return return_error

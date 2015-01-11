@@ -31,4 +31,4 @@ stay_duration = 3 * 60  # 3 minutes
 
 
 # Return errors
-wifi_no_test_data = "Insufficient test data"
+no_test_data = "Insufficient test data"
