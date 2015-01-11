@@ -54,7 +54,6 @@ def correct_inference(user, parameters):
                 logger.debug("Inference correct!\n")
             continue
             # ----- TESTING -----
-            '''
 
             try:
                 # Update activity
@@ -73,9 +72,10 @@ def correct_inference(user, parameters):
             except Exception, e:
                 logger.error("[UpdateActivitiesException]:: %s", str(e))
                 return False
+            '''
 
         # TESTING CODE
-        # return False
+        return False
 
     except Exception, e:
         logger.exception("[ReassignInferenceException]:: %s", str(e))

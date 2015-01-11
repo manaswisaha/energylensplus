@@ -47,7 +47,7 @@ class Command(BaseCommand):
             logger.error("\n\nInterrupted by user, shutting down..")
             sys.exit(0)
         except Exception, e:
-            logger.error("[GCMServerException] %s" % str(e))
+            logger.exception("[GCMServerException] %s" % str(e))
         finally:
             logger.debug("GCM Client Connection Closed")
             sys.exit(0)
