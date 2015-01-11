@@ -18,28 +18,45 @@ import numpy as np
 import pandas as pd
 from sklearn.svm import SVC
 from sklearn.externals import joblib
+from django_pandas.io import read_frame
 
 from constants import *
 from common_imports import *
+from energylenserver.preprocessing import audio as pre_p_a
+from energylenserver.audio.features import MFCC
 
 base_dir = settings.BASE_DIR
 
 
-def train_audio_classfication_model(train_df, filename):
+def train_audio_classfication_model(sensor, apt_no, phone_model):
     """
     Train Audio Classification model
     """
 
-    # Training features
-    features = train_df.columns[3:-2]
+    # Get training data
+    user_list = mod_func.get_users_for_training(apt_no, phone_model)
+    data = mod_func.get_sensor_training_data(sensor, apt_no, user_list)
+    train_df = read_frame(data, verbose=False)
 
-    # Cleaning
-    logger.debug("Train DF Dtype: %s", train_df.mfcc1.dtype)
-    if train_df.mfcc1.dtype != 'float64':
-        train_df = train_df[train_df.mfcc1 != '-Infinity']
+    # Training features
+    if sensor == "audio":
+        features = train_df.columns[3:-2]
+
+        # Cleaning
+        if train_df.mfcc1.dtype != 'float64':
+            train_df = train_df[train_df.mfcc1 != '-Infinity']
+    else:
+        # Format for classification
+        train_df = pre_p_a.format_data_for_classification(train_df)
+
+        # Extract features
+        train_df = extract_features(df, "train", apt_no)
+        features = train_df.columns[2:-2]
+
+    classes = train_df['label'].unique()
+    logger.debug("Appliances Clases :%s", classes)
 
     # Train SVM Model
-    logger.debug("Labels :%s", train_df['label'].unique())
     clf = SVC()
     clf.fit(train_df[features], train_df['label'].tolist())
 
@@ -48,6 +65,7 @@ def train_audio_classfication_model(train_df, filename):
     if not os.path.exists(dst_folder):
         os.makedirs(dst_folder)
 
+    filename = str(apt_no) + "_" + phone_model + "_" + str(len(classes))
     model_file = filename + "_SVM_" + str(int(time.time()))
     joblib.dump(clf, dst_folder + model_file + '.pkl', compress=9)
 
@@ -64,15 +82,18 @@ Output: sound event for that time frame
 """
 
 
-def determine_appliance(train_model, test_df):
+def determine_appliance(sensor, train_model, test_df):
 
     try:
-        # Cleaning
-        if test_df.mfcc1.dtype != 'float64':
-            test_df = test_df[test_df.mfcc1 != '-Infinity']
+        if sensor == "audio":
+            # Cleaning
+            if test_df.mfcc1.dtype != 'float64':
+                test_df = test_df[test_df.mfcc1 != '-Infinity']
 
-        # Features
-        features = test_df.columns[3:-2]
+            # Features
+            features = test_df.columns[3:-2]
+        else:
+            features = train_df.columns[2:-2]
 
         # Run NB/GMM/SVM algorithm to predict sound events for the data points
         pred_label = train_model.predict(test_df[features])
@@ -84,179 +105,122 @@ def determine_appliance(train_model, test_df):
         return False
 
 
-def extract_features(csvfile, dataset_type, apt_no, idx):
+def make_string(row):
+    return row['label'] + '-' + row['location']
 
-    # Input file
-    df_ip = pd.read_csv(csvfile)
 
-    # Output file
-    feat_csv = ('Sound/' + dataset_type + '_data/testing/' + dataset_type + '_' +
-                apt_no + '_' + str(idx) + '.csv')
+def extract_features(df, dataset_type, apt_no):
 
-    # Autogenerate ground truth information
-    gfile = ''
-    if dataset_type == "train":
-        gfile = ("EnergyLens+/102A/ground_truth/" + dataset_type +
-                 "_" + apt_no + "_1.csv")
-    else:
-        gfile = ("EnergyLens+/102A/ground_truth/" + dataset_type +
-                 "_" + apt_no + "_" + str(idx) + ".csv")
-    # gfile = ("Sound/ground_truth/testing/" + dataset_type +
-    #          "_" + apt_no + "_" + str(idx) + ".csv")
-    '''
-    gfile_fp = open(gfile, 'w')
-    writer = csv.writer(gfile_fp)
-    gfile_header = ['start_time', 'end_time', 'label']
-    writer.writerow(gfile_header)
-    start_time = 0
-    end_time = 0
-    plabel = ''
-    ptime = 0
-    for i, row in enumerate(df_ip.values):
-        time = row[0]
-        label = row[2]
-        if i == 0:
-            start_time = time
-            end_time = time
-        elif plabel != label or (plabel == label and i == (len(df_ip) - 1)):
-            end_time = ptime
-            row_to_write = [start_time, end_time, plabel]
-            writer.writerow(row_to_write)
-            # print row_to_write
-            start_time = time
-        ptime = time
-        plabel = label
+    try:
+        dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/audio/tmp/')
+        if not os.path.exists(dst_folder):
+            os.makedirs(dst_folder)
 
-    gfile_fp.close()
-    '''
-    # else:
-    #     gfile = "CompleteDataSets/Apartment/Evaluation/ground_truth/test_102A_" + idx + ".csv"
+        if dataset_type == "train":
+            # Temporary generate individual sound labeled files
+            csv_files = []
 
-    # Temporary generate individual sound labeled files
-    csv_files = []
-    df_gt = pd.read_csv(gfile)
+            df['comb_label'] = df.apply(make_string, axis=1)
+            classes = df.comb_label.unique()
 
-    # if dataset_type == 'train':
-    #     classes = df_gt.label.unique()
-    # else:
-    #     classes = df_gt.slabel.unique()
+            for class_i in classes:
+                df_new = df[df.comb_label == class_i]
+                filename = dst_folder + class_i + "_" + apt_no + ".csv"
+                df_new.to_csv(filename, index=False)
 
-    classes = df_gt.slabel.unique()
-    print classes
-    for i in classes:
-        df_new = df_ip[df_ip.label == i]
-        new_loc = ('labeled_tmp/' + dataset_type + "_" + str(idx) + "_" + i + "_" +
-                   apt_no + ".csv")
-        df_new.to_csv(new_loc, index=False)
+                # Store created files in csv_files
+                csv_files.append(filename)
 
-        # Store created files in csv_files
-        csv_files.append(new_loc)
+            logger.debug("Files: %s", csv_files)
+            df_arr = [pd.read_csv(i) for i in csv_files]
 
-    # for i, row in enumerate(df_gt.values):
-    #     df_new_tmp = df_ip.iloc[np.where(df_ip.time >= long(row[0]))]
-    #     df_new = df_new_tmp.iloc[np.where(df_new_tmp.time <= long(row[1]))]
-    #     label = row[2]
-    #     new_loc = ('Sound/labeled_tmp/' + dataset_type + "_" + str(idx) + "_" + label + "_" +
-    #                apt_no + "_" + str(i) + ".csv")
-    #     df_new.to_csv(new_loc, index=False)
-
-    # Store created files in csv_files
-    #     csv_files.append(new_loc)
-
-    print csv_files
-
-    """
-    Audio Processing:
-        Converting signal into frames, apply window to each frame
-        and extract features from each frame
-
-    """
-
-    df_arr = [pd.read_csv(i) for i in csv_files]
-    feature_vec = []
-
-    # print "FRAME_LEN", FRAME_LEN, "FRAME_SHIFT", FRAME_SHIFT
-    for df_i in df_arr:
-
-        if len(df_i) == 0:
-            continue
-        # Convert into 1-D numpy array
-        time = np.array(df_i.time)     # timestamps
-
-        # x is a wave signal saved in a 1-D numpy array
-        x = np.array(df_i.value)
-
-        label = np.array(df_i.label)[0]  # label
+            # Delete all the created csv files
+            for the_file in os.listdir(dst_folder):
+                file_path = os.path.join(dst_folder, the_file)
+                try:
+                    # if os.path.isfile(file_path):
+                    os.unlink(file_path)
+                except Exception, e:
+                    logger.exception("[MFCCFileDeletionException]:: %s", e)
+        else:
+            df_arr = [df]
 
         """
-        Preprocessing:
-            framing, windowing, filtering
+        Audio Processing:
+            Converting signal into frames, apply window to each frame
+            and extract features from each frame
 
         """
-        # Parameters (defined in audio_param.py)
-        # FS = 8000                               # Sampling rate
-        # FRAME_LEN = int(0.064 * FS)             # Frame length = 512 samples or 64ms
-        # FRAME_SHIFT = int(0.032 * FS)           # Frame shift = 256
-        # FFT_SIZE = 1024                         # How many points for FFT
-        # WINDOW = MFCC.hamming(FRAME_LEN)        # Window function
 
-        if x.ndim > 1:
-            print "INFO: Input signal has more than 1 channel; the channels will be averaged."
-            x = np.mean(x, axis=1)
+        feature_vec = []
+        for df_i in df_arr:
 
-        # Framing
-        frames = (len(x) - FRAME_LEN) / FRAME_SHIFT + 1
-        # print "Number of frames::", frames
+            if len(df_i) == 0:
+                continue
 
-        for f in range(frames):
-            features = [f]
-
-            # Windowing
-            frame = x[f * FRAME_SHIFT: f * FRAME_SHIFT + FRAME_LEN] * WINDOW
+            # Convert into 1-D numpy array
+            timestamp = np.array(df_i.time)
+            raw_values = np.array(df_i.value)  # audio signal
+            label = np.array(df_i.label)[0]
+            location = np.array(df_i.location)[0]
 
             """
-            Feature Extraction(frame level):
-            ZCR, Spectral {Entropy, Energy, Flux, Rolloff, Centroid}
-            RMS, Energy, MFCC(13)
+            Preprocessing:
+                framing, windowing, filtering
 
             """
 
-            # Extracting MFCC Features
-            mfcc_vec = MFCC.extract(frame).tolist()
+            if raw_values.ndim > 1:
+                print "INFO: Input signal has more than 1 channel; the channels will be averaged."
+                raw_values = np.mean(raw_values, axis=1)
 
-            features = features + mfcc_vec + [label]
-            # features.append(label)
+            # Framing
+            frames = (len(raw_values) - MFCC.FRAME_LEN) / MFCC.FRAME_SHIFT + 1
+            # print "Number of frames::", frames
 
-            # Forming a feature vector
-            feature_vec.append(features)
-            # print "Before:", feature_vec, f
-            # feature_vec = list(itertools.chain.from_iterable(feature_vec))
-            # print "After:", feature_vec
+            for f in range(frames):
 
-    # Combined the individual data frames to make it into a single
-    # labeled feature vector set
-    feature_vec = np.row_stack(feature_vec)
-    # print feature_vec
+                # Windowing
+                frame = raw_values[
+                    f * MFCC.FRAME_SHIFT: f * MFCC.FRAME_SHIFT + MFCC.FRAME_LEN] * MFCC.WINDOW
+                time_val = timestamp[f * MFCC.FRAME_SHIFT: f * MFCC.FRAME_SHIFT + MFCC.FRAME_LEN]
 
-    """
-    Output:
-        Creation of feature vector for every frame
-    to be fed to the classifier with a label
+                time_i = time_val[0]
 
-    """
-    lbl_list = ['mfcc_' + str(i) for i in range(1, 14)]
-    feature_lbl_list = ['frame_no'] + lbl_list + ['label']
-    new_df = pd.DataFrame(feature_vec, columns=feature_lbl_list)
-    new_df.to_csv(feat_csv, index=False)
+                # f = frame number
+                features = [time_i, f]
 
-    # Delete all the created csv files
-    folder_path = "Sound/labeled_tmp/"
-    for the_file in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, the_file)
-        try:
-            # if os.path.isfile(file_path):
-            os.unlink(file_path)
-        except Exception, e:
-            print e
+                """
+                Feature Extraction(frame level):
+                ZCR, Spectral {Entropy, Energy, Flux, Rolloff, Centroid}
+                RMS, Energy, MFCC(13)
 
-    return feat_csv
+                """
+
+                # Extracting MFCC Features
+                mfcc_vec = MFCC.extract(frame).tolist()
+
+                features = features + mfcc_vec + [label, location]
+
+                # Forming a feature vector
+                feature_vec.append(features)
+
+        # Combined the individual data frames to make it into a single
+        # labeled feature vector set
+        feature_vec = np.row_stack(feature_vec)
+
+        """
+        Output:
+            Creation of feature vector for every frame
+        to be fed to the classifier with a label
+
+        """
+        lbl_list = ['mfcc_' + str(i) for i in range(1, 14)]
+        feature_lbl_list = ['time', 'frame_no'] + lbl_list + ['label', 'location']
+        features_df = pd.DataFrame(feature_vec, columns=feature_lbl_list)
+
+    except Exception, e:
+        logger.exception("[MFCCFeatureExtractionException]:: %s", e)
+        return False
+
+    return features_df

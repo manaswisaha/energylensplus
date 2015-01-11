@@ -14,9 +14,9 @@ import time
 import math
 import pandas as pd
 
-from django_pandas.io import read_frame
 from django.conf import settings
 from sklearn.externals import joblib
+from django_pandas.io import read_frame
 
 from common_imports import *
 from energylenserver.core import audio
@@ -26,7 +26,8 @@ from energylenserver.models.DataModels import WiFiTestData
 from energylenserver.common_imports import *
 from energylenserver.core import functions as func
 from energylenserver.models import functions as mod_func
-from energylenserver.preprocessing import wifi as pre_p
+from energylenserver.preprocessing import wifi as pre_p_w
+from energylenserver.preprocessing import audio as pre_p_a
 from constants import lower_mdp_percent_change, upper_mdp_percent_change, no_test_data
 
 
@@ -40,7 +41,7 @@ def get_trained_model(sensor, apt_no, phone_model):
     if sensor == "wifi":
         # Future TODO: Adding new localization models
         return
-    if sensor == "audio":
+    if sensor in ["rawaudio", "audio"]:
         dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/audio/')
         folder_listing = os.listdir(dst_folder)
 
@@ -51,25 +52,11 @@ def get_trained_model(sensor, apt_no, phone_model):
                 model = joblib.load(dst_folder + file_i)
             # Else create a new training model
             else:
-                # Get training data
-                user_list = mod_func.get_users_for_training(apt_no, phone_model)
-                data = mod_func.get_sensor_training_data("audio", apt_no, user_list)
-                train_df = read_frame(data, verbose=False)
-
-                filename = str(apt_no) + "_" + phone_model
-                model = audio.train_audio_classfication_model(train_df, filename)
+                model = audio.train_audio_classfication_model(sensor, apt_no, phone_model)
             return model
 
-        # No model exists - Create one
-
-        # Get training data
-        user_list = mod_func.get_users_for_training(apt_no, phone_model)
-        data = mod_func.get_sensor_training_data("audio", apt_no, user_list)
-        train_df = read_frame(data, verbose=False)
-
-        # Train model
-        filename = str(apt_no) + "_" + phone_model
-        model = audio.train_audio_classfication_model(train_df, filename)
+        # Model folder empty -- No model exists - Create one
+        model = audio.train_audio_classfication_model(sensor, apt_no, phone_model)
         return model
 
 
@@ -95,38 +82,6 @@ def localize_new_data(apt_no, start_time, end_time, user):
             location = "Unknown"
             return location
 
-        '''
-        # Get WiFi test data
-        data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
-        test_df = read_frame(data, verbose=False)
-
-        # Format data for classification
-        train_df = pre_p.format_data_for_classification(train_df)
-        test_df = pre_p.format_data_for_classification(test_df)
-
-        # Classify
-        pred_label = lc.determine_location(train_df, test_df)
-
-        if isinstance(pred_label, bool):
-            location = "Unknown"
-            data.update(label=location)
-            return location
-
-        test_df['pred_label'] = pred_label
-        logger.debug("Predicted labels: %s", test_df.pred_label.unique())
-
-        # Save location label to the database
-        # sliced_df = test_df[
-        #     (test_df.timestamp >= (start_time + 45)) & (test_df.timestamp) <= end_time]
-
-        if len(test_df) == 0:
-            location = "Unknown"
-        else:
-            location = func.get_max_class(test_df['pred_label'])
-        data.update(label=location)
-        return location
-
-        '''
         # Get test data for the past hour - for better classification
         s_time = start_time - 10 * 60       # 10 minutes
 
@@ -140,8 +95,8 @@ def localize_new_data(apt_no, start_time, end_time, user):
         test_df = read_frame(data, verbose=False)
 
         # Format data for classification
-        train_df = pre_p.format_data_for_classification(train_df)
-        test_df = pre_p.format_data_for_classification(test_df)
+        train_df = pre_p_w.format_data_for_classification(train_df)
+        test_df = pre_p_w.format_data_for_classification(test_df)
 
         # Classify
         pred_label = lc.determine_location(train_df, test_df)
@@ -150,53 +105,6 @@ def localize_new_data(apt_no, start_time, end_time, user):
         logger.debug("%s :: Test data between [%s] and [%s] :: %s",
                      user.name, time.ctime(s_time), time.ctime(end_time),
                      func.get_max_class(test_df['label']))
-
-        '''
-        # ---- Update unlabeled records in the 1 hour slice-----
-        # unlabeled_df = test_df[test_df.label == 'none']
-        unlabeled_df = test_df.copy()
-        # unlabeled_df = test_df.ix[sliced_df.index]
-
-        # 44 --> Explanation:
-        # start_time = event_time - 60;
-        # 15 seconds to compensate for time difference between phone and meter
-        # desired event time slice to label::
-        # start time = start_time + 45 = (event_time - 60) + 45 = event_time - 15
-        # Therefore, end time for the unlabeled set in the past hour would be
-        # one second before the start time of the desired time slice
-        # e_time = (start_time + 45) - 1
-
-        # e_time = start_time + 44
-        e_time = end_time
-        window = 2 * 60     # 2 minutes
-
-        st = s_time
-        et = st + window
-        while et <= e_time:
-
-            diff = end_time - et
-            if diff < window:
-                et = et + diff
-
-            # Get class with max class for the time slice
-            sliced_df = unlabeled_df[(unlabeled_df.time >= st
-                                      ) & (unlabeled_df.time) <= et]
-            if len(sliced_df) == 0:
-                location = "Unknown"
-            else:
-                logger.debug("Slice: [%s] and [%s]", time.ctime(s_time), time.ctime(end_time))
-                location = func.get_max_class(sliced_df['label'])
-
-            # Filter all queryset (to get desired time slice of the unlabeled set) and
-            # Update it
-            data = data_all.filter(dev_id__in=[dev_id],
-                                   timestamp__gte=s_time,
-                                   timestamp__lte=end_time).update(label=location)
-
-            # Update time counter for the next loop
-            st = et + 1
-            et = st + window
-        '''
 
         # Save location label to the database
         sliced_df = test_df[(test_df.time >= start_time) & (test_df.time <= end_time)]
@@ -211,7 +119,6 @@ def localize_new_data(apt_no, start_time, end_time, user):
                                timestamp__lte=end_time).update(label=location)
 
         return location
-        # '''
 
     except Exception, e:
         logger.exception("[ClassifyNewLocationDataException]:: %s", e)
@@ -335,8 +242,8 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
         '''
 
         # Format data for classification
-        train_df = pre_p.format_data_for_classification(train_df)
-        test_df = pre_p.format_data_for_classification(test_df)
+        train_df = pre_p_w.format_data_for_classification(train_df)
+        test_df = pre_p_w.format_data_for_classification(test_df)
 
         # Classify
         pred_label = lc.determine_location(train_df, test_df)
@@ -379,12 +286,13 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
     try:
         pmodel = user.phone_model
         dev_id = user.dev_id
+        sensor = "rawaudio"
 
         # Get trained model
-        train_model = get_trained_model("audio", apt_no, pmodel)
+        train_model = get_trained_model(sensor, apt_no, pmodel)
 
         # Get test data
-        data = mod_func.get_sensor_data("audio", start_time, end_time, [dev_id])
+        data = mod_func.get_sensor_data(sensor, start_time, end_time, [dev_id])
         test_df = read_frame(data, verbose=False)
 
         if len(test_df) == 0:
@@ -392,8 +300,14 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
             logger.debug("No audio test data")
         else:
 
+            # Format data for classification
+            test_df = pre_p_a.format_data_for_classification(test_df)
+
+            # Extract features
+            test_df = audio.extract_features(df, "test", apt_no)
+
             # Classify
-            pred_label = audio.determine_appliance(train_model, test_df)
+            pred_label = audio.determine_appliance(sensor, train_model, test_df)
             test_df['pred_label'] = pred_label
 
             appliance = func.get_max_class(test_df['pred_label'])

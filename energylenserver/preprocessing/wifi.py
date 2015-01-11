@@ -1,5 +1,4 @@
 # Author: Manaswi Saha
-# Date: August 27, 2014
 
 import pandas as pd
 # Enable Logging

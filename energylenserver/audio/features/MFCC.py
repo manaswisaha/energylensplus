@@ -18,7 +18,7 @@
 from numpy import *
 from numpy.linalg import *
 from matplotlib.pyplot import *
-from constants import *
+# from constants import *
 
 
 def hamming(n):
@@ -69,14 +69,21 @@ def dctmtx(n):
     return D
 
 """
-Parameters defined in constants
+Parameters
 """
-FS = 8000                               # Sampling rate
 # FRAME_LEN = int(0.02 * FS)              # Frame length
 # FRAME_SHIFT = int(0.01 * FS)            # Frame shift
 # FFT_SIZE = 2048                         # How many points for FFT
 # WINDOW = hamming(FRAME_LEN)             # Window function
-# PRE_EMPH = 0.95                         # Pre-emphasis factor
+FS = 8000                                   # Sampling rate
+
+# ---Frame length and frame shift calculation---
+frm_len = 1024                              # Frame length e.g. 512 samples or 64ms
+no_of_sec = float(frm_len) / FS             # No of seconds in a sample
+FRAME_LEN = int(no_of_sec * FS)
+FRAME_SHIFT = int((no_of_sec / 2) * FS)     # Frame shift = 50% overlap
+WINDOW = hamming(FRAME_LEN)                 # Window function
+
 
 # MFCC Parameters
 FFT_SIZE = 1024                         # How many points for FFT
@@ -88,10 +95,10 @@ POWER_SPECTRUM_FLOOR = 1e-100           # Flooring for the power to avoid log(0)
 # The Mel filterbank matrix and the center frequencies of each band
 M, CF = melfb(BANDS, FFT_SIZE, FS)
 D = dctmtx(BANDS)[1:COEFS + 1]
-           # The DCT matrix. Change the index to [0:COEFS] if you want to keep the 0-th coefficient
+# The DCT matrix. Change the index to [0:COEFS] if you want to keep the 0-th coefficient
 invD = inv(dctmtx(BANDS))[:, 1:COEFS + 1]
-           # The inverse DCT matrix. Change the index to [0:COEFS] if you want to
-           # keep the 0-th coefficient
+# The inverse DCT matrix. Change the index to [0:COEFS] if you want to
+# keep the 0-th coefficient
 
 
 def extract(frame):
