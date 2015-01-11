@@ -35,7 +35,7 @@ from energylenserver.models import functions as mod_func
 
 # Core Algo imports
 from energylenserver.core import classifier
-from energylenserver.core.constants import wastage_threshold, upload_interval
+from energylenserver.core.constants import wastage_threshold, upload_interval, wifi_no_test_data
 from energylenserver.core import functions as core_f
 from energylenserver.meter import edge_detection
 from energylenserver.core import user_attribution as attrib
