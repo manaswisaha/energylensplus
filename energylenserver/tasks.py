@@ -17,6 +17,8 @@ import math
 import random
 import string
 from types import NoneType
+from datetime import timedelta
+
 import pandas as pd
 import numpy as np
 import datetime as dt
@@ -326,7 +328,8 @@ def classify_edge(edge):
             if isinstance(location, bool):
                 continue
             elif location == wifi_no_test_data:
-                edgeHandler.apply_async(args=[edge], countdown=2)
+
+                edgeHandler.apply_async(args=[edge], countdown=timedelta(seconds=120))
                 return return_error
             else:
                 location_dict[dev_id] = location
