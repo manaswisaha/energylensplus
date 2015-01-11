@@ -653,11 +653,10 @@ def determine_wastage(apt_no):
             user_columns = presence_df.columns - ['start_time', 'end_time']
             last_idx = presence_df.index[-1]
             col_sum = presence_df.ix[last_idx, user_columns].sum(axis=1, numeric_only=True)
-            logger.debug("Occupants count:%s", col_sum)
             # w_slices_ix = presence_df.index[np.where(col_sum == 0)[0]]
 
             # Save and send notifications to all the users
-            if col_sum == 0:
+            if int(col_sum) == 0:
                 message = "Energy wastage detected in %s! %s is left ON." % (
                     where, what)
                 # Save
@@ -670,6 +669,8 @@ def determine_wastage(apt_no):
 
                 # Inform
                 inform_all_users(apt_no, message, users)
+
+            logger.debug("Occupants count:%s", col_sum)
 
     except Exception, e:
         logger.exception("[DetermineWastageRTException]:: %s", e)
