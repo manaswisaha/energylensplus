@@ -42,9 +42,14 @@ def training_compute_power(apt_no, start_time, end_time):
     # --- Negligible time difference ---
     # Measure the difference between time of the phone with the meter data
     # Once measured, set the global variable in the constants
-    # For now, taking it as 5 seconds
-    time_diff = 0  # If phone is ahead, subtract from the time sent
-    # time_diff = 5  # If phone is behind, add to the time sent
+    # If phone is ahead, subtract from the time sent
+    # If phone is behind, add to the time sent
+
+    if apt_no != 1201:
+        # 102A
+        time_diff = -9
+    else:
+        time_diff = 0
 
     # Convert time to seconds and add/subtract the difference time
     start_time = start_time + time_diff
@@ -66,7 +71,9 @@ def training_compute_power(apt_no, start_time, end_time):
     # Retrieve power data from smap server for both meters
     # between <start_time> and <end_time>
     # if apt_no == 1201:
-    time.sleep(winmax)
+    time.sleep(winmax * 2)
+    if apt_no in [102, '102A']:
+        apt_no = '102A'
     streams_df_list = get_meter_data_for_time_slice(apt_no, s_time, e_time)
 
     if len(streams_df_list) == 0:
@@ -103,10 +110,10 @@ def training_compute_power(apt_no, start_time, end_time):
 
         # Add a window around the event edges
         s_time = edge_time - edge_window - (5 * sampling_rate)
-        e_time = edge_time + edge_window
+        e_time = edge_time + edge_window + 3
 
-        logger.debug("Start time: %s", s_time)
-        logger.debug("End time: %s", e_time)
+        logger.debug("Start time: %s [%s]", s_time, timestamp_to_str(s_time, date_format))
+        logger.debug("End time: %s [%s]", e_time, timestamp_to_str(e_time, date_format))
 
         # For checking the edge, filter df to include data only in the window of <winmax> seconds
         # around the event time
@@ -183,8 +190,7 @@ def training_compute_power(apt_no, start_time, end_time):
 
         if start_len == 0 or end_len == 0:
             logger.debug("Start/End edge set is empty")
-            logger.debug("Power consumed: %s", power)
-            return power
+            continue
 
         end_df["magnitude"] = end_df.magnitude.abs()
         if start_len == 1 and end_len == 1:
@@ -213,26 +219,25 @@ def training_compute_power(apt_no, start_time, end_time):
             max_mag = less_mag + power
 
             more_mag_list = [{'mag': more_df.ix[idx]["magnitude"],
-                              'diff': math.fabs(more_df.ix[idx]["magnitude"] - less_mag)}
+                              'diffce': math.fabs(more_df.ix[idx]["magnitude"] - less_mag)}
                              for idx in more_df.index
                              if more_df.ix[idx]["magnitude"] >= min_mag
                              and more_df.ix[idx]["magnitude"] <= max_mag]
 
             if len(more_mag_list) == 0:
                 logger.debug("No matching end edges found")
-                return power
+                continue
 
-            more_mag_df = pd.DataFrame(more_mag_list, columns=['mag', 'diff'])
-            more_mag_df = more_mag_df[more_mag_df.diff == more_mag_df.diff.min()]
+            more_mag_df = pd.DataFrame(more_mag_list, columns=['mag', 'diffce'])
+            more_mag_df = more_mag_df[more_mag_df.diffce == more_mag_df.diffce.min()]
             more_mag_df.reset_index(drop=True, inplace=True)
 
             more_mag = more_mag_df.ix[0]["mag"]
 
             # Compute power
             power = compute_power(less_mag, more_mag)
-            logger.debug("Power consumed:%s", power)
-            return power
 
+    logger.debug("Power consumed: %s", power)
     return power
 
 
