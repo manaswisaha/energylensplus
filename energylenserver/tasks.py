@@ -479,10 +479,10 @@ def find_time_slice(result_labels):
 
         apt_no = off_event.edge.meter.apt_no
         off_time = off_event.event_time
-        magnitude = off_event.edge.magnitude
+        off_mag = off_event.edge.magnitude
 
         logger.debug("Determining activity duration: [%s] :: %s" % (
-            time.ctime(off_time), str(magnitude)))
+            time.ctime(off_time), str(off_mag)))
 
         # Match ON/OFF events
         matched_on_event = e_match.match_events(apt_no, off_event)
@@ -502,13 +502,14 @@ def find_time_slice(result_labels):
         start_time = matched_on_event.event_time
         end_time = off_time
 
-        power = round((magnitude + matched_on_event.edge.magnitude) / 2)
+        power = round((math.fabs(off_mag) + matched_on_event.edge.magnitude) / 2)
         usage = apprt.get_energy_consumption(start_time, end_time, power)
 
         # Save Activity
         activity = ActivityLog(start_time=start_time, end_time=end_time,
                                location=where, appliance=what,
                                power=power, usage=usage,
+                               meter=off_event.edge.meter,
                                start_event=matched_on_event,
                                end_event=off_event)
         activity.save()
@@ -546,9 +547,6 @@ def apportion_energy(result_labels):
             logger.debug("Ignoring request")
             return
 
-        logger.debug("Apportioned energy:: [%s] :: %s" % (
-            time.ctime(event_time), str(magnitude)))
-
         user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
         n_users_at_home = len(user_list)
 
@@ -577,7 +575,8 @@ def apportion_energy(result_labels):
         act_loc = activity.location
 
         presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
-        for user in user_list:
+        users_list = [mod_func.get_user(u) for u in user_list]
+        for user in users_list:
 
             user_id = user.dev_id
 
@@ -591,7 +590,7 @@ def apportion_energy(result_labels):
 
         # Determine actual usage/wastage of a user based on
         # time of stay in the room of activity handling all complex cases
-        apprt.calculate_consumption(user_list, presence_df, activity)
+        apprt.calculate_consumption(users_list, presence_df, activity)
 
     except Exception, e:
         logger.exception("[ApportionEnergyException]:: %s", str(e))
@@ -718,6 +717,8 @@ def realtime_wastage_notif():
     try:
         # Determine wastage for each apt no independently
         for apt_no in apt_no_list:
+            if apt_no in [102, '102A']:
+                apt_no = 102
             determine_wastage.delay(apt_no)
 
     except Exception, e:

@@ -39,38 +39,42 @@ def match_events(apt_no, off_event):
     # a power threshold window
     power = off_mag * percent_change
     min_mag = off_mag - power
-    max_mag = off_mag - power
-
-    filtered_on_events = [{'id': on_event.id, 'mag_diff': math.fabs(off_mag -
-                                                                    on_event.edge.magnitude),
-                           'location': on_event.location, 'appliance': on_event.appliance}
-                          for on_event in new_on_events
-                          if on_event.edge.magnitude >= min_mag
-                          and on_event.edge.magnitude <= max_mag]
-    logger.debug("Filtered on events based on magnitude range: %s", filtered_on_events)
-
-    if len(filtered_on_events) == 0:
-        return False
-
-    # Resolve conflicts by --
-    # Filter 2: Taking the rising edge which is the closest to the off magnitude
+    max_mag = off_mag + power
 
     id_list = []
     mag_diff = []
     location = []
     appliance = []
-    for event in filtered_on_events:
-        id_list.append(event.get('id'))
-        mag_diff.append(event.get('mag_diff'))
-        location.append(event.get('location'))
-        appliance.append(event.get('appliance'))
+    event_mag = []
+    for on_event in new_on_events:
+        id_list.append(on_event.id)
+        event_mag.append(on_event.edge.magnitude)
+        mag_diff.append(math.fabs(off_mag - on_event.edge.magnitude))
+        location.append(on_event.location)
+        appliance.append(on_event.appliance)
 
-    filtered_df = pd.DataFrame({'id': id_list, 'mag_diff': mag_diff,
-                                'location': location, 'appliance': appliance})
+    df = pd.DataFrame({'id': id_list, 'event_mag': event_mag, 'mag_diff': mag_diff,
+                       'location': location, 'appliance': appliance},
+                      columns=['id', 'event_mag', 'mag_diff', 'location', 'appliance'])
+
+    logger.debug("Magnitude::%s per_change: %s", off_mag, power)
+    logger.debug("Between min=[%s]  max=[%s]", min_mag, max_mag)
+    logger.debug("On Events DF: \n%s", df)
+
+    filtered_df = df[(df.event_mag >= min_mag) & (df.event_mag <= max_mag)]
+
+    logger.debug("Filtered on events based on magnitude range: \n%s", filtered_df)
+
+    if len(filtered_df) == 0:
+        return False
+
+    # Resolve conflicts by --
+    # Filter 2: Taking the rising edge which is the closest to the off magnitude
+
     min_mag_diff = filtered_df.mag_diff.min()
-    filtered_df = filtered_df.ix[np.where(filtered_df.mag_diff == min_mag_diff)[0]]
+    filtered_df = filtered_df[filtered_df.mag_diff == min_mag_diff]
 
-    logger.debug("Matched ON DF:%s \n", filtered_df)
+    logger.debug("Matched ON DF:\n%s", filtered_df)
     if len(filtered_df) == 0:
         return False
 
