@@ -152,6 +152,7 @@ def correct_label(label, pred_label, label_type, edge):
     data = mod_func.retrieve_metadata(apt_no)
     metadata_df = read_frame(data, verbose=False)
 
+    # Check if it matches with the metadata
     if label_type == "location":
         in_metadata, matched_md = func.exists_in_metadata(
             apt_no, label, "all", magnitude, metadata_df, logger, "dummy_user")
@@ -159,14 +160,15 @@ def correct_label(label, pred_label, label_type, edge):
         in_metadata, matched_md = func.exists_in_metadata(
             apt_no, "all", label, magnitude, metadata_df, logger, "dummy_user")
 
+    # Indicates the (label, edge_mag) does not exist --> incorrect label
     if not in_metadata:
-        # Select the one closest to the metadata
 
         logger.debug("Label not found in Metadata. Checking all entries..")
 
         in_metadata, matched_md_list = func.exists_in_metadata(
             apt_no, "not_all", "not_all", magnitude, metadata_df, logger, "dummy_user")
 
+        # Select the one closest to the metadata
         if in_metadata:
             matched_md = pd.concat(matched_md_list)
             matched_md = matched_md[
@@ -232,9 +234,13 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
 
         if "none" not in location_list and "Unknown" not in location_list:
             location = func.get_max_class(test_df['label'])
+            '''
+            Commented: Can't correct bcoz we need the user's location
+            and not appliance location as in EnergyLens
             if n_users_at_home == 1:
                 location = correct_label(location, test_df['label'], 'location', edge)
                 data.update(label=location)
+            '''
             return location
         # '''
 
@@ -269,8 +275,12 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
         else:
             location = func.get_max_class(sliced_df['pred_label'])
 
+        '''
+        Commented: Can't correct bcoz we need user's location for usage/detection
+        and not appliance location as in EnergyLens
         if n_users_at_home == 1:
             location = correct_label(location, sliced_df['pred_label'], 'location', edge)
+        '''
         data.update(label=location)
 
         # data = data_all.filter(dev_id__in=[dev_id],
@@ -309,22 +319,21 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
         if len(test_df) == 0:
             logger.debug("No audio test data")
             return no_test_data
-        else:
 
-            # Format data for classification
-            test_df = pre_p_a.format_data_for_classification(test_df)
+        # Format data for classification
+        test_df = pre_p_a.format_data_for_classification(test_df)
 
-            # Extract features
-            test_df = audio.extract_features(test_df, "test", apt_no)
+        # Extract features
+        test_df = audio.extract_features(test_df, "test", apt_no)
 
-            # Classify
-            pred_label = audio.determine_appliance(sensor, train_model, test_df)
-            test_df['pred_label'] = pred_label
+        # Classify
+        pred_label = audio.determine_appliance(sensor, train_model, test_df)
+        test_df['pred_label'] = pred_label
 
-            appliance = func.get_max_class(test_df['pred_label'])
+        appliance = func.get_max_class(test_df['pred_label'])
 
-            if n_users_at_home == 1:
-                appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge)
+        if n_users_at_home == 1:
+            appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge)
 
         '''
         sliced_df = test_df[
