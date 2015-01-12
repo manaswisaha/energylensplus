@@ -50,6 +50,8 @@ def get_latest_power_data(apt_no):
 
     Usage: For real-time data access
     """
+    if apt_no in ['102A', 102]:
+        apt_no = '102A'
     payload = ("select data before now "
                "where Metadata/Extra/FlatNumber ='" + str(apt_no) + "' and "
                "Metadata/Extra/PhysicalParameter='Power'")
@@ -102,8 +104,10 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
     """
     Retrieves meter data in the specified time interval
     """
+    if apt_no in ['102A', 102]:
+        apt_no = '102A'
 
-    logger.debug("sMap: Getting meter data between %s and %s", start_time, end_time)
+    logger.debug("sMap: Getting meter data for %s between %s and %s", apt_no, start_time, end_time)
 
     query = ("select data in ('" + str(start_time) + "','" + str(end_time) + "') "
              "limit 200000 "
@@ -115,8 +119,10 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
     payload = r.json()
     # logger.debug ("Payload:%s", payload)
 
+    if apt_no in ['102A', 102]:
+        apt_no = 102
     meters = retrieve_meter_info(apt_no)
-    # logger.debug("Meters: %s", meters)
+    logger.debug("Meters: %s", meters)
 
     streams = []
     meter_type = []
@@ -149,6 +155,8 @@ def get_meter_info(apt_no):
     """
     Get meter info from smap server
     """
+    if apt_no in ['102A', 102]:
+        apt_no = '102A'
     payload = ("select uuid, Metadata/Instrument/SupplyType "
                "where Metadata/Extra/FlatNumber ='" + str(apt_no) + "' and "
                "Metadata/Extra/PhysicalParameter='Power'")
