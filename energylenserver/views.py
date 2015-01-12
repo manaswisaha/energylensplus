@@ -92,6 +92,13 @@ def register_device(request):
                 logger.debug("Number of users registered for %d:%s", apt_no, user_count)
                 if user_count == 0:
                     # Get meter information for the apt_no for the apartment
+
+                    # TEST CODE: for test apartment 102A
+                    if apt_no in [102, '102A']:
+                        if isinstance(apt_no, int):
+                            apt_no = '102A'
+                        else:
+                            apt_no = 102
                     meters = get_meter_info(apt_no)
 
                     # Store meter information in the DB
@@ -101,6 +108,9 @@ def register_device(request):
                         if meter_type == "Light Backup":
                             meter_type = "Light"
 
+                        # TEST CODE: for test apartment 102A
+                        if apt_no in [102, '102A']:
+                            apt_no = 102
                         minfo_record = MeterInfo(
                             meter_uuid=meter_uuid, meter_type=meter_type, apt_no=apt_no)
                         minfo_record.save()
@@ -108,6 +118,9 @@ def register_device(request):
                 logger.debug("Home AP:%s", home_ap)
 
                 try:
+                    # TEST CODE: for test apartment 102A
+                    if apt_no in [102, '102A']:
+                        apt_no = 102
                     # Delete existing records
                     AccessPoints.objects.filter(apt_no=apt_no).delete()
 
@@ -130,6 +143,9 @@ def register_device(request):
                 r.reg_id = reg_id
                 r.name = user_name
                 r.is_active = True
+                # TEST CODE: for test apartment 102A
+                if apt_no in [102, '102A']:
+                    apt_no = 102
                 if apt_no != 0:
                     r.apt_no = apt_no
                 r.modified_date = dt.datetime.fromtimestamp(time.time())
@@ -137,6 +153,9 @@ def register_device(request):
                 logger.debug("Registration updated")
             except RegisteredUsers.DoesNotExist, e:
 
+                # TEST CODE: for test apartment 102A
+                if apt_no in [102, '102A']:
+                    apt_no = 102
                 # Store user
                 user = RegisteredUsers(dev_id=dev_id, reg_id=reg_id, apt_no=apt_no, name=user_name,
                                        email_id=email_id, phone_model=phone_model)
@@ -148,7 +167,7 @@ def register_device(request):
     except Exception, e:
 
         logger.error("Registration unsuccessful")
-        logger.error("[DeviceRegistrationException Occurred]::%s", e)
+        logger.exception("[DeviceRegistrationException Occurred]::%s", e)
         return HttpResponse(json.dumps(REGISTRATION_UNSUCCESSFUL), content_type="application/json")
 
 """
