@@ -582,14 +582,18 @@ def apportion_energy(result_labels):
             # Determine duration of stay in the room for a user
             df = core_f.get_presence_matrix(
                 apt_no, user, start_time, end_time, act_loc)
+
+            if isinstance(df, NoneType) or len(df) == 0:
+                continue
             presence_df[str(user_id)] = df['label']
+            presence_df['start_time'] = df['start_time']
+            presence_df['end_time'] = df['end_time']
 
         if isinstance(presence_df, NoneType) or len(presence_df) == 0:
             logger.debug("Empty presence matrix formed")
             return
         # Merge slices where the user columns have the same values
         presence_df = core_f.merge_presence_matrix(presence_df)
-        logger.debug("Merged Matrix::\n%s", presence_df)
 
         # Determine actual usage/wastage of a user based on
         # time of stay in the room of activity handling all complex cases
