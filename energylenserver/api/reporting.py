@@ -79,9 +79,10 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
     hourly_consumption = [0] * no_of_hours
 
     activities = {}
-    for idx in activities_df:
+    for idx in activities_df.index:
         row = activities_df.ix[idx]
-        activities[row['id']] = {'power': row['power']}
+        act_id = row['id']
+        activities[act_id] = {'power': row['power']}
 
     i = 0
     if "usage" in consumption_df.columns:
@@ -100,8 +101,8 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
         for idx in filtered_df.index:
             row = filtered_df.ix[idx]
             energy_val = row[energy]
-            s_time = row['start_time']
-            e_time = row['end_time']
+            s_time = int(row['start_time'])
+            e_time = int(row['end_time'])
             act_id = row['activity']
             power = activities[act_id]
             if s_time >= st and e_time < et:
