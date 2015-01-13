@@ -116,14 +116,9 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
     while i < no_of_hours:
 
         et = st + 3600
-        logger.debug("Hour[%d] Searching between [%s - %s]", i, st, et)
 
-        # st_df = consumption_df[consumption_df.start_time.isin(range(st, et))]
-        # et_df = consumption_df[consumption_df.end_time.isin(range(st, et))]
         filtered_df = consumption_df[(consumption_df.start_time.isin(range(st, et))) |
                                      (consumption_df.end_time.isin(range(st, et)))]
-        # pd.concat([st_df, et_df])
-        logger.debug("Hour[%d] FiltDF \n%s", i, filtered_df)
 
         hour_usage = 0
         for idx in filtered_df.index:
@@ -135,11 +130,11 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
             power = activities[act_id]
 
             if s_time >= st and e_time < et:
-                hour_usage += energy_val
+                hour_usage += int(round(energy_val))
             elif s_time >= st:
-                hour_usage += get_energy_consumption(s_time, et - 1, power)
+                hour_usage += int(round(get_energy_consumption(s_time, et - 1, power)))
             elif e_time < et:
-                hour_usage += get_energy_consumption(st, e_time, power)
+                hour_usage += int(round(get_energy_consumption(st, e_time, power)))
         hourly_consumption[i] = hour_usage
         st = et
         i += 1
@@ -213,7 +208,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
                 start_time, end_time, no_of_hours, activities_df, usage_df)
 
             total_usage = sum(hourly_usage)
-            total_consumption = activities_df.usage.sum()
+            total_consumption = int(round(activities_df.usage.sum()))
             options['total_usage'] = total_usage
             options['hourly_consumption'] = hourly_usage
             options['total_consumption'] = total_consumption
@@ -225,6 +220,10 @@ def get_energy_report(dev_id, api, start_time, end_time):
                 # Creating usage entries based on appliances
                 act_usage_df = activities_df.join(usage_df, how='outer', lsuffix='_l')
                 act_usage_df = act_usage_df.groupby(['appliance']).sum()
+
+                logger.debug("activities_df:\n%s", activities_df)
+                logger.debug("usage_df:\n%s", usage_df)
+                logger.debug("ACTDF:\n%s", act_usage_df)
 
                 for appl in act_usage_df.index:
                     options['activities'].append({'name': appl,
