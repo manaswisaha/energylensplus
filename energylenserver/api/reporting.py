@@ -48,7 +48,7 @@ Main Functions
 """
 
 
-def filter_user_activities(user, activity_df):
+def filter_user_activities(user, activity_df, consumption_type):
     """
     Filter the activity list based on the specified user id
     """
@@ -56,18 +56,27 @@ def filter_user_activities(user, activity_df):
 
         activity_id_list = activity_df.id.tolist()
 
-        # User specific activities
-        usage_entries = mod_func.retrieve_usage_entries(user, activity_id_list)
-        if isinstance(usage_entries, bool) or usage_entries.count() == 0:
-            return False, False
+        if consumption_type == "usage":
+            # User specific usage activities
+            usage_entries = mod_func.retrieve_usage_entries(user, activity_id_list)
+            if isinstance(usage_entries, bool) or usage_entries.count() == 0:
+                return False, False
 
-        u_entries_df = read_frame(usage_entries, verbose=False)
-        activity_id = u_entries_df.activity.unique().tolist()
+            c_entries_df = read_frame(usage_entries, verbose=False)
+            activity_id = c_entries_df.activity.unique().tolist()
+        else:
+            # User specific wastage activities
+            w_entries = mod_func.retrieve_wastage_entries(user, activity_id_list)
+            if isinstance(w_entries, bool) or w_entries.count() == 0:
+                return False, False
+
+            c_entries_df = read_frame(w_entries, verbose=False)
+            activity_id = c_entries_df.activity.unique().tolist()
 
         # Filtered activity
         activity_df = activity_df[activity_df.id.isin(activity_id)]
 
-        return activity_df, u_entries_df
+        return activity_df, c_entries_df
 
     except Exception, e:
         logger.debug("[FilterActivityException]:: %s", e)
@@ -103,8 +112,9 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
         et = st + 3600
         logger.debug("Hour[%d] Searching between [%s - %s]", i, st, et)
 
-        filtered_df = pd.concat(consumption_df[(consumption_df.start_time.isin(range(st, et)))],
-                                consumption_df[(consumption_df.end_time.isin(range(st, et)))])
+        st_df = consumption_df[consumption_df.start_time.isin(range(st, et))]
+        et_df = consumption_df[consumption_df.end_time.isin(range(st, et))]
+        filtered_df = pd.concat([st_df, et_df])
         logger.debug("Hour[%d] FiltDF \n%s", i, consumption_df)
 
         hour_usage = 0
@@ -165,7 +175,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
         return options
 
     all_activities_df = read_frame(records, verbose=False)
-    activities_df, usage_df = filter_user_activities(dev_id, all_activities_df)
+    activities_df, usage_df = filter_user_activities(dev_id, all_activities_df, "usage")
 
     if isinstance(activities_df, bool) or len(activities_df) == 0:
         return options
@@ -194,21 +204,22 @@ def get_energy_report(dev_id, api, start_time, end_time):
             hourly_usage = determine_hourly_consumption(
                 start_time, end_time, no_of_hours, activities_df, usage_df)
 
-            if len(hourly_usage) > 0:
-                total_usage = sum(hourly_usage)
-                total_consumption = activities_df.usage.sum()
-                options['total_usage'] = total_usage
-                options['hourly_consumption'] = hourly_usage
-                options['total_consumption'] = total_consumption
+            total_usage = sum(hourly_usage)
+            total_consumption = activities_df.usage.sum()
+            options['total_usage'] = total_usage
+            options['hourly_consumption'] = hourly_usage
+            options['total_consumption'] = total_consumption
 
-                logger.debug("Energy Usage:%s", hourly_usage)
+            logger.debug("Energy Usage:%s", hourly_usage)
 
-                options['activities'] = []
-                act_usage_df = activities_df.groupby(['appliance']).sum()
+            # Creating usage entries based on appliances
+            act_usage_df = activities_df.join(usage_df, how='outer', lsuffix='_l')
+            act_usage_df = act_usage_df.groupby(['appliance']).sum()
 
-                for appl in act_usage_df.index:
-                    options['activities'].append({'name': appl,
-                                                  'usage': act_usage_df.ix[appl]['usage']})
+            options['activities'] = []
+            for appl in act_usage_df.index:
+                options['activities'].append({'name': appl,
+                                              'usage': act_usage_df.ix[appl]['usage']})
 
     elif api == ENERGY_WASTAGE_REPORT_API:
 
@@ -233,28 +244,27 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
         if len(activities_df) > 0:
             # Get wastage entries
-            activity_id_list = activities_df.id.tolist()
-            w_entries = mod_func.retrieve_wastage_entries(dev_id, activity_id_list)
-            wastage_df = read_frame(w_entries, verbose=False)
+            w_activities_df, wastage_df = filter_user_activities(dev_id, activities_df, "wastage")
 
             hourly_wastage = determine_hourly_consumption(
                 start_time, end_time, no_of_hours, activities_df, wastage_df)
 
-            if len(hourly_wastage) > 0:
-                total_wastage = sum(hourly_wastage)
-                total_consumption = activities_df.usage.sum()
-                options['total_wastage'] = total_wastage
-                options['hourly_consumption'] = hourly_wastage
-                options['total_consumption'] = total_consumption
+            total_wastage = sum(hourly_wastage)
+            total_consumption = activities_df.usage.sum()
+            options['total_wastage'] = total_wastage
+            options['hourly_consumption'] = hourly_wastage
+            options['total_consumption'] = total_consumption
 
-                logger.debug("Energy Wastage: %s", hourly_wastage)
+            logger.debug("Energy Wastage: %s", hourly_wastage)
 
-                options['activities'] = []
-                act_wastage_df = activities_df.groupby(['appliance']).sum()
+            # Creating wastage entries based on appliances
+            act_wastage_df = activities_df.join(wastage_df, how='outer', lsuffix='_l')
+            act_wastage_df = act_wastage_df.groupby(['appliance']).sum()
 
-                for appl in act_wastage_df.index:
-                    options['activities'].append({'name': appl,
-                                                  'wastage': act_wastage_df.ix[appl]['usage']})
+            options['activities'] = []
+            for appl in act_wastage_df.index:
+                options['activities'].append({'name': appl,
+                                              'wastage': act_wastage_df.ix[appl]['wastage']})
 
     return options
 
@@ -311,7 +321,7 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
         return activities
 
     all_activities_df = read_frame(records, verbose=False)
-    all_activities_df, usage_entries_df = filter_user_activities(dev_id, all_activities_df)
+    all_activities_df, usage_entries_df = filter_user_activities(dev_id, all_activities_df, "usage")
 
     if isinstance(all_activities_df, bool):
         return activities
@@ -401,7 +411,7 @@ def get_inferred_activities(user):
 
     all_activities_df = read_frame(records, verbose=False)
     logger.debug("GT::All Activities: %s", all_activities_df)
-    all_activities_df, u_entries_df = filter_user_activities(user, all_activities_df)
+    all_activities_df, u_entries_df = filter_user_activities(user, all_activities_df, "usage")
 
     if isinstance(all_activities_df, bool):
         return activities
