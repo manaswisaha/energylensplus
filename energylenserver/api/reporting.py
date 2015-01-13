@@ -132,7 +132,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
         if end_time_str[2] == "hours":
             no_of_hours = int(end_time_str[1])
             logger.debug("Number of hours: %d", no_of_hours)
-    end_time = time.time()
+    end_time = int(time.time())
     start_time = end_time - no_of_hours * 3600
 
     options = {}
@@ -292,7 +292,7 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
         if end_time_str[2] == "hours":
             no_of_hours = int(end_time_str[1])
             logger.debug("Number of hours:%d", no_of_hours)
-            end_time = time.time()
+            end_time = int(time.time())
             start_time = end_time - no_of_hours * 3600
 
     records = mod_func.retrieve_activities(start_time, end_time, activity_name)
@@ -380,7 +380,7 @@ def get_inferred_activities(user):
     # '''
 
     report_period = 3600  # 1 hour (in seconds)
-    end_time = time.time()
+    end_time = int(time.time())
     start_time = end_time - report_period
 
     records = mod_func.retrieve_finished_activities(start_time, end_time)

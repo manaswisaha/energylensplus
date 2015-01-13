@@ -72,7 +72,7 @@ def correct_inference(user, parameters):
                 gt_entry.save()
 
             except Exception, e:
-                logger.error("[UpdateActivitiesException]:: %s", str(e))
+                logger.exception("[UpdateActivitiesException]:: %s", str(e))
                 return False
             # '''
 
