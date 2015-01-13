@@ -585,6 +585,9 @@ def apportion_energy(result_labels):
                 apt_no, user, start_time, end_time, act_loc)
             presence_df[str(user_id)] = df['label']
 
+        if isinstance(presence_df, NoneType) or len(presence_df) == 0:
+            logger.debug("Empty presence matrix formed")
+            return
         # Merge slices where the user columns have the same values
         presence_df = core_f.merge_presence_matrix(presence_df)
 
