@@ -400,6 +400,7 @@ def get_inferred_activities(user):
         aentry = all_activities_df.ix[idx]
         activities.append({'id': aentry['id'], 'name': aentry['appliance'],
                            'location': aentry['location'], "usage": aentry['usage'],
-                           "start_time": aentry['start_time'], "end_time": aentry['end_time']})
+                           "start_time": int(aentry['start_time']),
+                           "end_time": int(aentry['end_time'])})
 
     return activities
