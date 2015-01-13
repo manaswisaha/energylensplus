@@ -118,17 +118,19 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
         et = st + 3600
         logger.debug("Hour[%d] Searching between [%s - %s]", i, st, et)
 
-        st_df = consumption_df[consumption_df.start_time.isin(range(st, et))]
-        et_df = consumption_df[consumption_df.end_time.isin(range(st, et))]
-        filtered_df = pd.concat([st_df, et_df])
+        # st_df = consumption_df[consumption_df.start_time.isin(range(st, et))]
+        # et_df = consumption_df[consumption_df.end_time.isin(range(st, et))]
+        filtered_df = consumption_df[(consumption_df.start_time.isin(range(st, et))) |
+                                     (consumption_df.end_time.isin(range(st, et)))]
+        # pd.concat([st_df, et_df])
         logger.debug("Hour[%d] FiltDF \n%s", i, filtered_df)
 
         hour_usage = 0
         for idx in filtered_df.index:
             row = filtered_df.ix[idx]
             energy_val = row[energy]
-            s_time = int(row['start_time'])
-            e_time = int(row['end_time'])
+            s_time = row['start_time']
+            e_time = row['end_time']
             act_id = row['activity']
             power = activities[act_id]
 
