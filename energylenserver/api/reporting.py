@@ -92,6 +92,9 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
     if len(consumption_df) == 0:
         return hourly_consumption
 
+    consumption_df = consumption_df.start_time.astyp('int')
+    consumption_df = consumption_df.endx_time.astyp('int')
+
     activities = {}
     for idx in activities_df.index:
         row = activities_df.ix[idx]
@@ -115,7 +118,7 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
         st_df = consumption_df[consumption_df.start_time.isin(range(st, et))]
         et_df = consumption_df[consumption_df.end_time.isin(range(st, et))]
         filtered_df = pd.concat([st_df, et_df])
-        logger.debug("Hour[%d] FiltDF \n%s", i, consumption_df)
+        logger.debug("Hour[%d] FiltDF \n%s", i, filtered_df)
 
         hour_usage = 0
         for idx in filtered_df.index:

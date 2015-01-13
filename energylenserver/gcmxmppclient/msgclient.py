@@ -153,7 +153,7 @@ class MessageClient:
 
                 self.send_message(self, message)
         except Exception, e:
-            self.logger.error("[GCMCLIENT EXCEPTION] SendMessage:%s", e)
+            self.logger.exception("[GCMCLIENT EXCEPTION] SendMessage:%s", e)
 
     # Doesn't make sense -- alter
     def resend_queued_messages(self):
@@ -199,8 +199,7 @@ class MessageClient:
             self.prev_req_time = time.time()
 
         except Exception, e:
-            self.logger.error("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
-            self.elogger.exception("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
+            self.logger.exception("[GCMCLIENT EXCEPTION]: UpMessageHandler ::%s", e)
 
     def handle_request_message(self, message):
 
