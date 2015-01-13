@@ -705,8 +705,6 @@ def determine_wastage(apt_no):
                 # Inform
                 inform_all_users(apt_no, message, users)
 
-            logger.debug("Occupants count:%s", col_sum)
-
     except Exception, e:
         logger.exception("[DetermineWastageRTException]:: %s", e)
 

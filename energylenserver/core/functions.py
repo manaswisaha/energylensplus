@@ -224,8 +224,8 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             # Getting location of the slice
             sliced_df = labeled_df[
                 (labeled_df.timestamp >= s_time) & (labeled_df.timestamp <= e_time)]
-            logger.debug("Between [%s] and [%s] sliced len:: %d", time.ctime(s_time),
-                         time.ctime(e_time), len(sliced_df))
+            # logger.debug("Between [%s] and [%s] sliced len:: %d", time.ctime(s_time),
+            #              time.ctime(e_time), len(sliced_df))
 
             if len(sliced_df) > 0:
                 location = get_max_class(sliced_df['label'])
