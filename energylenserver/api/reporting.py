@@ -8,7 +8,7 @@ import random as rnd
 from numpy import random
 from django_pandas.io import read_frame
 
-from constants import PERSONAL_ENERGY_API, ENERGY_WASTAGE_REPORT_API
+from constants import PERSONAL_ENERGY_API, ENERGY_WASTAGE_REPORT_API, report_period
 from energylenserver.models import functions as mod_func
 
 
@@ -379,7 +379,6 @@ def get_inferred_activities(user):
 
     # '''
 
-    report_period = 3600  # 1 hour (in seconds)
     end_time = int(time.time())
     start_time = end_time - report_period
 
