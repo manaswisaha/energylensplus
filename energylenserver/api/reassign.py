@@ -19,7 +19,7 @@ def correct_inference(user, parameters):
     try:
         # Unbundle request
         activities = parameters['activities']
-        logger.debug("activities: %s", activities)
+        logger.debug("Activities: %s", activities)
         for activity in activities:
             act_id = activity['activity_id']
             true_appl = activity['to_appliance']
@@ -37,6 +37,7 @@ def correct_inference(user, parameters):
             et_str = ''
             if end_time != "":
                 et_str = time.ctime(end_time)
+
             logger.debug("ActivityID: %s", act_id)
             logger.debug("Start time: %s", st_str)
             logger.debug("End time: %s", et_str)
@@ -54,6 +55,7 @@ def correct_inference(user, parameters):
                 logger.debug("Inference correct!\n")
             continue
             # ----- TESTING -----
+            '''
 
             try:
                 # Update activity
@@ -72,10 +74,10 @@ def correct_inference(user, parameters):
             except Exception, e:
                 logger.error("[UpdateActivitiesException]:: %s", str(e))
                 return False
-            '''
+            # '''
 
         # TESTING CODE
-        return False
+        # return False
 
     except Exception, e:
         logger.exception("[ReassignInferenceException]:: %s", str(e))

@@ -610,7 +610,6 @@ def determine_wastage(apt_no):
         # Determine the on going events
         on_event_records = mod_func.get_on_events_by_location(apt_no, end_time, "all")
         n_on_event_records = on_event_records.count()
-        logger.debug("Number of ongoing events: %s", n_on_event_records)
 
         if n_on_event_records == 0:
             return
@@ -622,6 +621,8 @@ def determine_wastage(apt_no):
             on_time = event.event_time
             if (now_time - on_time) <= 60 * 60:
                 on_events.append(event)
+
+        logger.debug("Number of ongoing events: %s", len(on_events))
 
         if len(on_events) == 0:
             return

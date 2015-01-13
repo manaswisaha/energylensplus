@@ -46,7 +46,7 @@ Main Functions
 """
 
 
-def filter_user_activities(dev_id, activity_df):
+def filter_user_activities(user, activity_df):
     """
     Filter the activity list based on the specified user id
     """
@@ -55,7 +55,7 @@ def filter_user_activities(dev_id, activity_df):
         activity_id_list = activity_df.id.tolist()
 
         # User specific activities
-        usage_entries = mod_func.retrieve_usage_entries(dev_id, activity_id_list)
+        usage_entries = mod_func.retrieve_usage_entries(user, activity_id_list)
         if isinstance(usage_entries, bool) or usage_entries.count() == 0:
             return False, False
 
@@ -378,7 +378,7 @@ def get_inferred_activities(dev_id):
 
     # '''
 
-    report_period = 3600  # 1 hour in seconds
+    report_period = 3600  # 1 hour (in seconds)
     end_time = time.time()
     start_time = end_time - report_period
 

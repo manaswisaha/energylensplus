@@ -256,7 +256,7 @@ class MessageClient:
             end_time = options['end_time']
 
             # Get energy report
-            options = get_energy_report(user.dev_id, api, start_time, end_time)
+            options = get_energy_report(user, api, start_time, end_time)
             data_to_send['options'] = options
 
             self.logger.debug("Sending data for:  %s", api)
@@ -267,7 +267,7 @@ class MessageClient:
             end_time = options['end_time']
             activity_name = options['activity_name']
 
-            activities = disaggregated_energy(user.dev_id, activity_name, start_time, end_time)
+            activities = disaggregated_energy(user, activity_name, start_time, end_time)
             # appliances = mod_func.retrieve_metadata(apt_no)
 
             data_to_send['options']['activities'] = activities
@@ -278,7 +278,7 @@ class MessageClient:
         # To be used only for testing purposes
         elif api == GROUND_TRUTH_NOTIF_API:
             # API: ground_truth api
-            activities = get_inferred_activities(user.dev_id)
+            activities = get_inferred_activities(user)
             appliances = mod_func.retrieve_metadata(apt_no)
 
             data_to_send['options']['activities'] = activities
