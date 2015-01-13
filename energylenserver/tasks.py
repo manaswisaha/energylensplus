@@ -561,7 +561,7 @@ def apportion_energy(result_labels):
         # For non-presence based appliances e.g Geyser, Microwave, Music System, Fridge
         if not md_entry.presence_based:
             power = activity.power
-            usage = get_energy_consumption(st, et, power)
+            usage = apprt.get_energy_consumption(st, et, power)
             stayed_for = end_time - start_time
             user = activity.start_event.dev_id
             usage_entry = EnergyUsageLog(activity=activity,

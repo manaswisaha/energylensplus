@@ -198,7 +198,7 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
     labeled_df = read_frame(data, verbose=False)
     labeled_df.sort(['timestamp'], inplace=True)
 
-    logger.debug("Location: %s User:%s Labeled len: %d", act_location, user, len(labeled_df))
+    logger.debug("Location: %s User: %s Labeled len: %d", act_location, user, len(labeled_df))
 
     # Get classified accl data
     accl_df = classify_movement(apt_no, start_time, end_time, user)
