@@ -59,7 +59,7 @@ def filter_user_activities(user, activity_df, consumption_type):
         if consumption_type == "usage":
             # User specific usage activities
             usage_entries = mod_func.retrieve_usage_entries(user, activity_id_list)
-            if isinstance(usage_entries, bool) or usage_entries.count() == 0:
+            if isinstance(usage_entries, bool):
                 return False, False
 
             c_entries_df = read_frame(usage_entries, verbose=False)
@@ -67,7 +67,7 @@ def filter_user_activities(user, activity_df, consumption_type):
         else:
             # User specific wastage activities
             w_entries = mod_func.retrieve_wastage_entries(user, activity_id_list)
-            if isinstance(w_entries, bool) or w_entries.count() == 0:
+            if isinstance(w_entries, bool):
                 return False, False
 
             c_entries_df = read_frame(w_entries, verbose=False)
@@ -89,7 +89,7 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
     """
     hourly_consumption = [0] * no_of_hours
 
-    if not consumption_df:
+    if not isinstance(consumption_df, pd.DataFrame):
         return hourly_consumption
 
     consumption_df = consumption_df.start_time.astype('int')
