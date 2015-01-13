@@ -351,7 +351,7 @@ def disaggregated_energy(dev_id, activity_name, start_time, end_time):
     return activities
 
 
-def get_inferred_activities(dev_id):
+def get_inferred_activities(user):
     """
     Retrieves activities in the past n hour(s)
     Returns: validation report for ground truth with the activities in the past hour
@@ -388,7 +388,7 @@ def get_inferred_activities(dev_id):
         return activities
 
     all_activities_df = read_frame(records, verbose=False)
-    all_activities_df, u_entries_df = filter_user_activities(dev_id, all_activities_df)
+    all_activities_df, u_entries_df = filter_user_activities(user, all_activities_df)
 
     if isinstance(all_activities_df, bool):
         return activities

@@ -746,14 +746,13 @@ def send_validation_report():
         for user in users:
             reg_id = user.reg_id
             apt_no = user.apt_no
-            dev_id = user.dev_id
 
             # Construct the message
             data_to_send = {}
             data_to_send['msg_type'] = "response"
             data_to_send['api'] = GROUND_TRUTH_NOTIF_API
             data_to_send['options'] = {}
-            activities = rpt.get_inferred_activities(dev_id)
+            activities = rpt.get_inferred_activities(user)
 
             if isinstance(activities, bool):
                 return
