@@ -92,8 +92,13 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
     if not isinstance(consumption_df, pd.DataFrame):
         return hourly_consumption
 
-    consumption_df = consumption_df.start_time.astype('int')
-    consumption_df = consumption_df.end_time.astype('int')
+    logger.debug("ConsumptionDF::\n %s", consumption_df)
+
+    if len(consumption_df) == 0:
+        return hourly_consumption
+
+    consumption_df['start_time'] = consumption_df.start_time.astype('int')
+    consumption_df['end_time'] = consumption_df.end_time.astype('int')
 
     activities = {}
     for idx in activities_df.index:
@@ -105,8 +110,6 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
         energy = "usage"
     elif "wastage" in consumption_df.columns:
         energy = "wastage"
-
-    logger.debug("ConsumptionDF::\n %s", consumption_df)
 
     i = 0
     st = start_time
