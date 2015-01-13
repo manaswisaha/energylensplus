@@ -10,6 +10,7 @@ from django_pandas.io import read_frame
 
 from constants import PERSONAL_ENERGY_API, ENERGY_WASTAGE_REPORT_API, report_period
 from energylenserver.models import functions as mod_func
+from energylenserver.core.apportionment import get_energy_consumption
 
 
 # Enable Logging
@@ -84,18 +85,23 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
         act_id = row['id']
         activities[act_id] = {'power': row['power']}
 
-    i = 0
     if "usage" in consumption_df.columns:
         energy = "usage"
     elif "wastage" in consumption_df.columns:
         energy = "wastage"
 
+    logger.debug("ConsumptionDF::\n %s", consumption_df)
+
+    i = 0
     st = start_time
     while i < no_of_hours:
 
         et = st + 3600
+        logger.debug("Hour[%d] Searching between [%s - %s]", i, st, et)
+
         filtered_df = consumption_df[(consumption_df.start_time.isin(range(st, et))) |
                                      (consumption_df.end_time.isin(range(st, et)))]
+        logger.debug("Hour[%d] FiltDF \n", i, consumption_df)
 
         hour_usage = 0
         for idx in filtered_df.index:
@@ -105,14 +111,13 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
             e_time = int(row['end_time'])
             act_id = row['activity']
             power = activities[act_id]
+
             if s_time >= st and e_time < et:
                 hour_usage += energy_val
             elif s_time >= st:
-                duration = et - s_time
-                hour_usage += duration * power
+                hour_usage += get_energy_consumption(s_time, et - 1, power)
             elif e_time < et:
-                duration = e_time - st
-                hour_usage += duration * power
+                hour_usage += get_energy_consumption(st, e_time, power)
         hourly_consumption[i] = hour_usage
         i += 1
 
@@ -379,8 +384,10 @@ def get_inferred_activities(user):
 
     # '''
 
-    end_time = int(time.time())
+    end_time = time.time()
     start_time = end_time - report_period
+
+    logger.debug("Report to generate between [%s -- %s]", start_time, end_time)
 
     records = mod_func.retrieve_finished_activities(start_time, end_time)
 
