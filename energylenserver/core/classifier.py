@@ -197,7 +197,7 @@ def correct_label(label, pred_label, label_type, edge):
                         if key == l:
                             new_label_list.append(key)
 
-                label = func.get_max_class(new_label_list)
+                label = func.get_max_class(pd.Series(new_label_list))
 
         else:
             # No matching metadata found
@@ -206,7 +206,7 @@ def correct_label(label, pred_label, label_type, edge):
 
             logger.debug("No metadata found")
             new_label_list = [l for l in pred_label if l != old_label]
-            label = func.get_max_class(new_label_list)
+            label = func.get_max_class(pd.Series(new_label_list))
 
     logger.debug("Corrected Label: %s --> %s", old_label, label)
 
