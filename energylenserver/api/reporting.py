@@ -388,16 +388,18 @@ def get_inferred_activities(user):
         return activities
 
     all_activities_df = read_frame(records, verbose=False)
+    logger.debug("All Activities: %s", all_activities_df)
     all_activities_df, u_entries_df = filter_user_activities(user, all_activities_df)
 
     if isinstance(all_activities_df, bool):
         return activities
 
-    if len(all_activities_df) > 0:
-        for idx in all_activities_df.index:
-            aentry = all_activities_df.ix[idx]
-            activities.append({'id': aentry['id'], 'name': aentry['name'],
-                               'location': aentry['location'], "usage": aentry['usage'],
-                               "start_time": aentry['start_time'], "end_time": aentry['end_time']})
+    logger.debug("Filtered All Activities: %s", all_activities_df)
+
+    for idx in all_activities_df.index:
+        aentry = all_activities_df.ix[idx]
+        activities.append({'id': aentry['id'], 'name': aentry['appliance'],
+                           'location': aentry['location'], "usage": aentry['usage'],
+                           "start_time": aentry['start_time'], "end_time": aentry['end_time']})
 
     return activities

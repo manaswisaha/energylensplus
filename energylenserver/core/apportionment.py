@@ -25,15 +25,9 @@ def calculate_consumption(user_list, presence_df, activity):
         user_columns = presence_df.columns - ['start_time', 'end_time']
         presence_df['user_count'] = presence_df.ix[:, user_columns].sum(axis=1, numeric_only=True)
 
-        logger.debug("PresenceDF: \n %s", presence_df)
-
         time_shared_slices_df = presence_df[presence_df.user_count > 1]
 
-        logger.debug("time_shared_slices_df: \n %s", time_shared_slices_df)
-
         indiv_slices_df = presence_df.ix[presence_df.index - time_shared_slices_df.index]
-
-        logger.debug("indiv_slices_df::\n %s", indiv_slices_df)
 
         # Energy Usage - for individual slices (not shared)
         for user in user_list:
@@ -51,8 +45,8 @@ def calculate_consumption(user_list, presence_df, activity):
                 stayed_for = et - st
                 usage = get_energy_consumption(st, et, power)
 
-                logger.debug("User %s Activity: %s, [%s -- %s] stayed for %s used: %s Wh",
-                             user, activity, st, et, stayed_for, usage)
+                # logger.debug("User %s Activity: %s, [%s -- %s] stayed for %s used: %s Wh",
+                # user, activity, st, et, stayed_for, usage)
 
                 # Create usage entry in the log
                 usage_entry = EnergyUsageLog(activity=activity,
