@@ -104,7 +104,7 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
     for idx in activities_df.index:
         row = activities_df.ix[idx]
         act_id = row['id']
-        activities[act_id] = {'power': row['power']}
+        activities[act_id] = row['power']
 
     if "usage" in consumption_df.columns:
         energy = "usage"
