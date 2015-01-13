@@ -93,7 +93,7 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
         return hourly_consumption
 
     consumption_df = consumption_df.start_time.astype('int')
-    consumption_df = consumption_df.endx_time.astype('int')
+    consumption_df = consumption_df.end_time.astype('int')
 
     activities = {}
     for idx in activities_df.index:
