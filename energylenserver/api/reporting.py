@@ -101,7 +101,7 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
 
         filtered_df = consumption_df[(consumption_df.start_time.isin(range(st, et))) |
                                      (consumption_df.end_time.isin(range(st, et)))]
-        logger.debug("Hour[%d] FiltDF \n", i, consumption_df)
+        logger.debug("Hour[%d] FiltDF \n%s", i, consumption_df)
 
         hour_usage = 0
         for idx in filtered_df.index:
