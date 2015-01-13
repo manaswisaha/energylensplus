@@ -119,6 +119,7 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
             elif e_time < et:
                 hour_usage += get_energy_consumption(st, e_time, power)
         hourly_consumption[i] = hour_usage
+        st = et
         i += 1
 
     return hourly_consumption
