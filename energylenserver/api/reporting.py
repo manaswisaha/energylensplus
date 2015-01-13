@@ -395,7 +395,7 @@ def get_inferred_activities(user):
         return activities
 
     all_activities_df = read_frame(records, verbose=False)
-    logger.debug("All Activities: %s", all_activities_df)
+    logger.debug("GT::All Activities: %s", all_activities_df)
     all_activities_df, u_entries_df = filter_user_activities(user, all_activities_df)
 
     if isinstance(all_activities_df, bool):
