@@ -63,7 +63,6 @@ def filter_user_activities(user, activity_df, consumption_type):
                 return False, False
 
             c_entries_df = read_frame(usage_entries, verbose=False)
-            activity_id = c_entries_df.activity.unique().tolist()
         else:
             # User specific wastage activities
             w_entries = mod_func.retrieve_wastage_entries(user, activity_id_list)
@@ -71,9 +70,9 @@ def filter_user_activities(user, activity_df, consumption_type):
                 return False, False
 
             c_entries_df = read_frame(w_entries, verbose=False)
-            activity_id = c_entries_df.activity.unique().tolist()
 
         # Filtered activity
+        activity_id = c_entries_df.activity.unique().tolist()
         activity_df = activity_df[activity_df.id.isin(activity_id)]
 
         return activity_df, c_entries_df
@@ -218,6 +217,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
             options['activities'] = []
             if len(usage_df) > 0:
                 # Creating usage entries based on appliances
+                activities_df.set_index('id', inplace=True)
                 usage_df.set_index('activity', inplace=True)
                 act_usage_df = activities_df.join(usage_df, how='outer', lsuffix='_l')
                 act_usage_df = act_usage_df.groupby(['appliance']).sum()
@@ -270,8 +270,9 @@ def get_energy_report(dev_id, api, start_time, end_time):
             options['activities'] = []
             if len(wastage_df) > 0:
                 # Creating wastage entries based on appliances
+                w_activities_df.set_index('id', inplace=True)
                 wastage_df.set_index('activity', inplace=True)
-                act_wastage_df = activities_df.join(wastage_df, how='outer', lsuffix='_l')
+                act_wastage_df = w_activities_df.join(wastage_df, how='outer', lsuffix='_l')
                 act_wastage_df = act_wastage_df.groupby(['appliance']).sum()
                 logger.debug("ActWastage: \n%s", act_wastage_df)
 
