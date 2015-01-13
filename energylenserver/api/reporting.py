@@ -220,14 +220,15 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
             logger.debug("Energy Usage:%s", hourly_usage)
 
-            # Creating usage entries based on appliances
-            act_usage_df = activities_df.join(usage_df, how='outer', lsuffix='_l')
-            act_usage_df = act_usage_df.groupby(['appliance']).sum()
-
             options['activities'] = []
-            for appl in act_usage_df.index:
-                options['activities'].append({'name': appl,
-                                              'usage': act_usage_df.ix[appl]['usage']})
+            if len(usage_df) > 0:
+                # Creating usage entries based on appliances
+                act_usage_df = activities_df.join(usage_df, how='outer', lsuffix='_l')
+                act_usage_df = act_usage_df.groupby(['appliance']).sum()
+
+                for appl in act_usage_df.index:
+                    options['activities'].append({'name': appl,
+                                                  'usage': act_usage_df.ix[appl]['usage']})
 
     elif api == ENERGY_WASTAGE_REPORT_API:
 
@@ -266,15 +267,16 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
             logger.debug("Energy Wastage: %s", hourly_wastage)
 
-            # Creating wastage entries based on appliances
-            act_wastage_df = activities_df.join(wastage_df, how='outer', lsuffix='_l')
-            act_wastage_df = act_wastage_df.groupby(['appliance']).sum()
-            logger.debug("ActWastage: \n%s", act_wastage_df)
-
             options['activities'] = []
-            for appl in act_wastage_df.index:
-                options['activities'].append({'name': appl,
-                                              'wastage': act_wastage_df.ix[appl]['wastage']})
+            if len(wastage_df) > 0:
+                # Creating wastage entries based on appliances
+                act_wastage_df = activities_df.join(wastage_df, how='outer', lsuffix='_l')
+                act_wastage_df = act_wastage_df.groupby(['appliance']).sum()
+                logger.debug("ActWastage: \n%s", act_wastage_df)
+
+                for appl in act_wastage_df.index:
+                    options['activities'].append({'name': appl,
+                                                  'wastage': act_wastage_df.ix[appl]['wastage']})
 
     return options
 
