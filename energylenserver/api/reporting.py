@@ -1,10 +1,11 @@
 """
 Module for the energy reporting APIs
 """
-import json
+
 import time
 import random as rnd
 
+import pandas as pd
 from numpy import random
 from django_pandas.io import read_frame
 
@@ -79,6 +80,9 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
     """
     hourly_consumption = [0] * no_of_hours
 
+    if len(consumption_df) == 0:
+        return hourly_consumption
+
     activities = {}
     for idx in activities_df.index:
         row = activities_df.ix[idx]
@@ -99,8 +103,8 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
         et = st + 3600
         logger.debug("Hour[%d] Searching between [%s - %s]", i, st, et)
 
-        filtered_df = consumption_df[(consumption_df.start_time.isin(range(st, et))) |
-                                     (consumption_df.end_time.isin(range(st, et)))]
+        filtered_df = pd.concat(consumption_df[(consumption_df.start_time.isin(range(st, et)))],
+                                consumption_df[(consumption_df.end_time.isin(range(st, et)))])
         logger.debug("Hour[%d] FiltDF \n%s", i, consumption_df)
 
         hour_usage = 0
