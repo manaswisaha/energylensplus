@@ -218,6 +218,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
             options['activities'] = []
             if len(usage_df) > 0:
                 # Creating usage entries based on appliances
+                usage_df.set_index('activity', inplace=True)
                 act_usage_df = activities_df.join(usage_df, how='outer', lsuffix='_l')
                 act_usage_df = act_usage_df.groupby(['appliance']).sum()
 
@@ -269,6 +270,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
             options['activities'] = []
             if len(wastage_df) > 0:
                 # Creating wastage entries based on appliances
+                wastage_df.set_index('activity', inplace=True)
                 act_wastage_df = activities_df.join(wastage_df, how='outer', lsuffix='_l')
                 act_wastage_df = act_wastage_df.groupby(['appliance']).sum()
                 logger.debug("ActWastage: \n%s", act_wastage_df)
