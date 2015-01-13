@@ -60,7 +60,7 @@ def calculate_consumption(user_list, presence_df, activity):
 
             row = time_shared_slices_df.ix[idx]
             n_users = row['user_count']
-            col_idx = np.where((row == 1) is True)[0]
+            col_idx = np.where((row == 1) == True)[0]
             u_list = time_shared_slices_df.columns[col_idx]
             users = [mod_func.get_user(int(i)) for i in u_list]
 
@@ -117,7 +117,7 @@ def calculate_consumption(user_list, presence_df, activity):
                         # Create wastage entry in the log
                         wastage_entry = EnergyWastageLog(activity=activity,
                                                          start_time=st, end_time=et,
-                                                         left_for=left_for, usage=usage,
+                                                         left_for=left_for, wastage=usage,
                                                          dev_id=user)
                         wastage_entry.save()
                     else:

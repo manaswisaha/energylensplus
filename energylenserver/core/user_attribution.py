@@ -92,12 +92,9 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             for user_i in contending_users:
                 appl = appliance[user_i]
                 logger.debug("User: %s Appl: %s", user_i, appl)
-                poss_user = poss_user_orig[poss_user_orig.md_appl == appl]
+                poss_user = poss_user_orig[(poss_user_orig.md_appl == appl) &
+                                           (poss_user_orig.dev_id == user_i)]
                 if len(poss_user) != 0:
-                    #     idx = poss_user.index[np.where(poss_user.dev_id == user_i)[0]]
-                    # Remove records
-                    #     poss_user = poss_user.drop(idx)
-                    # else:
                     idx_list += poss_user.index.tolist()
             poss_user = poss_user_orig.ix[idx_list]
 
@@ -137,7 +134,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
                 else:
                     # Users share the time slice having the same magnitude
-                    users = poss_user['dev_id'].unique().tolist()
+                    users = poss_user.dev_id.unique().tolist()
                     if len(users) > 0:
                         logger.debug("Shared event! Selecting random user..")
                         # Selecting a random user
