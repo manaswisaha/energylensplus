@@ -89,7 +89,7 @@ def determine_hourly_consumption(start_time, end_time, no_of_hours, activities_d
     """
     hourly_consumption = [0] * no_of_hours
 
-    if len(consumption_df) == 0:
+    if not consumption_df:
         return hourly_consumption
 
     consumption_df = consumption_df.start_time.astype('int')
