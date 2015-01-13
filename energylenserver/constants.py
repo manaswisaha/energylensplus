@@ -1,6 +1,10 @@
 # Participating apartments
 apt_no_list = ['1201', '102A', '101', '1003', '1002']
 
+# Default users
+unknown_id = 123456789123456
+all_id = 987654321654321
+
 # Appliance types
 appliance_dict = {'fan': {'audio': True, 'presence': True},
                   'tv': {'audio': True, 'presence': True},

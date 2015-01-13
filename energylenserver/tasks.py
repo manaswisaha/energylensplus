@@ -399,7 +399,6 @@ def classify_edge(edge):
 
             if n_on_event_records == 0:
                 # Get number of appliances with the similar appliances in the inferred location
-                # Get Metadata
                 data = mod_func.retrieve_metadata(apt_no)
                 metadata_df = read_frame(data, verbose=False)
 
@@ -440,7 +439,7 @@ def classify_edge(edge):
 
         # For "Unknown" label
         elif isinstance(who, str):
-            user_record = mod_func.get_user(123456789123456)
+            user_record = mod_func.get_user(unknown_id)
             # Create a record in the Event Log with edge id
             # and store 'who', 'what', 'where' labels
             event = EventLog(edge=edge, event_time=event_time,
@@ -683,7 +682,7 @@ def determine_wastage(apt_no):
             # Merge slices where the user columns have the same values
             # logger.debug("Presence DF: \n %s", presence_df)
             presence_df = core_f.merge_presence_matrix(presence_df)
-            logger.debug("Merged Presence Matrix:\n %s", presence_df)
+            # logger.debug("Merged Presence Matrix:\n %s", presence_df)
 
             # Determine wastage - find rooms of activity that are empty
             user_columns = presence_df.columns - ['start_time', 'end_time']

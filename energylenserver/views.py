@@ -53,11 +53,15 @@ def register_device(request):
             if ukwn_count == 0:
 
                 # Store user
-                ukwn_user = RegisteredUsers(dev_id=123456789123456, reg_id='ABCDEF', apt_no=0000,
+                ukwn_user = RegisteredUsers(dev_id=unknown_id, reg_id='ABCDEF', apt_no=0000,
                                             name='Unknown', is_active=False,
                                             email_id='', phone_model='Unknown')
+                all_user = RegisteredUsers(dev_id=all_id, reg_id='ABCDEFGHRITIGHKD', apt_no=9999,
+                                           name='All', is_active=False,
+                                           email_id='', phone_model='All')
                 ukwn_user.save()
-                logger.debug("Unknown user created!")
+                all_user.save()
+                logger.debug("Unknown and All users created!")
 
             # print request.body
             payload = json.loads(request.body)
