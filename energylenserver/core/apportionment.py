@@ -81,6 +81,7 @@ def calculate_consumption(user_list, presence_df, activity):
 
         # Energy Wastage
         w_slices_ix = presence_df[presence_df.user_count == 0].index
+        logger.debug("Wastage Slices:: %s", w_slices_ix)
 
         # Storing Energy Usage/Wastage in the database
         for idx in w_slices_ix:
