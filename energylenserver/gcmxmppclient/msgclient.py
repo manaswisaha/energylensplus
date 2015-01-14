@@ -179,8 +179,6 @@ class MessageClient:
                 gcm_json = gcm[0].getData()
                 msg = json.loads(gcm_json)
 
-                self.logger.debug("Message received: %s", msg)
-
                 # Indicates it is an upstream data message and accept from the EnergyLens app
                 if 'message_type' not in msg and msg['category'] in ['com.example.energylens',
                                                                      'com.iiitd.muc.energylens']:
