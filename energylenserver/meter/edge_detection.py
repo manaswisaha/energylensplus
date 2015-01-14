@@ -193,10 +193,10 @@ def check_if_edge(df, index, power_stream):
         # For falling edge: for comparison with curr_next_diff
         if magnitude < 0:
             mag_abs = math.fabs(magnitude)
-            if mag_abs <= 50:
-                per_current_val = int(0.45 * mag_abs)
+            if mag_abs <= 100:
+                per_current_val = int(math.floor(0.45 * mag_abs))
             else:
-                per_current_val = int(100)
+                per_current_val = 100
 
         # Removes spikes
         if math.fabs(curr_nextnext_diff) < thresmin:

@@ -133,7 +133,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
 
     except Exception, e:
         logger.exception("[ClassifyNewLocationDataException]:: %s", e)
-        return False
+        return "Unknown"
 
 
 def correct_label(label, pred_label, label_type, edge):

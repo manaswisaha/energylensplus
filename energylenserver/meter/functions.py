@@ -18,7 +18,7 @@ date_format = "%Y-%m-%dT%H:%M:%S"
 
 
 def compute_power(start_mag, end_mag):
-    return (start_mag + end_mag) / 2
+    return int(round((start_mag + end_mag) / 2))
 
 
 def training_compute_power(apt_no, start_time, end_time):
