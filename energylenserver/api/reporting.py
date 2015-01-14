@@ -6,6 +6,7 @@ import time
 import random as rnd
 
 import pandas as pd
+import numpy as np
 from numpy import random
 from django_pandas.io import read_frame
 
@@ -162,7 +163,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
     # '''
     # Temp
     # usage_list = random.randint(1000, size=no_of_hours)
-    usage_list = [0] * no_of_hours
+    usage_list = np.array([0] * no_of_hours)
     logger.debug("Energy Usage:%s", usage_list)
     usage_list[11] = 1230
     usage_list[3] = 765
