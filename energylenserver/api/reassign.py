@@ -22,15 +22,18 @@ def correct_inference(user, parameters):
         logger.debug("Activities: %s", activities)
         for activity in activities:
             act_id = activity['activity_id']
-            true_appl = activity['to_appliance']
-            true_loc = activity['to_location']
+
             incorrect = activity['incorrect']
             time_of_stay = int(activity['time_of_stay'])
-            to_occupant_dev_id = activity['to_occupant']
+
+            # Parameters that may be empty [who,what,where,when]
             start_time = activity['start_time']
             end_time = activity['end_time']
+            true_loc = activity['to_location']
+            true_appl = activity['to_appliance']
+            to_occupant_dev_id = activity['to_occupant']
 
-            # Debugging statements
+            # ----- Debugging ------
             st_str = ''
             if start_time != "":
                 st_str = time.ctime(start_time)
@@ -46,22 +49,33 @@ def correct_inference(user, parameters):
             logger.debug("Incorrect Status: %s", incorrect)
             logger.debug("Time of stay: %s", time_of_stay)
             logger.debug("To Occupant: %s\n", to_occupant_dev_id)
-
-            '''
-            # ----- TESTING -----
-            if incorrect:
-                logger.debug("Inference incorrect!\n")
-            else:
-                logger.debug("Inference correct!\n")
-            continue
-            # ----- TESTING -----
-            '''
+            # ----- Debugging ------
 
             try:
                 # Update activity
                 act_record = mod_func.get_activity_by_id(act_id)
-                to_occupant = mod_func.get_user(to_occupant_dev_id)
 
+                # When
+                if isinstance(start_time, str):
+                    start_time = act_record.start_time
+                if isinstance(end_time, str):
+                    end_time = act_record.end_time
+
+                # Where
+                if isinstance(true_loc, str):
+                    true_loc = act_record.location
+
+                # What
+                if isinstance(true_appl, str):
+                    true_appl = act_record.appliance
+
+                # Who
+                if isinstance(to_occupant_dev_id, str):
+                    to_occupant = submitted_by
+                else:
+                    to_occupant = mod_func.get_user(to_occupant_dev_id)
+
+                # Store entry
                 gt_entry = GroundTruthLog(by_dev_id=submitted_by, act_id=act_record,
                                           incorrect=incorrect,
                                           start_time=start_time, end_time=end_time,
