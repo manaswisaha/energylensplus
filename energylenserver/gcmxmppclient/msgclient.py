@@ -285,6 +285,7 @@ class MessageClient:
 
             self.logger.debug("Sending ground truth report..")
 
+        # Not being used
         elif api == REASSIGN_INFERENCE_API:
             self.logger.debug("Correcting inferences..")
 

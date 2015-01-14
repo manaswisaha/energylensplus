@@ -196,11 +196,11 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
         options['activities'] = []
         options['activities'].append(
-            {'name': "TV", "usage": total_usage * perc_list[0] / 100.})
+            {'name': "TV", "usage": int(round(total_usage * perc_list[0] / 100.))})
         # options['activities'].append(
         #     {'name': "AC", "usage": total_usage * perc_list[2] / 100.})
         options['activities'].append(
-            {'name': "Microwave", "usage": total_usage * perc_list[1] / 100.})
+            {'name': "Microwave", "usage": int(round(total_usage * perc_list[1] / 100.))})
         # options['activities'].append(
         #     {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
         return options
@@ -240,11 +240,11 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
         options['activities'] = []
         options['activities'].append(
-            {'name': "TV", "wastage": total_usage * perc_list[0] / 100.})
+            {'name': "TV", "wastage": int(round(total_usage * perc_list[0] / 100.))})
         # options['activities'].append(
         #     {'name': "AC", "wastage": total_usage * perc_list[2] / 100.})
         options['activities'].append(
-            {'name': "Microwave", "wastage": total_usage * perc_list[1] / 100.})
+            {'name': "Microwave", "wastage": int(round(total_usage * perc_list[1] / 100.))})
         # options['activities'].append(
         #     {'name': "Unknown", "wastage": total_usage * perc_list[1] / 100.})
 
@@ -259,7 +259,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
                 start_time, end_time, no_of_hours, activities_df, wastage_df)
 
             total_wastage = sum(hourly_wastage)
-            total_consumption = activities_df.usage.sum()
+            total_consumption = int(round(activities_df.usage.sum()))
             options['total_wastage'] = total_wastage
             options['hourly_consumption'] = hourly_wastage
             options['total_consumption'] = total_consumption

@@ -608,7 +608,7 @@ def determine_wastage(apt_no):
     """
     Determines energy wastage in real-time
     """
-    logger.debug("Periodic Energy Wastage Detector started..")
+    logger.debug("Periodic Energy Wastage Detector started for [%s]", apt_no)
     try:
         now_time = int(time.time())
         end_time = now_time - upload_interval
