@@ -159,6 +159,9 @@ def get_energy_report(dev_id, api, start_time, end_time):
     start_time = end_time - no_of_hours * 3600
 
     options = {}
+    total_usage = 0
+    total_consumption = 0
+    hourly_usage = [0] * no_of_hours
 
     '''
     # Temp
@@ -184,6 +187,14 @@ def get_energy_report(dev_id, api, start_time, end_time):
     activities_df, usage_df = filter_user_activities(dev_id, all_activities_df, "usage")
 
     if isinstance(activities_df, bool) or len(activities_df) == 0:
+        if api == PERSONAL_ENERGY_API:
+            options['total_usage'] = total_usage
+        else:
+            options['total_wastage'] = total_usage
+
+        options['hourly_consumption'] = hourly_usage
+        options['total_consumption'] = total_consumption
+        options['activities'] = []
         return options
     # '''
 
