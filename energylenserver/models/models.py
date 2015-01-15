@@ -281,10 +281,11 @@ class BatteryUsage(models.Model):
         try:
             cursor = connection.cursor()
 
-            cursor.execute("LOAD DATA LOCAL INFILE %s INTO TABLE BatteryUsage"
+            cursor.execute("LOAD data LOCAL INFILE %s INTO TABLE BatteryUsage"
                            " FIELDS TERMINATED BY ',' IGNORE 1 LINES "
-                           "(@timestamp, value, charging_state, scaled_usage) "
+                           "(@timestamp, value, @charging_state, scaled_usage) "
                            "SET timestamp = @timestamp/1000.0, "
+                           "charging_state = @charging_state = 'true', "
                            "dev_id_id = " + str(user.dev_id), [filename])
             os.remove(filename)
         except Exception, e:

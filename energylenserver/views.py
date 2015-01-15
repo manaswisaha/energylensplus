@@ -456,7 +456,7 @@ def upload_stats(request):
 
             # Find the file type from the filename and choose appropriate table
             filename_l = filename.split('_')
-            file_type = int(filename_l[1])
+            file_type = filename_l[1]
 
             if file_type == "screen":
                 file_tag = "screenlog"
