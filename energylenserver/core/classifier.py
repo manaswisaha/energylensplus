@@ -93,7 +93,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
             location = "Unknown"
             return location
 
-        # Get test data for the past hour - for better classification
+        # Get test data for the past x min - for better classification
         s_time = start_time - 10 * 60       # 10 minutes
 
         # Get queryset of filtering later
@@ -113,10 +113,6 @@ def localize_new_data(apt_no, start_time, end_time, user):
         pred_label = lc.determine_location(train_df, test_df)
         test_df['label'] = pred_label
 
-        logger.debug("%s :: Test data between [%s] and [%s] :: %s",
-                     user.name, time.ctime(s_time), time.ctime(end_time),
-                     func.get_max_class(test_df['label']))
-
         # Save location label to the database
         sliced_df = test_df[(test_df.time >= start_time) & (test_df.time <= end_time)]
 
@@ -128,6 +124,10 @@ def localize_new_data(apt_no, start_time, end_time, user):
         data = data_all.filter(dev_id__in=[dev_id],
                                timestamp__gte=start_time,
                                timestamp__lte=end_time).update(label=location)
+
+        logger.debug("%s :: Test data between [%s] and [%s] :: %s",
+                     user.name, time.ctime(start_time), time.ctime(end_time),
+                     location)
 
         return location
 

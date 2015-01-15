@@ -187,8 +187,8 @@ def check_if_edge(df, index, power_stream):
             return "Not an edge", {}
 
         # Rising Edge
-        if ((magnitude >= thresmin or curr_next_diff >= thresmin) and
-                prev_curr_diff < thresmin and curr_next_diff > prev_curr_diff):
+        if ((magnitude >= thresmin or curr_next_diff >= thresmin) and magnitude > 0
+                and prev_curr_diff < thresmin and curr_next_diff > prev_curr_diff):
 
             logger.debug("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), magnitude))
             logger.debug("tprev=[{0}] prev={1}".format(t.ctime(tprev), prev))
