@@ -6,6 +6,7 @@ import math
 import datetime as dt
 
 from energylenserver.common_imports import *
+logger = logging.getLogger('energylensplus_meterdata')
 
 
 def remove_duplicate_edges(df):
@@ -23,9 +24,10 @@ def filter_select_maxtime_edge(df):
     # with maximum timestamp
 
     tmp_df = df.copy()
-    # tmp_df['ts'] = (df.time / 100).astype('int')
     tmp_df['tmin'] = [str(dt.datetime.fromtimestamp(i).hour) + '-' +
                       str(dt.datetime.fromtimestamp(i).minute) for i in tmp_df.time]
+
+    logger.debug("Before filter:%s", tmp_df)
 
     # Select the edge with the maximum timestamp lying within a minute
     idx_list = []
@@ -39,6 +41,7 @@ def filter_select_maxtime_edge(df):
         t = tmp_df.ix[idx]['time']
         t_next = tmp_df.ix[next_idx]['time']
         diff = t_next - t
+        # Within a minute
         if diff <= 60:
             t_mag = math.fabs(tmp_df.ix[idx]['magnitude'])
             t_next_mag = math.fabs(tmp_df.ix[next_idx]['magnitude'])
@@ -52,11 +55,13 @@ def filter_select_maxtime_edge(df):
                 idx_list.append(next_idx)
                 if idx in idx_list:
                     idx_list.remove(idx)
-            elif curr_diff < 0.5 * thresmin:
+            elif curr_diff < 0.5 * thresmin and t_mag <= 60:
+                if idx not in idx_list:
+                    idx_list.append(idx)
+            else:
                 if t_mag <= 60:
                     threshold = 0.2
                 elif t_mag >= 1000:
-                    print "in"
                     threshold = 0.25
                 else:
                     threshold = 0.1
@@ -72,15 +77,17 @@ def filter_select_maxtime_edge(df):
                 else:
                     if idx not in idx_list:
                         idx_list.append(idx)
-            else:
-                if idx not in idx_list:
-                    idx_list.append(idx)
+            # else:
+            #     if idx not in idx_list:
+            #         idx_list.append(idx)
         else:
             if idx not in idx_list:
                 idx_list.append(idx)
     # print "Edge idx_list", idx_list
     tmp_df = tmp_df.ix[idx_list].sort(['time'])
-    df = tmp_df.ix[:, :-1]
+    # df = tmp_df.ix[:, :-1]
+    # Testing
+    df = tmp_df.copy()
 
     return df
 
@@ -105,7 +112,8 @@ def filter_unmon_appl_edges(df):
     for idx in df.index[1:]:
         curr = df.ix[idx]
         diff = prev['magnitude'] / curr['magnitude']
-        if (diff > 0.8 and diff <= 1) and (curr['time'] - prev['time'] < 60):
+        if (diff > 0.8 and diff <= 1) and (curr['time'] - prev['time'] < 60
+                                           and curr['magnitude'] < 600):
             if prev_idx not in idx_list:
                 idx_list.append(prev_idx)
             if idx not in idx_list:

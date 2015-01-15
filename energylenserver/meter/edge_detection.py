@@ -111,6 +111,7 @@ def detect_edges(df):
             edges_df = pd.concat([rise_df, fall_df])
             edges_df = edges_df.set_index('index', drop=True)
             edges_df.reset_index(drop=True, inplace=True)
+            edges_df.sort(['time'], inplace=True)
 
         # logger.debug("Edges: %s\n", edges_df)
         return edges_df
@@ -158,7 +159,7 @@ def check_if_edge(df, index, power_stream):
             (next_time - time) > sampling_rate) and ((next_time - time) < 2 * sampling_rate)
 
         prev_curr_diff = int(math.fabs(curr - prev))
-        curr_next_diff = int(math.fabs(next - curr))
+        curr_next_diff = int(next - curr)
         curr_nextwin_diff = int(currwin - curr)
         curr_prevwin_diff = int(prevwin - curr)
         curr_nextnext_diff = int(currnextnext - curr)
@@ -166,37 +167,18 @@ def check_if_edge(df, index, power_stream):
         magnitude = curr_nextwin_diff
 
         if magnitude > 0:
-            # Indicates a rising edge
-            # Use the winmax window for determining the edge
+            # For rising edge: use the winmax window for determining the edge
             currwin = int(round(df.ix[i + winmax][power_stream]))
             tcurrwin = int(round(df.ix[i + winmax]['time']))
             curr_nextwin_diff = int(currwin - curr)
             magnitude = curr_nextwin_diff
-
-        # logger.debug("CR [%s] MAG: %s Curr: %s", t.ctime(tcurr), magnitude, curr)
-        # logger.debug("CW [%s] Currwin: %s", t.ctime(tcurrwin), currwin)
-
-        '''
-        if curr_next_diff >= thresmin and math.fabs(magnitude) >= thresmin:
-            logger.debug("EDGETEST::{0}:: TIME: [{1}] MAG::{2}".format(
-                i, t.ctime(time), magnitude))
-            logger.debug("tprev=[{0}] prev={1}".format(t.ctime(tprev), prev))
-            logger.debug("tcurr=[{0}] curr={1}".format(t.ctime(tcurr), curr))
-            logger.debug("tnext=[{0}] next={1}".format(t.ctime(tnext), next))
-            logger.debug("tcurrwin=[{0}] currwin={1}".format(t.ctime(tcurrwin), currwin))
-            logger.debug("curr_next_diff::{0}  prev_curr_diff::{1}".format(
-                curr_next_diff, prev_curr_diff))
-            logger.debug("curr_nextnext_diff::{0} curr_prevwin_diff::{1}".format(
-                curr_nextnext_diff, curr_prevwin_diff))
-        '''
-
-        # For falling edge: for comparison with curr_next_diff
-        if magnitude < 0:
+        else:
+            # For falling edge: for comparison with curr_next_diff
             mag_abs = math.fabs(magnitude)
             if mag_abs <= 100:
-                per_current_val = int(math.floor(0.45 * mag_abs))
+                per_current_val = int(math.floor(0.25 * mag_abs))
             else:
-                per_current_val = 100
+                per_current_val = 50
 
         # Removes spikes
         if math.fabs(curr_nextnext_diff) < thresmin:
@@ -205,8 +187,8 @@ def check_if_edge(df, index, power_stream):
             return "Not an edge", {}
 
         # Rising Edge
-        if ((magnitude >= thresmin or curr_next_diff >= thresmin) and magnitude > 0
-                and prev_curr_diff < thresmin and curr_next_diff > prev_curr_diff):
+        if ((magnitude >= thresmin or curr_next_diff >= thresmin) and
+                prev_curr_diff < thresmin and curr_next_diff > prev_curr_diff):
 
             logger.debug("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), magnitude))
             logger.debug("tprev=[{0}] prev={1}".format(t.ctime(tprev), prev))
@@ -218,8 +200,8 @@ def check_if_edge(df, index, power_stream):
 
             edge_type = "rising"
 
-            if curr_next_diff > magnitude:
-                magnitude = curr_next_diff
+            # if curr_next_diff > magnitude:
+            #     magnitude = curr_next_diff
 
             if next_missing_sample and curr_next_diff >= thresmin:
 
@@ -239,14 +221,12 @@ def check_if_edge(df, index, power_stream):
                 logger.debug("[EDGE FOUND::RISE] Curr Next greater: edge at [%s] %s",
                              t.ctime(time), magnitude)
                 return edge_type, row
-            else:
-                # logger.debug("Rise: None of the conditions satisfied:: [" + t.ctime(time) + "]"
-                pass
 
         # Falling Edge
-        elif (prev_curr_diff < thresmin and math.floor(magnitude) <= -thresmin
-              and ((curr_next_diff != 0) or (curr_next_diff > prev_curr_diff))
-              and math.fabs(curr_prevwin_diff) < thresmin and curr_next_diff >= per_current_val):
+        elif (prev_curr_diff < thresmin and magnitude <= -thresmin
+              and ((curr_next_diff != 0) or (math.fabs(curr_next_diff) > prev_curr_diff))
+              and math.fabs(curr_prevwin_diff) < thresmin
+              and math.fabs(curr_next_diff) >= per_current_val):
 
             logger.debug("Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), magnitude))
             logger.debug("tprev=[{0}] prev={1}".format(t.ctime(tprev), prev))
@@ -258,12 +238,11 @@ def check_if_edge(df, index, power_stream):
                                 curr_prevwin_diff))
 
             edge_type = "falling"
-            if curr_next_diff < thresmin or curr_next_diff > thresmin:
-                # Storing the falling edge e_i = (time_i, mag_i)
-                row = {"index": i, "time": time, "magnitude":
-                       magnitude, "type": edge_type, "curr_power": curr}
-                logger.debug("[EDGE FOUND::FALL] [%s] %s", t.ctime(time), magnitude)
-                return edge_type, row
+            # Storing the falling edge e_i = (time_i, mag_i)
+            row = {"index": i, "time": time, "magnitude":
+                   magnitude, "type": edge_type, "curr_power": curr}
+            logger.debug("[EDGE FOUND::FALL] [%s] %s", t.ctime(time), magnitude)
+            return edge_type, row
 
             if prev_missing_sample is True or next_missing_sample is True:
                 # Storing the falling edge e_i = (time_i, mag_i)
@@ -273,9 +252,6 @@ def check_if_edge(df, index, power_stream):
                     "[EDGE FOUND::FALL] Missing sample: [%s] %s", t.ctime(time), magnitude)
                 return edge_type, row
 
-            else:
-                # logger.debug("Fall: None of the conditions satisfied: [" + t.ctime(time) + "]"
-                pass
     except Exception, e:
         logger.exception("[CheckEdgesException]:: %s", e)
 

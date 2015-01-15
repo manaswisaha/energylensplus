@@ -238,7 +238,8 @@ def meterDataHandler(df, file_path):
                 prev_time = int(obj.timestamp)
                 prev_mag = math.fabs(obj.magnitude)
                 diff = prev_mag / math.fabs(magnitude)
-                if (diff > 0.8 and diff <= 1) and (edge_time - prev_time < 60):
+                if (diff > 0.8 and diff <= 1) and (edge_time - prev_time < 60 and
+                                                   math.fabs(magnitude) < 600):
                     continue
                 record = Edges.objects.get(meter=meter, timestamp=edge_time)
             except Edges.DoesNotExist, e:
