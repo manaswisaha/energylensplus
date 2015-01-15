@@ -454,14 +454,25 @@ def upload_stats(request):
             if isinstance(user, bool):
                 return False
 
+            # Find the file type from the filename and choose appropriate table
+            filename_l = filename.split('_')
+            file_type = int(filename_l[1])
+
+            if file_type == "screen":
+                file_tag = "screenlog"
+                model = UsageLogScreens
+            else:
+                file_tag = "battery"
+                model = BatteryUsage
+
             # Save file in a temporary location
-            new_filename = ('stats_screenlog_' + str(
+            new_filename = ('stats_' + file_tag + '_' + str(
                 user.dev_id) + '_' + time.ctime(time.time()) + '.csv')
             path = default_storage.save(new_filename, ContentFile(csvfile.read()))
             filepath = os.path.join(settings.MEDIA_ROOT, path)
 
             # Store in the database
-            UsageLogScreens().save_stats(user, filepath)
+            model().save_stats(user, filepath)
             return HttpResponse(json.dumps(UPLOAD_SUCCESS), content_type="application/json")
 
     except Exception, e:

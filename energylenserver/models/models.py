@@ -193,7 +193,7 @@ class GroundTruthLog(models.Model):
     """
     by_dev_id = models.ForeignKey(RegisteredUsers, related_name=("Submitted by"))
     act_id = models.ForeignKey(ActivityLog)
-    incorrect = models.BooleanField(default=False)  # entry is correct
+    incorrect = models.BooleanField(default=False)  # if entry is incorrect
     start_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     end_time = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
     appliance = models.CharField(max_length=50)
@@ -260,6 +260,38 @@ class UsageLogScreens(models.Model):
 
     class Meta:
         db_table = 'UsageLogScreens'
+        app_label = app_label_str
+
+
+class BatteryUsage(models.Model):
+
+    """
+    Stores the battery usage of the app
+    """
+    dev_id = models.ForeignKey(RegisteredUsers)
+    timestamp = models.DecimalField(unique=False, max_digits=14, decimal_places=3)
+    value = models.IntegerField()
+    charging_state = models.BooleanField(default=False)
+    scaled_usage = models.FloatField()
+
+    def save_stats(self, user, filename):
+        """
+        Inserts csv into the database directly
+        """
+        try:
+            cursor = connection.cursor()
+
+            cursor.execute("LOAD DATA LOCAL INFILE %s INTO TABLE BatteryUsage"
+                           " FIELDS TERMINATED BY ',' IGNORE 1 LINES "
+                           "(@timestamp, value, charging_state, scaled_usage) "
+                           "SET timestamp = @timestamp/1000.0, "
+                           "dev_id_id = " + str(user.dev_id), [filename])
+            os.remove(filename)
+        except Exception, e:
+            logger.error("[SaveStatsException] BatteryUsage::%s", str(e))
+
+    class Meta:
+        db_table = 'BatteryUsage'
         app_label = app_label_str
 
 
