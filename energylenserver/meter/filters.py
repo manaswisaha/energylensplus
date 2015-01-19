@@ -85,9 +85,9 @@ def filter_select_maxtime_edge(df):
                 idx_list.append(idx)
     # print "Edge idx_list", idx_list
     tmp_df = tmp_df.ix[idx_list].sort(['time'])
-    # df = tmp_df.ix[:, :-1]
+    df = tmp_df.ix[:, :-1]
     # Testing
-    df = tmp_df.copy()
+    # df = tmp_df.copy()
 
     return df
 

@@ -1,5 +1,5 @@
 # Participating apartments
-apt_no_list = ['1201', '102A', '101']  # , '1003', '1002']
+apt_no_list = ['1201', '102A', '101', '1003']
 
 # Default users
 unknown_id = 123456789123456
