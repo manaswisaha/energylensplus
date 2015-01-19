@@ -331,7 +331,7 @@ def classify_edge(edge):
             elif location == no_test_data:
 
                 now_time = int(time.time())
-                if (now_time - event_time) < 30 * 60:
+                if (now_time - event_time) < 20 * 60:
                     edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                 else:
                     edge.delete()
@@ -347,7 +347,7 @@ def classify_edge(edge):
             elif appliance == no_test_data:
 
                 now_time = int(time.time())
-                if (now_time - event_time) < 30 * 60:
+                if (now_time - event_time) < 20 * 60:
                     edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                 else:
                     edge.delete()
@@ -384,8 +384,8 @@ def classify_edge(edge):
             where = location_dict[user]
             what = appliance_dict[user]
 
-        logger.debug("[%s] :: Determined labels: %s %s %s" %
-                     (time.ctime(event_time), who, where, what))
+        logger.debug("[%s] - [%d] :: Determined labels: %s %s %s" %
+                     (time.ctime(event_time), magnitude, who, where, what))
 
         # ---FILTER start---
         # Save only if the number of existing ongoing events for determined appliance
@@ -431,8 +431,8 @@ def classify_edge(edge):
                         who = "Unknown"
                         where = "Unknown"
                         what = "Unknown"
-            logger.debug("[%s] :: After filter: Determined labels: %s %s %s" %
-                         (time.ctime(event_time), who, where, what))
+            logger.debug("[%s] - [%d] :: After filter: Determined labels: %s %s %s" %
+                         (time.ctime(event_time), magnitude, who, where, what))
 
         # --- FILTER end---
 

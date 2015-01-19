@@ -27,7 +27,7 @@ def filter_select_maxtime_edge(df):
     tmp_df['tmin'] = [str(dt.datetime.fromtimestamp(i).hour) + '-' +
                       str(dt.datetime.fromtimestamp(i).minute) for i in tmp_df.time]
 
-    logger.debug("Before filter:%s", tmp_df)
+    logger.debug("Before filter:\n%s", tmp_df)
 
     # Select the edge with the maximum timestamp lying within a minute
     idx_list = []
