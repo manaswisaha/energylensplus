@@ -393,25 +393,44 @@ def classify_edge(edge):
         # the number of appliances
 
         if where != "Unknown":
-            # Determine the on going events
+            # Determine the on going events having in
             on_event_records = mod_func.get_on_events_by_location(apt_no, end_time, where)
-            n_on_event_records = on_event_records.count()
+            on_event_records_df = read_frame(on_event_records, verbose=False)
+            on_event_records_df = on_event_records_df[on_event_records.appliance == what]
+            n_on_event_records = len(on_event_records_df)
             logger.debug("Number of ongoing events: %s", n_on_event_records)
 
-            if n_on_event_records == 0:
-                # Get number of appliances with the similar appliances in the inferred location
+            if n_on_event_records > 0:
+                # Get count of inferred appliance in the inferred location
                 data = mod_func.retrieve_metadata(apt_no)
                 metadata_df = read_frame(data, verbose=False)
 
-                in_md_status, df_list = exists_in_metadata(
-                    apt_no, where, "all", math.fabs(magnitude), metadata_df, logger, "dummy_user")
+                metadata_df = metadata_df[(metadata_df.location == where) &
+                                          (metadata_df.appliance == what)]
+                metadata_df.reset_index(inplace=True, drop=True)
 
-                no_of_appl = len(df_list)
+                if len(metadata_df) == 0:
+                    # Inference is incorrect
+                    # Causes:
+                    #  1. Location or appliance was incorrect
+                    #  2. Only a single occupant present in the home, and:
+                            # User didn't carry his phone with him
+                            # A similar spurious event was detected
 
-                if n_on_event_records >= no_of_appl:
-                    # Delete edge
-                    edge.delete()
-                    return return_error
+                    who = "Unknown"
+                    where = "Unknown"
+                    what = "Unknown"
+                    logger.debug("[%s] :: After filter: Determined labels: %s %s %s" %
+                                 (time.ctime(event_time), who, where, what))
+
+                else:
+                    no_of_appl = metadata_df.ix[0]['how_many']
+                    logger.debug("Count for %s in %s: %d", what, where, no_of_appl)
+
+                    if n_on_event_records >= no_of_appl:
+                        who = "Unknown"
+                        where = "Unknown"
+                        what = "Unknown"
 
         # --- FILTER end---
 

@@ -138,7 +138,7 @@ def register_device(request):
                             apt_no=apt_no, macid=ap['macid'], ssid=ap['ssid'], home_ap=False)
                         ap_record.save()
                 except Exception, e:
-                    logger.error("[APSaveException]::%s" % (e))
+                    logger.exception("[APSaveException]::%s" % (e))
 
             try:
                 r = RegisteredUsers.objects.get(dev_id=dev_id)
@@ -170,7 +170,7 @@ def register_device(request):
 
     except Exception, e:
 
-        logger.error("Registration unsuccessful")
+        logger.exception("Registration unsuccessful")
         logger.exception("[DeviceRegistrationException Occurred]::%s", e)
         return HttpResponse(json.dumps(REGISTRATION_UNSUCCESSFUL), content_type="application/json")
 
@@ -260,6 +260,12 @@ def training_data(request):
             # See if entry exists for appliance-location combination
             # Update power value if it exists
             if power >= thresmin:
+                app_arr = appliance.split('-')
+                if len(app_arr) > 1:
+                    appliance = app_arr[0]
+                    how_many = int(app_arr[1])
+                else:
+                    how_many = 1
                 try:
                     # Update power
                     records = Metadata.objects.filter(apt_no__exact=apt_no, location__exact=location,
@@ -267,7 +273,10 @@ def training_data(request):
                                                       presence_based=presence_based,
                                                       audio_based=audio_based)
                     if records.count() == 1:
-                        records.update(power=power)
+                        if how_many > records[0].how_many:
+                            records.update(how_many=how_many)
+                        else:
+                            records.update(power=power)
                         logger.debug(
                             "Metadata with entry:%d %s %s exists", apt_no, appliance, location)
                         logger.debug("Metadata record updated")
@@ -275,15 +284,17 @@ def training_data(request):
                         # Store metadata
                         metadata = Metadata(apt_no=apt_no,
                                             presence_based=presence_based, audio_based=audio_based,
-                                            appliance=appliance, location=location, power=power)
+                                            appliance=appliance, location=location, power=power,
+                                            how_many=how_many)
                         metadata.save()
-                        logger.debug("Metadata creation successful")
+                        logger.debug("Metadata creation successful!")
                 except Metadata.DoesNotExist, e:
 
                     # Store metadata
                     metadata = Metadata(apt_no=apt_no,
                                         presence_based=presence_based, audio_based=audio_based,
-                                        appliance=appliance, location=location, power=power)
+                                        appliance=appliance, location=location, power=power,
+                                        how_many=how_many)
                     metadata.save()
                     logger.debug("Metadata creation successful")
 
@@ -351,7 +362,7 @@ def import_from_file(filename, csvfile):
             df_csv = pd.read_csv(filepath, error_bad_lines=False)
 
             if "label" not in df_csv.columns:
-                upload_logger.error("[DataFileFormatIncorrect] Header missing!")
+                upload_logger.exception("[DataFileFormatIncorrect] Header missing!")
                 os.remove(filepath)
                 return False
 
@@ -359,16 +370,16 @@ def import_from_file(filename, csvfile):
             if sensor_name == 'wifi':
                 if len(df_csv) == 0:
                     os.remove(filepath)
-                    upload_logger.error("[DataFileFormatIncorrect] "
-                                        "Empty wifi file sent. Upload not successful!")
+                    upload_logger.exception("[DataFileFormatIncorrect] "
+                                            "Empty wifi file sent. Upload not successful!")
                     return True
 
                 df_csv = wifi.format_data(df_csv)
 
                 if df_csv is False:
                     os.remove(filepath)
-                    upload_logger.error("[DataFileFormatIncorrect] "
-                                        "Incorrect wifi file sent. Upload not successful!")
+                    upload_logger.exception("[DataFileFormatIncorrect] "
+                                            "Incorrect wifi file sent. Upload not successful!")
                     return False
 
                 # Create temp wifi csv file
@@ -425,7 +436,7 @@ def upload_data(request):
 
     except Exception, e:
 
-        upload_logger.error("[UploadDataException Occurred]::%s", e)
+        upload_logger.exception("[UploadDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 
@@ -477,7 +488,7 @@ def upload_stats(request):
 
     except Exception, e:
 
-        logger.error("[UploadStatsException Occurred]::%s", e)
+        logger.exception("[UploadStatsException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 """
@@ -525,7 +536,7 @@ def real_time_data_access(request):
 
     except Exception, e:
 
-        logger.error("[RealTimeDataException Occurred]::%s", e)
+        logger.exception("[RealTimeDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -593,7 +604,7 @@ def real_time_past_data(request):
             return HttpResponse(json.dumps(payload_body), content_type="application/json")
 
     except Exception, e:
-        logger.error("[RealTimePastDataException Occurred]::%s", e)
+        logger.exception("[RealTimePastDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(REALTIMEDATA_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -640,7 +651,7 @@ def reassign_inference(request):
                                 content_type="application/json")
 
     except Exception, e:
-        logger.error("[ReassignInferenceException Occurred]::", e)
+        logger.exception("[ReassignInferenceException Occurred]::", e)
         return HttpResponse(json.dumps(REASSIGN_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -659,7 +670,7 @@ def test_function_structure(request):
             pass
     except Exception, e:
 
-        logger.error("[TrainingDataException Occurred]::", e)
+        logger.exception("[TrainingDataException Occurred]::", e)
         return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
                             content_type="application/json")
 

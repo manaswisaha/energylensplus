@@ -65,6 +65,11 @@ def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_lo
     if (appliance == "all" and location == "all") or (appliance == "not_all"
                                                       and location == "not_all"):
         mdf = metadata_df.copy()
+    elif appliance != "all" and location != "all":
+        # Extract metadata for the current location and appliance of the user
+        mdf = metadata_df[(metadata_df.location == location) &
+                          (metadata_df.appliance == appliance)]
+        l_logger.debug("Metadata: \n%s", mdf)
     elif appliance == "all" and location != "all":
         # Extract metadata for the current location of the user
         mdf = metadata_df[(metadata_df.location == location)]

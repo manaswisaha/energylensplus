@@ -8,7 +8,7 @@ For instance 10/16/1985 and 2/29/2012 20:00 are valid
 
 Example query:
 payload="select data in (now -5minutes, now) where
-Metadata/Extra/FlatNumber ='103' and Metadata/Extra/PhysicalParameter='PowerPhase1'
+Metadata/LoadLocation/FlatNumber ='103' and Metadata/Extra/PhysicalParameter='PowerPhase1'
 and Metadata/Extra/Type='Power'"
 
 Refer: http://www.cs.berkeley.edu/~stevedh/smap2/archiver.html
@@ -25,7 +25,7 @@ import logging
 logger = logging.getLogger('energylensplus_django')
 
 # Global variables
-url = 'http://energy.iiitd.edu.in:9106/api/query'
+url = 'http://energy.iiitd.edu.in:9306/api/query'
 
 
 def get_meter_data(query):
@@ -53,7 +53,7 @@ def get_latest_power_data(apt_no):
     if apt_no in ['102A', 102]:
         apt_no = '102A'
     payload = ("select data before now "
-               "where Metadata/Extra/FlatNumber ='" + str(apt_no) + "' and "
+               "where Metadata/LoadLocation/FlatNumber ='" + str(apt_no) + "' and "
                "Metadata/Extra/PhysicalParameter='Power'")
 
     r = requests.post(url, data=payload)
@@ -111,7 +111,7 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
 
     query = ("select data in ('" + str(start_time) + "','" + str(end_time) + "') "
              "limit 200000 "
-             "where Metadata/Extra/FlatNumber ='" + str(apt_no) + "' and "
+             "where Metadata/LoadLocation/FlatNumber ='" + str(apt_no) + "' and "
              "Metadata/Extra/PhysicalParameter='Power'")
 
     r = requests.post(url, data=query)
@@ -158,7 +158,7 @@ def get_meter_info(apt_no):
     if apt_no in ['102A', 102]:
         apt_no = '102A'
     payload = ("select uuid, Metadata/Instrument/SupplyType "
-               "where Metadata/Extra/FlatNumber ='" + str(apt_no) + "' and "
+               "where Metadata/LoadLocation/FlatNumber ='" + str(apt_no) + "' and "
                "Metadata/Extra/PhysicalParameter='Power'")
 
     r = requests.post(url, data=payload)

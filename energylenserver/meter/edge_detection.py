@@ -172,7 +172,7 @@ def check_if_edge(df, index, power_stream):
             tcurrwin = int(round(df.ix[i + winmax]['time']))
             curr_nextwin_diff = int(currwin - curr)
             magnitude = curr_nextwin_diff
-        else:
+        elif magnitude < 0:
             # For falling edge: for comparison with curr_next_diff
             mag_abs = math.fabs(magnitude)
             if mag_abs <= 100:
@@ -187,8 +187,8 @@ def check_if_edge(df, index, power_stream):
             return "Not an edge", {}
 
         # Rising Edge
-        if ((magnitude >= thresmin or curr_next_diff >= thresmin) and magnitude > 0
-                and prev_curr_diff < thresmin and curr_next_diff > prev_curr_diff):
+        if (magnitude >= thresmin and prev_curr_diff < thresmin and
+                curr_next_diff > prev_curr_diff):
 
             logger.debug("Rise::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), magnitude))
             logger.debug("tprev=[{0}] prev={1}".format(t.ctime(tprev), prev))
@@ -223,7 +223,7 @@ def check_if_edge(df, index, power_stream):
                 return edge_type, row
 
         # Falling Edge
-        elif (prev_curr_diff < thresmin and magnitude <= -thresmin
+        elif (magnitude <= -thresmin and prev_curr_diff < thresmin
               and ((curr_next_diff != 0) or (math.fabs(curr_next_diff) > prev_curr_diff))
               and math.fabs(curr_prevwin_diff) < thresmin
               and math.fabs(curr_next_diff) >= per_current_val):
@@ -254,5 +254,14 @@ def check_if_edge(df, index, power_stream):
 
     except Exception, e:
         logger.exception("[CheckEdgesException]:: %s", e)
+        logger.debug("Rise/Fall::{0}:: TIME: [{1}] MAG::{2}".format(i, t.ctime(time), magnitude))
+        logger.debug("tprev=[{0}] prev={1}".format(t.ctime(tprev), prev))
+        logger.debug("tcurr=[{0}] curr={1}".format(t.ctime(tcurr), curr))
+        logger.debug("tnext=[{0}] next={1}".format(t.ctime(tnext), next))
+        logger.debug("tcurrwin=[{0}] currwin={1}".format(t.ctime(tcurrwin), currwin))
+        logger.debug("curr_next_diff::{0} prev_curr_diff::{1} curr_prevwin_diff::{2}".
+                     format(curr_next_diff, prev_curr_diff,
+                            curr_prevwin_diff))
+        return "Not an edge", {}
 
     return "Not an edge", {}

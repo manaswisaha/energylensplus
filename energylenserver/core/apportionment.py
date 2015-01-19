@@ -29,6 +29,7 @@ def calculate_consumption(user_list, presence_df, activity):
 
         indiv_slices_df = presence_df.ix[presence_df.index - time_shared_slices_df.index]
 
+        user_list = [mod_func.get_user(int(u)) for u in user_columns]
         # Energy Usage - for individual slices (not shared)
         for user in user_list:
 

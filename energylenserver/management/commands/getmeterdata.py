@@ -48,7 +48,7 @@ logger = logging.getLogger('energylensplus_meterdata')
 TIMEZONE = 'Asia/Kolkata'
 
 # Global variables
-STREAM_URL = "http://energy.iiitd.edu.in:9106/republish"
+STREAM_URL = "http://energy.iiitd.edu.in:9306/republish"
 
 
 # Participating apartments

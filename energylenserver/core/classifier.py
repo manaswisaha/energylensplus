@@ -53,17 +53,19 @@ def get_trained_model(sensor, apt_no, phone_model):
                 # Number of appliances in the metadata
                 data = mod_func.retrieve_metadata(apt_no)
                 metadata_df = read_frame(data, verbose=False)
+                metadata_df = metadata_df[-metadata_df.appliance.isin(['Fridge', 'Geyser'])]
                 m_appl_count = len(metadata_df.appliance.unique())
 
-                if no_appl_model >= m_appl_count:
-                    model = joblib.load(dst_folder + file_i)
+                if no_appl_model < m_appl_count:
+                    # Create a new training model
+                    model = audio.train_audio_classification_model(sensor, apt_no, phone_model)
                 else:
-                    # Else create a new training model
-                    model = audio.train_audio_classfication_model(sensor, apt_no, phone_model)
+                    # Else use existing
+                    model = joblib.load(dst_folder + file_i)
 
             # Else create a new training model
             else:
-                model = audio.train_audio_classfication_model(sensor, apt_no, phone_model)
+                model = audio.train_audio_classification_model(sensor, apt_no, phone_model)
             return model
 
         # Model folder empty -- No model exists - Create one

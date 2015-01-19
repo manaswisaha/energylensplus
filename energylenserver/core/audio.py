@@ -10,7 +10,8 @@ Updated: Sep 29, 2013
 
 import os
 import time
-import sys
+import random
+import string
 
 from django.conf import settings
 
@@ -29,7 +30,7 @@ from energylenserver.preprocessing import audio as pre_p_a
 base_dir = settings.BASE_DIR
 
 
-def train_audio_classfication_model(sensor, apt_no, phone_model):
+def train_audio_classification_model(sensor, apt_no, phone_model):
     """
     Train Audio Classification model
     """
@@ -106,6 +107,18 @@ def determine_appliance(sensor, train_model, test_df):
         return False
 
 
+def random_id():
+    """
+    Used for generating message ids
+    Returns: a random alphanumerical id
+    """
+
+    rid = ''
+    for x in range(8):
+        rid += random.choice(string.ascii_letters + string.digits)
+    return rid
+
+
 def make_string(row):
     return row['label'] + '-' + row['location']
 
@@ -126,8 +139,8 @@ def extract_features(df, dataset_type, apt_no):
 
             for class_i in classes:
                 df_new = df[df.comb_label == class_i]
-                filename = (dst_folder + str(int(time.time())) + class_i + "_" +
-                            str(apt_no) + "_" + ".csv")
+                filename = (dst_folder + str(int(time.time())) + "_" + class_i + "_" +
+                            str(apt_no) + "_" + random_id() + ".csv")
                 df_new.to_csv(filename, index=False)
 
                 # Store created files in csv_files

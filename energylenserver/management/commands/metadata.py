@@ -43,6 +43,7 @@ class Command(BaseCommand):
                 power = float(entry['power'])
                 audio_based = bool(int(entry['audio_based']))
                 presence_based = bool(int(entry['presence_based']))
+                how_many = int(entry['how_many'])
 
                 self.stdout.write("Location: %s -- Appliance: %s" % (location, appliance))
 
@@ -56,7 +57,10 @@ class Command(BaseCommand):
                                                       presence_based=presence_based,
                                                       audio_based=audio_based)
                     if records.count() == 1:
-                        records.update(power=power)
+                        if how_many > records[0].how_many:
+                            records.update(how_many=how_many)
+                        else:
+                            records.update(power=power)
                         self.stdout.write(
                             "Metadata with entry: %d %s %s exists" % (apt_no, appliance, location))
                         self.stdout.write("Metadata record updated")
@@ -64,7 +68,8 @@ class Command(BaseCommand):
                         # Store metadata
                         metadata = Metadata(apt_no=apt_no,
                                             presence_based=presence_based, audio_based=audio_based,
-                                            appliance=appliance, location=location, power=power)
+                                            appliance=appliance, location=location, power=power,
+                                            how_many=how_many)
                         metadata.save()
                         self.stdout.write("Metadata creation successful")
                 except Metadata.DoesNotExist, e:
@@ -72,7 +77,8 @@ class Command(BaseCommand):
                     # Store metadata
                     metadata = Metadata(apt_no=apt_no,
                                         presence_based=presence_based, audio_based=audio_based,
-                                        appliance=appliance, location=location, power=power)
+                                        appliance=appliance, location=location, power=power,
+                                        how_many=how_many)
                     metadata.save()
                     self.stdout.write("Metadata creation successful")
 

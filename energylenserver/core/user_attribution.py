@@ -78,7 +78,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             # Indicates that there is single contender
             dev_id = contending_users[0]
 
-            appliance = correct_label(appliance[dev_id], [appliance[dev_id]], 'appliance', edge)
+            appliance = correct_label(appliance[dev_id], pd.Series([appliance[dev_id]]),
+                                      'appliance', edge)
 
             user['dev_id'] = [dev_id]
             user['location'] = location[dev_id]
