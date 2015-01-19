@@ -296,13 +296,19 @@ def classify_edge(edge):
                      apt_no, edge.type, time.ctime(edge.timestamp), edge.magnitude)
 
         # Defining event window
-        p_window = 60  # window for each side of the event time (in seconds)
+        p_window = 60 * 2  # window for each side of the event time (in seconds)
 
         event_time = edge.timestamp
         magnitude = edge.magnitude
 
-        start_time = event_time - p_window
-        end_time = event_time + p_window
+        if edge.type == "rising":
+            event_type = "ON"
+            start_time = event_time - 60
+            end_time = event_time + p_window
+        else:
+            event_type = "OFF"
+            start_time = event_time - p_window
+            end_time = event_time
 
         # --- Preprocessing ---
         # Step 2: Determine user at home
@@ -331,7 +337,7 @@ def classify_edge(edge):
             elif location == no_test_data:
 
                 now_time = int(time.time())
-                if (now_time - event_time) < 20 * 60:
+                if (now_time - event_time) < 15 * 60:
                     edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                 else:
                     edge.delete()
@@ -347,7 +353,7 @@ def classify_edge(edge):
             elif appliance == no_test_data:
 
                 now_time = int(time.time())
-                if (now_time - event_time) < 20 * 60:
+                if (now_time - event_time) < 15 * 60:
                     edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                 else:
                     edge.delete()
@@ -431,15 +437,15 @@ def classify_edge(edge):
                         who = "Unknown"
                         where = "Unknown"
                         what = "Unknown"
+                elif n_on_event_records == 0 and event_type == 'falling':
+                    # Falling edge with no ON events
+                    who = "Unknown"
+                    where = "Unknown"
+                    what = "Unknown"
             logger.debug("[%s] - [%d] :: After filter: Determined labels: %s %s %s" %
                          (time.ctime(event_time), magnitude, who, where, what))
 
         # --- FILTER end---
-
-        if edge.type == "rising":
-            event_type = "ON"
-        else:
-            event_type = "OFF"
 
         if isinstance(who, list):
 
