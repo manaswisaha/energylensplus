@@ -397,13 +397,12 @@ def disaggregated_energy(user, activity_name, start_time, end_time):
                 u_entry = usage_entries[aentry['id']]
 
             activities.append({"id": aentry['id'], "activity_name": aentry['appliance'],
-                               "location": aentry['location'], "value": aentry['usage'],
+                               "location": aentry['location'], "value": int(round(aentry['usage'])),
                                "start_time": aentry['start_time'], "end_time": aentry['end_time'],
                                "usage_times": u_entry,
                                "wastage_times": w_entry,
                                # "shared": shared_entries[aentry['id']]
                                })
-        logger.debug("Activities: \n%s", activities)
 
     return activities
 
