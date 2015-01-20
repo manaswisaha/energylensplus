@@ -316,7 +316,8 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
 
         # Check for existence
         in_metadata, matched_md = func.exists_in_metadata(
-            apt_no, "not_all", "not_all", edge.magnitude, metadata_df, logger, user.dev_id)
+            apt_no, "not_all", "not_all", math.fabs(edge.magnitude), metadata_df,
+            logger, user.dev_id)
         if in_metadata:
             # --Classify using metadata--
             md_df = pd.concat(matched_md)
