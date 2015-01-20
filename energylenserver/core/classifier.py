@@ -324,21 +324,25 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
             # --Classify using metadata--
             md_df = pd.concat(matched_md)
             md_df.reset_index(drop=True, inplace=True)
-            fil_md_df = md_df[md_df.md_power_diff == md_df.md_power_diff.min()]
-            md_audio = fil_md_df.md_audio.unique()
-            md_presence = fil_md_df.md_presence.unique()
 
-            logger.debug("Filtered Metadata: \n %s", fil_md_df)
+            md_audio = md_df.md_audio.unique()
+            md_presence = md_df.md_presence.unique()
 
             # Determine if appliance is audio based
-            if len(md_audio) == 1 and (not md_audio[0] or
-                                       (not md_presence[0] and edge.type == 'falling')):
-                # Not audio based and non-presence based appliance
-                appl_list = fil_md_df.md_appl.unique()
+            if len(md_audio) == 1:
 
-                if len(appl_list) == 1:
-                    appliance = appl_list[0]
-                    logger.debug("Selected Appliance:: %s", appliance)
+                fil_md_df = md_df[md_df.md_power_diff == md_df.md_power_diff.min()]
+
+                logger.debug("Filtered Metadata: \n %s", fil_md_df)
+
+                if not md_audio[0] or (not md_presence[0] and edge.type == 'falling'):
+
+                    # Not audio based or non-presence based appliance
+                    appl_list = fil_md_df.md_appl.unique()
+
+                    if len(appl_list) == 1:
+                        appliance = appl_list[0]
+                        logger.debug("Selected Appliance:: %s", appliance)
 
             # --Classify using audio--
             else:

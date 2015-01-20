@@ -667,10 +667,10 @@ def determine_wastage(apt_no):
 
         on_events = []
 
-        # Retrieve last hour's events
+        # Retrieve last 30 minutes' events
         for event in on_event_records:
             on_time = event.event_time
-            if (now_time - on_time) <= 60 * 60:
+            if (now_time - on_time) <= 30 * 60:
                 on_events.append(event)
 
         logger.debug("Number of ongoing events: %s", len(on_events))

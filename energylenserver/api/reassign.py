@@ -27,19 +27,19 @@ def correct_inference(user, parameters):
             time_of_stay = int(activity['time_of_stay'])
 
             # Parameters that may be empty [who,what,where,when]
-            start_time = activity['start_time']
-            end_time = activity['end_time']
+            start_time = int(activity['start_time'])
+            end_time = int(activity['end_time'])
             true_loc = activity['to_location']
             true_appl = activity['to_appliance']
-            to_occupant_dev_id = activity['to_occupant']
+            to_occupant_dev_id = int(activity['to_occupant'])
 
             # ----- Debugging ------
             st_str = ''
             if start_time != "":
-                st_str = time.ctime(start_time)
+                st_str = time.ctime(activity['start_time'])
             et_str = ''
             if end_time != "":
-                et_str = time.ctime(end_time)
+                et_str = time.ctime(activity['end_time'])
 
             logger.debug("ActivityID: %s", act_id)
             logger.debug("Start time: %s", st_str)
