@@ -412,8 +412,15 @@ def classify_edge(edge):
             metadata_df = read_frame(data, verbose=False)
             metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
 
-            metadata_df = metadata_df[(metadata_df.location == where) &
-                                      (metadata_df.appliance == what)]
+            # Determine if presence based
+            md_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
+            md_df.reset_index(inplace=True, drop=True)
+
+            if not md_df.ix[0]['presence_based']:
+                metadata_df = metadata_df[metadata_df.appliance == what]
+            else:
+                metadata_df = metadata_df[(metadata_df.location == where) &
+                                          (metadata_df.appliance == what)]
             metadata_df.reset_index(inplace=True, drop=True)
 
             if len(metadata_df) == 0:
