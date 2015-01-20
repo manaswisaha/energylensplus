@@ -170,8 +170,10 @@ def register_device(request):
 
     except Exception, e:
 
-        logger.exception("Registration unsuccessful")
-        logger.exception("[DeviceRegistrationException Occurred]::%s", e)
+        if str(e) == "request data read error":
+            logger.error("[DeviceRegistrationException Occurred]::%s", e)
+        else:
+            logger.exception("[DeviceRegistrationException Occurred]::%s", e)
         return HttpResponse(json.dumps(REGISTRATION_UNSUCCESSFUL), content_type="application/json")
 
 """
@@ -303,7 +305,10 @@ def training_data(request):
 
     except Exception, e:
 
-        logger.exception("[TrainingDataException Occurred]::%s", e)
+        if str(e) == "request data read error":
+            logger.error("[TrainingDataException Occurred]::%s", e)
+        else:
+            logger.exception("[TrainingDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(TRAINING_UNSUCCESSFUL),
                             content_type="application/json")
 
@@ -434,7 +439,10 @@ def upload_data(request):
 
     except Exception, e:
 
-        upload_logger.exception("[UploadDataException Occurred]::%s", e)
+        if str(e) == "request data read error":
+            upload_logger.error("[UploadDataException Occurred]::%s", e)
+        else:
+            upload_logger.exception("[UploadDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 
@@ -486,7 +494,10 @@ def upload_stats(request):
 
     except Exception, e:
 
-        logger.exception("[UploadStatsException Occurred]::%s", e)
+        if str(e) == "request data read error":
+            logger.error("[UploadStatsException Occurred]::%s", e)
+        else:
+            logger.exception("[UploadStatsException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
 
 """
