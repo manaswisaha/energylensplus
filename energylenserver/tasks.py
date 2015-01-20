@@ -692,11 +692,18 @@ def determine_wastage(apt_no):
             what = event.appliance
             where = event.location
 
+            logger.debug("Event: [%s - %s]", what, where)
+
             if what == "Unknown":
                 continue
 
             # Go ahead only if it is a presence based appliance
-            md_entry = (mod_func.retrieve_metadata_for_appliance(apt_no, what))[0]
+            md_records = mod_func.retrieve_metadata_for_appliance(apt_no, what)
+
+            if md_records.count == 0:
+                continue
+
+            md_entry = md_records[0]
 
             if not md_entry.presence_based:
                 continue
