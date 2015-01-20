@@ -113,6 +113,7 @@ def match_events(apt_no, off_event):
 
     min_mag_diff = filtered_df.mag_diff.min()
     filtered_df = filtered_df[filtered_df.mag_diff == min_mag_diff]
+    filtered_df.reset_index(drop=True, inplace=True)
 
     if len(filtered_df) == 0:
         return False
