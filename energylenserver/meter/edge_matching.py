@@ -63,6 +63,7 @@ def match_events(apt_no, off_event):
     if func.determine_multi_state(metadata_df, off_location, off_appliance):
         filtered_df = df[(df.location == off_location) &
                          (df.appliance == off_appliance)]
+        filtered_df.reset_index(drop=True, inplace=True)
 
         logger.debug("Filtered on events of a multi-state appl: \n%s", filtered_df)
 
