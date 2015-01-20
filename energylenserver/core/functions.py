@@ -71,15 +71,15 @@ def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_lo
         # Extract metadata for the current location and appliance of the user
         mdf = metadata_df[(metadata_df.location == location) &
                           (metadata_df.appliance == appliance)]
-        l_logger.debug("Metadata: \n%s", mdf)
+        # l_logger.debug("Metadata: \n%s", mdf)
     elif appliance == "all" and location != "all":
         # Extract metadata for the current location of the user
         mdf = metadata_df[(metadata_df.location == location)]
-        l_logger.debug("Metadata: \n%s", mdf)
+        # l_logger.debug("Metadata: \n%s", mdf)
     elif appliance != "all" and location == "all":
             # Extract metadata for the current appliance of the user
         mdf = metadata_df[(metadata_df.appliance == appliance)]
-        l_logger.debug("Metadata: \n%s", mdf)
+        # l_logger.debug("Metadata: \n%s", mdf)
 
     df_list = []
     status = []
@@ -87,6 +87,8 @@ def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_lo
         md_power = mdf.ix[md_i]['power']
         md_appl = mdf.ix[md_i]['appliance']
         md_loc = mdf.ix[md_i]['location']
+        md_audio = mdf.ix[md_i]['audio_based']
+        md_presence = mdf.ix[md_i]['presence_based']
 
         min_md_power = math.floor(md_power - lower_mdp_percent_change * md_power)
         max_md_power = math.ceil(md_power + upper_mdp_percent_change * md_power)
@@ -100,12 +102,15 @@ def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_lo
                            min_md_power, max_md_power)
 
             md_power_diff = math.fabs(md_power - magnitude)
-            if location != "all" or appliance != "all":
-                df_list.append(
-                    pd.DataFrame({'dev_id': dev_id, 'md_loc': md_loc, 'md_appl': md_appl,
-                                  'md_power_diff': md_power_diff}, index=[magnitude]))
-            else:
-                df_list.append(mdf.ix[md_i])
+            # if location != "all" or appliance != "all":
+            df_list.append(
+                pd.DataFrame({'dev_id': dev_id, 'md_loc': md_loc,
+                              'md_appl': md_appl,
+                              'md_power_diff': md_power_diff,
+                              'md_audio': md_audio,
+                              'md_presence': md_presence}, index=[magnitude]))
+            # else:
+            #     df_list.append(mdf.ix[md_i])
             status.append(True)
         else:
             status.append(False)

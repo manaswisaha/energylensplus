@@ -304,6 +304,48 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
 
 
 def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home):
+    """
+    Classifies appliance based on audio or metadata
+    """
+    try:
+        appliance = "Unknown"
+
+        # Get Metadata
+        data = mod_func.retrieve_metadata(apt_no)
+        metadata_df = read_frame(data, verbose=False)
+
+        # Check for existence
+        in_metadata, matched_md = func.exists_in_metadata(
+            apt_no, "not_all", "not_all", magnitude, metadata_df, logger, user.dev_id)
+        if in_metadata:
+            # --Classify using metadata--
+            md_df = pd.concat(matched_md)
+            md_df.reset_index(drop=True, inplace=True)
+            fil_md_df = md_df[md_df.md_power_diff == md_df.md_power_diff.min()]
+            md_audio = fil_md_df.md_audio.unique()
+
+            logger.debug("Filtered Metadata: \n %s", fil_md_df)
+
+            # Determine if appliance is audio based
+            if len(md_audio) == 1 and not md_audio[0]:
+                # Not audio based
+                appl_list = fil_md_df.appliance.unique()
+
+                if len(appl_list) == 1:
+                    appliance = appl_list[0]
+
+            # --Classify using audio--
+            else:
+                appliance = classify_appliance_using_audio(apt_no, start_time, end_time,
+                                                           user, edge, n_users_at_home)
+
+        return appliance
+    except Exception, e:
+        logger.exception("[ClassifyApplianceException]::%s", e)
+        return False
+
+
+def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_users_at_home):
     logger.debug("[Classifying appliance]")
     logger.debug("-" * stars)
 
@@ -353,7 +395,7 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
         return appliance
 
     except Exception, e:
-        logger.exception("[ClassifyApplianceException]::%s", e)
+        logger.exception("[ClassifyApplianceAudioException]::%s", e)
         return False
 
     return appliance

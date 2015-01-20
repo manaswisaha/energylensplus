@@ -222,10 +222,10 @@ def meterDataHandler(df, file_path):
             # Edge Filter: Forward edge only it exists in the metadata
             data = mod_func.retrieve_metadata(apt_no)
             metadata_df = read_frame(data, verbose=False)
-            in_metadata, md_power_diff = exists_in_metadata(apt_no, "all", "all",
-                                                            math.fabs(magnitude),
-                                                            metadata_df,
-                                                            meter_logger, "dummy_user")
+            in_metadata, matched_md = exists_in_metadata(apt_no, "all", "all",
+                                                         math.fabs(magnitude),
+                                                         metadata_df,
+                                                         meter_logger, "dummy_user")
             if not in_metadata:
                 meter_logger.debug("Detected edge of magnitude %d ignored", magnitude)
                 continue
@@ -345,7 +345,7 @@ def classify_edge(edge):
             else:
                 location_dict[dev_id] = location
 
-            # Step 2: Determine appliance for every user
+            # Step 2: Determine appliance for every user using audio
             appliance = classifier.classify_appliance(
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
             if isinstance(appliance, bool):
