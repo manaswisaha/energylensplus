@@ -179,7 +179,6 @@ def check_if_edge(df, index, power_stream):
                 per_current_val = int(math.floor(0.25 * mag_abs))
             else:
                 per_current_val = 50
-            logger.debug("Per current value for [%d] :: [%d]", magnitude, per_current_val)
 
         # Removes spikes
         if math.fabs(curr_nextnext_diff) < thresmin:
@@ -263,6 +262,15 @@ def check_if_edge(df, index, power_stream):
         logger.debug("curr_next_diff::{0} prev_curr_diff::{1} curr_prevwin_diff::{2}".
                      format(curr_next_diff, prev_curr_diff,
                             curr_prevwin_diff))
+
+        if magnitude < 0:
+            # For falling edge: for comparison with curr_next_diff
+            mag_abs = math.fabs(magnitude)
+            if mag_abs <= 100:
+                per_current_val = int(math.floor(0.25 * mag_abs))
+            else:
+                per_current_val = 50
+            logger.debug("Fabs Magnitude:: %d", mag_abs)
         return "Not an edge", {}
 
     return "Not an edge", {}
