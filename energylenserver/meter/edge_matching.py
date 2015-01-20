@@ -9,6 +9,7 @@ from django_pandas.io import read_frame
 
 from energylenserver.common_imports import *
 from energylenserver.models import functions as mod_func
+from energylenserver.core import functions as func
 
 # Enable Logging
 logger = logging.getLogger('energylensplus_django')
@@ -36,12 +37,6 @@ def match_events(apt_no, off_event):
         if (off_time - on_time) <= 24 * 60 * 60:
             new_on_events.append(event)
 
-    # Filter 1: Match falling with rising edges where its magnitude is between
-    # a power threshold window
-    power = off_mag * percent_change
-    min_mag = off_mag - power
-    max_mag = off_mag + power
-
     id_list = []
     mag_diff = []
     location = []
@@ -62,6 +57,28 @@ def match_events(apt_no, off_event):
     logger.debug("Between min=[%s]  max=[%s]", min_mag, max_mag)
     # logger.debug("On Events DF: \n%s", df)
 
+    # Get Metadata
+    data = mod_func.retrieve_metadata(apt_no)
+    metadata_df = read_frame(data, verbose=False)
+
+    # Filter 1: Determine if appliance is multi-state
+    if func.determine_multi_state(metadata_df, off_location, off_appliance):
+        filtered_df = df[(df.location == off_location) &
+                         (df.appliance == off_appliance)]
+
+        logger.debug("Filtered on events of a multi-state appl: \n%s", filtered_df)
+
+        if len(filtered_df) == 0:
+            return False
+
+        return mod_func.get_on_event_by_id(filtered_df.ix[0]['id'])
+
+    # Filter 2: Match falling with rising edges where its magnitude is between
+    # a power threshold window
+    power = off_mag * percent_change
+    min_mag = off_mag - power
+    max_mag = off_mag + power
+
     filtered_df = df[(df.event_mag >= min_mag) & (df.event_mag <= max_mag)]
 
     logger.debug("Filtered on events based on magnitude range: \n%s", filtered_df)
@@ -69,12 +86,8 @@ def match_events(apt_no, off_event):
     if len(filtered_df) == 0:
         return False
 
-    # Filter 2: Matching with the same location and appliance
+    # Filter 3: Matching with the same location and appliance
     # if appliance is a presence based appliance
-
-    # Get Metadata
-    data = mod_func.retrieve_metadata(apt_no)
-    metadata_df = read_frame(data, verbose=False)
 
     metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
     metadata_df = metadata_df[metadata_df.appliance == off_appliance]
@@ -94,7 +107,7 @@ def match_events(apt_no, off_event):
     logger.debug("Matched ON DF:\n%s", filtered_df)
 
     # Resolve conflicts by --
-    # Filter 3: Taking the rising edge which is the closest to the off magnitude
+    # Filter 4: Taking the rising edge which is the closest to the off magnitude
 
     min_mag_diff = filtered_df.mag_diff.min()
     filtered_df = filtered_df[filtered_df.mag_diff == min_mag_diff]

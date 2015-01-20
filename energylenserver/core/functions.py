@@ -121,6 +121,22 @@ def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_lo
         return False, df_list
 
 
+def determine_multi_state(metadata_df, location, appliance):
+    """
+    Determines if an appliance has multiple states
+    """
+    try:
+        metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+        metadata_df = metadata_df[(metadata_df.location == location) &
+                                  (metadata_df.appliance == appliance)]
+        if len(metadata_df) > 1:
+            return True
+        return False
+    except Exception, e:
+        logger.exception("[DetermineMultiStateApplException]:: %s", e)
+        return False
+
+
 def determine_user_home_status(start_time, end_time, apt_no):
     """
     Determines if user is at home by seeing if the WiFi AP is visible
@@ -165,7 +181,7 @@ def determine_user_home_status(start_time, end_time, apt_no):
                 user_list.append(user_id)
 
     except Exception, e:
-        logger.error("[HomeStatusException]:: %s", str(e))
+        logger.exception("[HomeStatusException]:: %s", e)
 
     return user_list
 
