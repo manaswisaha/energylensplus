@@ -163,7 +163,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
     total_consumption = 0
     hourly_usage = [0] * no_of_hours
 
-    # '''
+    '''
     # Temp
     # usage_list = random.randint(1000, size=no_of_hours)
     usage_list = np.array([0] * no_of_hours)
@@ -174,9 +174,9 @@ def get_energy_report(dev_id, api, start_time, end_time):
     total_consumption = (total_usage * 100) / 20
     perc_list = constrained_sum_sample_pos(2, 100)
     perc_list.sort()
-    # '''
-
     '''
+
+    # '''
     # Retrieve records from the db
     records = mod_func.retrieve_activities(start_time, end_time, activity_name="all")
 
@@ -189,18 +189,19 @@ def get_energy_report(dev_id, api, start_time, end_time):
     if isinstance(activities_df, bool) or len(activities_df) == 0:
         if api == PERSONAL_ENERGY_API:
             options['total_usage'] = total_usage
+            options['hourly_usage'] = hourly_usage
         else:
             options['total_wastage'] = total_usage
+            options['hourly_wastage'] = hourly_usage
 
-        options['hourly_consumption'] = hourly_usage
         options['total_consumption'] = total_consumption
         options['activities'] = []
         return options
-    '''
+    # '''
 
     if api == PERSONAL_ENERGY_API:
 
-        # '''
+        '''
         options['total_usage'] = total_usage
         options['total_consumption'] = total_consumption
         options['hourly_usage'] = usage_list.tolist()
@@ -215,7 +216,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
         # options['activities'].append(
         #     {'name': "Unknown", "usage": total_usage * perc_list[0] / 100.})
         return options
-        # '''
+        '''
 
         if len(activities_df) > 0:
             hourly_usage = determine_hourly_consumption(
@@ -224,7 +225,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
             total_usage = sum(hourly_usage)
             total_consumption = int(round(activities_df.usage.sum()))
             options['total_usage'] = total_usage
-            options['hourly_consumption'] = hourly_usage
+            options['hourly_usage'] = hourly_usage
             options['total_consumption'] = total_consumption
 
             logger.debug("Energy Usage:%s", hourly_usage)
@@ -245,7 +246,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
     elif api == ENERGY_WASTAGE_REPORT_API:
 
-        # '''
+        '''
         options['total_wastage'] = total_usage
         options['total_consumption'] = total_consumption
         # options['percent'] = (total_wastage / total_consumption) * 100
@@ -262,7 +263,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
         #     {'name': "Unknown", "wastage": total_usage * perc_list[1] / 100.})
 
         return options
-        # '''
+        '''
 
         if len(activities_df) > 0:
             # Get wastage entries
@@ -274,7 +275,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
             total_wastage = sum(hourly_wastage)
             total_consumption = int(round(activities_df.usage.sum()))
             options['total_wastage'] = total_wastage
-            options['hourly_consumption'] = hourly_wastage
+            options['hourly_wastage'] = hourly_wastage
             options['total_consumption'] = total_consumption
 
             logger.debug("Energy Wastage: %s", hourly_wastage)
