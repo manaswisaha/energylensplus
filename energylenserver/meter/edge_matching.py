@@ -5,6 +5,7 @@ Edge Matching Module
 import math
 import numpy as np
 import pandas as pd
+from django_pandas.io import read_frame
 
 from energylenserver.common_imports import *
 from energylenserver.models import functions as mod_func
@@ -79,9 +80,23 @@ def match_events(apt_no, off_event):
         return False
 
     # Filter 3: Matching with the same location and appliance
-    filtered_df = filtered_df[(filtered_df.location == off_location) &
-                              (filtered_df.appliance == off_appliance)]
-    filtered_df.reset_index(inplace=True)
+    # if appliance is a presence based appliance
+
+    # Get Metadata
+    data = mod_func.retrieve_metadata(apt_no)
+    metadata_df = read_frame(data, verbose=False)
+
+    metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+    metadata_df = metadata_df[metadata_df.appliance == off_appliance]
+    metadata_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
+    metadata_df.reset_index(inplace=True, drop=True)
+
+    if not metadata_df.ix[0]['presence_based']:
+        filtered_df = filtered_df[filtered_df.appliance == off_appliance]
+    else:
+        filtered_df = filtered_df[(filtered_df.location == off_location) &
+                                  (filtered_df.appliance == off_appliance)]
+    filtered_df.reset_index(drop=True, inplace=True)
 
     if len(filtered_df) == 0:
         return False
