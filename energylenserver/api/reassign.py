@@ -56,24 +56,21 @@ def correct_inference(user, parameters):
                 act_record = mod_func.get_activity_by_id(act_id)
 
                 # When
-                if isinstance(start_time, str):
+                if len(str(start_time)) == 0:
                     start_time = act_record.start_time
-                if isinstance(end_time, str):
+                if len(str(end_time)) == 0:
                     end_time = act_record.end_time
 
                 # Where
-                if isinstance(true_loc, str):
+                if len(true_loc) == 0:
                     true_loc = act_record.location
 
                 # What
-                if isinstance(true_appl, str):
+                if len(true_appl) == 0:
                     true_appl = act_record.appliance
 
                 # Who
-                logger.debug("isinstance(devid, str):: %s type(devid):: %s",
-                             isinstance(to_occupant_dev_id, str),
-                             type(to_occupant_dev_id))
-                if isinstance(to_occupant_dev_id, str):
+                if len(str(to_occupant_dev_id)) == 0:
                     to_occupant = submitted_by
                 else:
                     to_occupant = mod_func.get_user(to_occupant_dev_id)
