@@ -797,8 +797,13 @@ def send_validation_report():
             appliances = []
             records = mod_func.retrieve_metadata(apt_no)
             if records:
-                for r in records:
-                    appliances.append({'location': r.location, 'appliance': r.appliance})
+                metadata_df = read_frame(records, verbose=False)
+                metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+                metadata_df = metadata_df.ix[:, ['location', 'appliance']].drop_duplicates()
+                metadata_df.reset_index(drop=True, inplace=True)
+                for idx in metadata_df:
+                    entry = metadata_df.ix[idx]
+                    appliances.append({'location': entry.location, 'appliance': entry.appliance})
             appliances.append({'location': "Unknown", 'appliance': "Unknown"})
             '''
             appliances.append({'location': "Bedroom", 'appliance': "TV"})
