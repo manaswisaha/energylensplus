@@ -20,12 +20,13 @@ import pandas as pd
 import numpy as np
 
 from energylenserver.models.functions import retrieve_meter_info
+from energylenserver.constants import SERVER_IP
 # Enable Logging
 import logging
 logger = logging.getLogger('energylensplus_django')
 
 # Global variables
-url = 'http://energy.iiitd.edu.in:9306/api/query'
+url = 'http://' + SERVER_IP + ':9306/api/query'
 
 
 def get_meter_data(query):

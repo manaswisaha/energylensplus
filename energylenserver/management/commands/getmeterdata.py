@@ -36,7 +36,7 @@ from django.conf import settings
 
 # EnergyLens+ imports
 from energylenserver.common_imports import *
-from energylenserver.constants import apt_no_list
+from energylenserver.constants import apt_no_list, SERVER_IP
 from energylenserver.functions import *
 from energylenserver.meter import smap
 from energylenserver.tasks import meterDataHandler
@@ -48,7 +48,7 @@ logger = logging.getLogger('energylensplus_meterdata')
 TIMEZONE = 'Asia/Kolkata'
 
 # Global variables
-STREAM_URL = "http://energy.iiitd.edu.in:9306/republish"
+STREAM_URL = "http://" + SERVER_IP + ":9306/republish"
 
 
 # Participating apartments
