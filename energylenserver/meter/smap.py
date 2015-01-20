@@ -117,7 +117,7 @@ def get_meter_data_for_time_slice(apt_no, start_time, end_time):
     r = requests.post(url, data=query)
     # logger.debug ("%s",r)
     payload = r.json()
-    # logger.debug ("Payload:%s", payload)
+    logger.debug("Payload:%s", payload)
 
     if apt_no in ['102A', 102]:
         apt_no = 102

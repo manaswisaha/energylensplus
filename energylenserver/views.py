@@ -228,8 +228,8 @@ def training_data(request):
             return HttpResponse(json.dumps(ERROR_INVALID_REQUEST), content_type="application/json")
 
         if request.method == 'POST':
-            payload = json.loads(request.body)
             logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
+            payload = json.loads(request.body)
 
             dev_id = payload['dev_id']
             start_time = payload['start_time']
@@ -248,11 +248,11 @@ def training_data(request):
                                     content_type="application/json")
             else:
                 apt_no = user.apt_no
-                logger.debug("Apartment Number:%d", apt_no)
+                logger.debug("Apartment Number: %d", apt_no)
 
             # Compute Power
             power = training_compute_power(apt_no, start_time, end_time)
-            logger.debug("Computed Power::%f", power)
+            logger.debug("Computed Power:: %f", power)
 
             # Determine appliance type - audio based and presence based
             # audio_based, presence_based = determine_appliance_type(appliance)
