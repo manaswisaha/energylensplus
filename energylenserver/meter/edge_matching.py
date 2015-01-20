@@ -53,8 +53,6 @@ def match_events(apt_no, off_event):
                        'location': location, 'appliance': appliance},
                       columns=['id', 'event_mag', 'mag_diff', 'location', 'appliance'])
 
-    logger.debug("Magnitude::%s per_change: %s", off_mag, power)
-    logger.debug("Between min=[%s]  max=[%s]", min_mag, max_mag)
     # logger.debug("On Events DF: \n%s", df)
 
     # Get Metadata
@@ -78,6 +76,9 @@ def match_events(apt_no, off_event):
     power = off_mag * percent_change
     min_mag = off_mag - power
     max_mag = off_mag + power
+
+    logger.debug("Magnitude::%s per_change: %s", off_mag, power)
+    logger.debug("Between min=[%s]  max=[%s]", min_mag, max_mag)
 
     filtered_df = df[(df.event_mag >= min_mag) & (df.event_mag <= max_mag)]
 
