@@ -357,6 +357,8 @@ def disaggregated_energy(user, activity_name, start_time, end_time):
     if len(usage_entries_df) > 0:
 
         activity_id_list = all_activities_df.id.tolist()
+        usage_entries_df['start_time'] = usage_entries_df.start_time.astype('int')
+        usage_entries_df['end_time'] = usage_entries_df.end_time.astype('int')
 
         # Usage entries
         usage_entries = {}
@@ -371,6 +373,8 @@ def disaggregated_energy(user, activity_name, start_time, end_time):
         # Wastage entries
         wastage_entries = {}
         w_activities_df, wastage_df = filter_user_activities(user, all_activities_df, "wastage")
+        wastage_df['start_time'] = wastage_df.start_time.astype('int')
+        wastage_df['end_time'] = wastage_df.end_time.astype('int')
 
         for act_id in activity_id_list:
             wastage_entries[act_id] = []
