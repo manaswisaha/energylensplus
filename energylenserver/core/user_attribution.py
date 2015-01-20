@@ -91,29 +91,15 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             user['appliance'] = appliance
 
         else:
-            # There are contending users for this edge
-            # Matching appliance for resolving conflict
-            idx_list = []
-            poss_user_orig = poss_user.copy()
-            for user_i in contending_users:
-                appl = appliance[user_i]
-                logger.debug("User: %s Appl: %s", user_i, appl)
-                poss_user = poss_user_orig[(poss_user_orig.md_appl == appl) &
-                                           (poss_user_orig.dev_id == user_i)]
-                if len(poss_user) != 0:
-                    idx_list += poss_user.index.tolist()
-            poss_user = poss_user_orig.ix[idx_list]
-
-            logger.debug("Filtered entry for multiple contending users:\n %s", poss_user)
+            # Resolving conflict by
+            # selected entry with least distance to the metadata
+            poss_user = poss_user[
+                poss_user.md_power_diff == poss_user.md_power_diff.min()]
+            logger.debug(
+                "Entry for multiple contending users with md_power_diff:\n %s", poss_user)
             contending_users = poss_user.dev_id.unique().tolist()
 
-            if len(contending_users) == 0:
-                logger.debug("Appliance Classification incorrect")
-
-                user['dev_id'] = "Unknown"
-                user['location'] = "Unknown"
-                user['appliance'] = "Unknown"
-            elif len(contending_users) == 1:
+            if len(contending_users) == 1:
                 # Indicates that there is single contender
                 dev_id = contending_users[0]
 
@@ -122,15 +108,30 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 user['appliance'] = appliance[dev_id]
 
             else:
-                # Resolving conflict by
-                # selected entry with least distance to the metadata
-                poss_user = poss_user[
-                    poss_user.md_power_diff == poss_user.md_power_diff.min()]
-                logger.debug(
-                    "Entry for multiple contending users with md_power_diff:\n %s", poss_user)
+                # There are contending users for this edge
+                # Matching appliance for resolving conflict
+                idx_list = []
+                poss_user_orig = poss_user.copy()
+                for user_i in contending_users:
+                    appl = appliance[user_i]
+                    logger.debug("User: %s Appl: %s", user_i, appl)
+                    poss_user = poss_user_orig[(poss_user_orig.md_appl == appl) &
+                                               (poss_user_orig.dev_id == user_i)]
+                    if len(poss_user) != 0:
+                        idx_list += poss_user.index.tolist()
+                poss_user = poss_user_orig.ix[idx_list]
+
+                logger.debug("Filtered entry for multiple contending users:\n %s", poss_user)
                 contending_users = poss_user.dev_id.unique().tolist()
 
-                if len(contending_users) == 1:
+                if len(contending_users) == 0:
+                    logger.debug("Appliance Classification incorrect")
+
+                    user['dev_id'] = "Unknown"
+                    user['location'] = "Unknown"
+                    user['appliance'] = "Unknown"
+
+                elif len(contending_users) == 1:
                     # Indicates that there is single contender
                     dev_id = contending_users[0]
 
