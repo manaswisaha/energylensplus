@@ -330,7 +330,7 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
             # Determine if appliance is audio based
             if len(md_audio) == 1 and not md_audio[0]:
                 # Not audio based
-                appl_list = fil_md_df.appliance.unique()
+                appl_list = fil_md_df.md_appl.unique()
 
                 if len(appl_list) == 1:
                     appliance = appl_list[0]
