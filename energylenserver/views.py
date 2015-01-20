@@ -254,9 +254,6 @@ def training_data(request):
             power = training_compute_power(apt_no, start_time, end_time)
             logger.debug("Computed Power:: %f", power)
 
-            # Determine appliance type - audio based and presence based
-            # audio_based, presence_based = determine_appliance_type(appliance)
-
             # See if entry exists for appliance-location combination
             # Update power value if it exists
             if power >= thresmin:
@@ -268,7 +265,8 @@ def training_data(request):
                     how_many = 1
                 try:
                     # Update power
-                    records = Metadata.objects.filter(apt_no__exact=apt_no, location__exact=location,
+                    records = Metadata.objects.filter(apt_no__exact=apt_no,
+                                                      location__exact=location,
                                                       appliance__exact=appliance,
                                                       presence_based=presence_based,
                                                       audio_based=audio_based)

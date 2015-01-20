@@ -62,6 +62,8 @@ def exists_in_metadata(apt_no, location, appliance, magnitude, metadata_df, l_lo
     Checks if edge of specified magnitude exists in the metadata
     """
 
+    metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+
     if (appliance == "all" and location == "all") or (appliance == "not_all"
                                                       and location == "not_all"):
         mdf = metadata_df.copy()

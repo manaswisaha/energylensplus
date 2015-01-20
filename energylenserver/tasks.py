@@ -403,6 +403,7 @@ def classify_edge(edge):
             # Get count of inferred appliance in the inferred location
             data = mod_func.retrieve_metadata(apt_no)
             metadata_df = read_frame(data, verbose=False)
+            metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
 
             metadata_df = metadata_df[(metadata_df.location == where) &
                                       (metadata_df.appliance == what)]

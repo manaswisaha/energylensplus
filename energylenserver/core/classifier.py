@@ -53,7 +53,8 @@ def get_trained_model(sensor, apt_no, phone_model):
                 # Number of appliances in the metadata
                 data = mod_func.retrieve_metadata(apt_no)
                 metadata_df = read_frame(data, verbose=False)
-                metadata_df = metadata_df[-metadata_df.appliance.isin(['Fridge', 'Geyser'])]
+                metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+                metadata_df = metadata_df[-metadata_df.appliance.isin(['Fridge'])]
                 m_appl_count = len(metadata_df.appliance.unique())
 
                 if no_appl_model < m_appl_count:
@@ -365,6 +366,7 @@ def classify_activity(metadata_df, magnitude):
 
     # Check for existence
     md_list = []
+    metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
     for md_i in metadata_df.index:
         md_power = metadata_df.ix[md_i]['power']
         md_appl = metadata_df.ix[md_i]['appliance']
