@@ -598,7 +598,14 @@ def apportion_energy(result_labels):
 
         # Determine appliance type
         act_appl = activity.appliance
-        md_entry = mod_func.retrieve_metadata_for_appliance(apt_no, act_appl)[0]
+        md_records = mod_func.retrieve_metadata(apt_no)
+        metadata_df = read_frame(md_records, verbose=False)
+        metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+        metadata_df = metadata_df[metadata_df.appliance == act_appl]
+        metadata_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
+        metadata_df.reset_index(drop=True, inplace=True)
+
+        md_entry = metadata_df.ix[0]
 
         # For non-presence based appliances e.g Geyser, Microwave, Music System, Fridge
         if not md_entry.presence_based:
