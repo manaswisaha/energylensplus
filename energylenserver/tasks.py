@@ -698,12 +698,14 @@ def determine_wastage(apt_no):
                 continue
 
             # Go ahead only if it is a presence based appliance
-            md_records = mod_func.retrieve_metadata_for_appliance(apt_no, what)
+            md_records = mod_func.retrieve_metadata(apt_no)
+            metadata_df = read_frame(md_records, verbose=False)
+            metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+            metadata_df = metadata_df[metadata_df.appliance == what]
+            metadata_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
+            metadata_df.reset_index(drop=True, inplace=True)
 
-            if md_records.count == 0:
-                continue
-
-            md_entry = md_records[0]
+            md_entry = metadata_df.ix[0]
 
             if not md_entry.presence_based:
                 continue
