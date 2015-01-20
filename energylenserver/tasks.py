@@ -429,7 +429,7 @@ def classify_edge(edge):
                 what = "Unknown"
 
             else:
-                # Determine the on going events having in
+                # Determine the on going events of inferred appliance in the inferred location
                 on_event_records = mod_func.get_on_events_by_location(apt_no, end_time, where)
                 on_event_records_df = read_frame(on_event_records, verbose=False)
                 on_event_records_df = on_event_records_df[on_event_records_df.appliance == what]
@@ -630,6 +630,7 @@ def apportion_energy(result_labels):
             return
         # Merge slices where the user columns have the same values
         presence_df = core_f.merge_presence_matrix(presence_df)
+        logger.debug("Presence matrix::\n %s", presence_df)
 
         # Determine actual usage/wastage of a user based on
         # time of stay in the room of activity handling all complex cases
