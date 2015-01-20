@@ -217,7 +217,7 @@ def correct_label(label, pred_label, label_type, edge):
 
 
 def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home):
-    logger.debug("[Classifying location]")
+    logger.debug("[Classifying location] - %s [%d]", user, edge.magnitude)
     logger.debug("-" * stars)
 
     try:
@@ -307,7 +307,7 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
     """
     Classifies appliance based on audio or metadata
     """
-    logger.debug("[Classifying appliance]")
+    logger.debug("[Classifying appliance] - %s [%d]", user, edge.magnitude)
     logger.debug("-" * stars)
     try:
         appliance = "Unknown"
@@ -409,6 +409,8 @@ def classify_activity(metadata_df, magnitude):
     """
     Uses metadata matching to determine appliance and location
     """
+    logger.debug("[Classifying activity] - [%d]", magnitude)
+    logger.debug("-" * stars)
 
     # Check for existence
     md_list = []
