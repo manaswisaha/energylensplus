@@ -326,6 +326,7 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
             md_df.reset_index(drop=True, inplace=True)
             fil_md_df = md_df[md_df.md_power_diff == md_df.md_power_diff.min()]
             md_audio = fil_md_df.md_audio.unique()
+            md_presence = fil_md_df.md_presence.unique()
 
             logger.debug("Filtered Metadata: \n %s", fil_md_df)
 
