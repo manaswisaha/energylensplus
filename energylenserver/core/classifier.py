@@ -307,6 +307,8 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
     """
     Classifies appliance based on audio or metadata
     """
+    logger.debug("[Classifying appliance]")
+    logger.debug("-" * stars)
     try:
         appliance = "Unknown"
 
@@ -347,8 +349,6 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
 
 
 def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_users_at_home):
-    logger.debug("[Classifying appliance]")
-    logger.debug("-" * stars)
 
     try:
         pmodel = user.phone_model
