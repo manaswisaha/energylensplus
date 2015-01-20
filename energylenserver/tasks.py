@@ -329,6 +329,8 @@ def classify_edge(edge):
         for user in users:
             dev_id = user.dev_id
 
+            logger.debug("For User: %s Mag: %s", user, magnitude)
+
             # Step 1: Determine location for every user
             location = classifier.classify_location(
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
