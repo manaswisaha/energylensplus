@@ -60,7 +60,7 @@ def match_events(apt_no, off_event):
 
     logger.debug("Magnitude::%s per_change: %s", off_mag, power)
     logger.debug("Between min=[%s]  max=[%s]", min_mag, max_mag)
-    logger.debug("On Events DF: \n%s", df)
+    # logger.debug("On Events DF: \n%s", df)
 
     filtered_df = df[(df.event_mag >= min_mag) & (df.event_mag <= max_mag)]
 

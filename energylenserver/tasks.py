@@ -818,7 +818,7 @@ def send_validation_report():
                 metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
                 metadata_df = metadata_df.ix[:, ['location', 'appliance']].drop_duplicates()
                 metadata_df.reset_index(drop=True, inplace=True)
-                for idx in metadata_df:
+                for idx in metadata_df.index:
                     entry = metadata_df.ix[idx]
                     appliances.append({'location': entry.location, 'appliance': entry.appliance})
             appliances.append({'location': "Unknown", 'appliance': "Unknown"})
