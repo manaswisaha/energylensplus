@@ -350,6 +350,8 @@ def disaggregated_energy(user, activity_name, start_time, end_time):
 
     all_activities_df = read_frame(records, verbose=False)
     all_activities_df, usage_entries_df = filter_user_activities(user, all_activities_df, "usage")
+    all_activities_df['start_time'] = all_activities_df.start_time.astype('int')
+    all_activities_df['end_time'] = all_activities_df.end_time.astype('int')
 
     if isinstance(all_activities_df, bool):
         return activities
@@ -401,6 +403,7 @@ def disaggregated_energy(user, activity_name, start_time, end_time):
                                "wastage_times": w_entry,
                                # "shared": shared_entries[aentry['id']]
                                })
+        logger.debug("Activities: \n%s", activities)
 
     return activities
 
