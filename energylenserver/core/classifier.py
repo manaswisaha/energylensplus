@@ -338,6 +338,7 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
 
                 if len(appl_list) == 1:
                     appliance = appl_list[0]
+                    logger.debug("Selected Appliance:: %s", appliance)
 
             # --Classify using audio--
             else:
