@@ -179,6 +179,7 @@ def check_if_edge(df, index, power_stream):
                 per_current_val = int(math.floor(0.25 * mag_abs))
             else:
                 per_current_val = 50
+            logger.debug("Per current value for [%d] :: [%d]", magnitude, per_current_val)
 
         # Removes spikes
         if math.fabs(curr_nextnext_diff) < thresmin:
