@@ -309,7 +309,11 @@ def classify_edge(edge):
             event_type = "OFF"
             start_time = event_time - p_window
             end_time = event_time
-            edgeHandler.apply_async(args=[edge], countdown=upload_interval)
+
+            now_time = int(time.time())
+            if (now_time - event_time) <= 2 * 60:
+                edgeHandler.apply_async(args=[edge], countdown=upload_interval)
+            return return_error
 
         # --- Preprocessing ---
         # Step 2: Determine user at home
