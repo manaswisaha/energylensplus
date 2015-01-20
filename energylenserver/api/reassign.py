@@ -70,10 +70,13 @@ def correct_inference(user, parameters):
                     true_appl = act_record.appliance
 
                 # Who
+                logger.debug("isinstance(devid, str):: %s type(devid):: %s",
+                             isinstance(to_occupant_dev_id, str),
+                             type(to_occupant_dev_id))
                 if isinstance(to_occupant_dev_id, str):
                     to_occupant = submitted_by
                 else:
-                    to_occupant = mod_func.get_user(int(to_occupant_dev_id))
+                    to_occupant = mod_func.get_user(to_occupant_dev_id)
 
                 # Store entry
                 gt_entry = GroundTruthLog(by_dev_id=submitted_by, act_id=act_record,
