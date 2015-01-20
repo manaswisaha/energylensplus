@@ -69,17 +69,7 @@ def match_events(apt_no, off_event):
     if len(filtered_df) == 0:
         return False
 
-    # Resolve conflicts by --
-    # Filter 2: Taking the rising edge which is the closest to the off magnitude
-
-    min_mag_diff = filtered_df.mag_diff.min()
-    filtered_df = filtered_df[filtered_df.mag_diff == min_mag_diff]
-
-    logger.debug("Matched ON DF:\n%s", filtered_df)
-    if len(filtered_df) == 0:
-        return False
-
-    # Filter 3: Matching with the same location and appliance
+    # Filter 2: Matching with the same location and appliance
     # if appliance is a presence based appliance
 
     # Get Metadata
@@ -97,6 +87,17 @@ def match_events(apt_no, off_event):
         filtered_df = filtered_df[(filtered_df.location == off_location) &
                                   (filtered_df.appliance == off_appliance)]
     filtered_df.reset_index(drop=True, inplace=True)
+
+    if len(filtered_df) == 0:
+        return False
+
+    logger.debug("Matched ON DF:\n%s", filtered_df)
+
+    # Resolve conflicts by --
+    # Filter 3: Taking the rising edge which is the closest to the off magnitude
+
+    min_mag_diff = filtered_df.mag_diff.min()
+    filtered_df = filtered_df[filtered_df.mag_diff == min_mag_diff]
 
     if len(filtered_df) == 0:
         return False
