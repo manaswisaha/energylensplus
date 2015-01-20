@@ -431,7 +431,7 @@ def classify_edge(edge):
                 n_on_event_records = len(on_event_records_df)
                 logger.debug("Number of ongoing events: %s", n_on_event_records)
 
-                if n_on_event_records > 0:
+                if n_on_event_records > 0 and event_type == 'ON':
 
                     no_of_appl = metadata_df.ix[0]['how_many']
                     logger.debug("Count for %s in %s: %d", what, where, no_of_appl)
