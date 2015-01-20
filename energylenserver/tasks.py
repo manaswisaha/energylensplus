@@ -438,7 +438,7 @@ def classify_edge(edge):
                         who = "Unknown"
                         where = "Unknown"
                         what = "Unknown"
-                elif n_on_event_records == 0 and event_type == 'falling':
+                elif n_on_event_records == 0 and event_type == 'OFF':
                     # Falling edge with no ON events
                     who = "Unknown"
                     where = "Unknown"
