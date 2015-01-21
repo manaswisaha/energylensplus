@@ -27,7 +27,7 @@ upload_interval = upload * 60  # in seconds
 wastage_threshold = upload * 5 * 60  # 5 minutes
 
 # Stay duration
-stay_duration = 3 * 60  # 3 minutes
+stay_duration = 2 * 60  # 2 minutes
 
 
 # Return errors
