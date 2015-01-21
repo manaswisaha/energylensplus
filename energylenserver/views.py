@@ -181,43 +181,6 @@ Training API
 """
 
 
-def determine_appliance_type(appliance):
-    """
-    Determines the appliance type
-    """
-
-    composite = False
-    if '+' in appliance:
-        composite = True
-        appl_list = appliance.split('+')
-        for i, appl in enumerate(appl_list):
-            appl_list[i] = appl.lower()
-    else:
-        appliance = appliance.lower()
-
-    if not composite:
-        if appliance in appliance_dict:
-            audio_based = appliance_dict[appliance]['audio']
-            presence_based = appliance_dict[appliance]['presence']
-        else:
-            audio_based = presence_based = True
-    else:
-        presence = False
-        for appl in appl_list:
-            if appl in appliance_dict:
-                audio_based = True
-                presence_based = appliance_dict[appl]['presence']
-                if presence_based and not presence:
-                    presence = True
-
-            else:
-                audio_based = presence_based = True
-        if presence:
-            presence_based = presence
-
-    return audio_based, presence_based
-
-
 @csrf_exempt
 def training_data(request):
     """
@@ -522,7 +485,7 @@ def real_time_data_access(request):
             logger.info("[POST Request Received] - %s", sys._getframe().f_code.co_name)
 
             dev_id = payload['dev_id']
-            logger.debug("Requested by:%s", dev_id)
+            upload_logger.debug("Requested by:%s", dev_id)
 
             # Check if it is a registered user
             is_user = mod_func.get_user(dev_id)
@@ -531,7 +494,7 @@ def real_time_data_access(request):
                                     content_type="application/json")
             else:
                 apt_no = is_user.apt_no
-                logger.debug("Apartment Number:%d", apt_no)
+                upload_logger.debug("Apartment Number:%d", apt_no)
 
             # Get power data
             timestamp, total_power = get_latest_power_data(apt_no)
@@ -539,7 +502,7 @@ def real_time_data_access(request):
             payload = {}
             payload[timestamp] = total_power
 
-            logger.debug("Payload: %s", payload)
+            upload_logger.debug("Payload: %s", payload)
 
             return HttpResponse(json.dumps(payload), content_type="application/json")
 
@@ -567,8 +530,8 @@ def real_time_past_data(request):
 
             dev_id = payload['dev_id']
             minutes = int(payload['minutes'])
-            logger.debug("Requested by:%d", dev_id)
-            logger.debug("For %d minute(s)", minutes)
+            upload_logger.debug("Requested by:%d", dev_id)
+            upload_logger.debug("For %d minute(s)", minutes)
 
             # Check if it is a registered user
             is_user = mod_func.get_user(dev_id)
@@ -577,7 +540,7 @@ def real_time_past_data(request):
                                     content_type="application/json")
             else:
                 apt_no = is_user.apt_no
-                logger.debug("Apartment Number:%s", apt_no)
+                upload_logger.debug("Apartment Number:%s", apt_no)
 
             # Get power data
             end_time = time.time()
@@ -588,7 +551,7 @@ def real_time_past_data(request):
             data_df_list = get_meter_data_for_time_slice(apt_no, s_time, e_time)
 
             if len(data_df_list) == 0:
-                logger.debug("No data to send")
+                upload_logger.debug("No data to send")
                 return HttpResponse(json.dumps({}), content_type="application/json")
 
             # Creation of the payload
@@ -607,7 +570,7 @@ def real_time_past_data(request):
             for key in sorted(payload.iterkeys()):
                 payload_body[key] = payload[key]
 
-            logger.debug("Payload Size:%s", len(payload_body))
+            upload_logger.debug("Payload Size:%s", len(payload_body))
             # logger.debug("Payload", json.dumps(payload_body, indent=4)
 
             return HttpResponse(json.dumps(payload_body), content_type="application/json")
