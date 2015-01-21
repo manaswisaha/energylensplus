@@ -13,7 +13,8 @@ def get_energy_consumption(start_time, end_time, power):
     Calculates the energy consumption in a given time period
     for the specified power
     """
-    return int(round(float(end_time - start_time) / 3600.0)) * power
+    energy = round(float(end_time - start_time) / 3600.0, 2) * power
+    return int(energy)
 
 
 def calculate_consumption(user_list, presence_df, activity):
