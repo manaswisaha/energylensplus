@@ -48,7 +48,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
         logger.debug("Edge did not match with the metadata for any user.")
         logger.debug("Location classification is incorrect or Unknown")
 
-        if m_magnitude < 0:
+        if magnitude < 0:
             # May indicate a non-presence based appliance e.g. Microwave
             # -- Use metadata i.e. meter only approach
             where, what = classify_activity(metadata_df, m_magnitude)
@@ -84,7 +84,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 appliance = appl_list[0]
             else:
                 appliance = correct_label(appliance[dev_id], pd.Series([appliance[dev_id]]),
-                                          'appliance', edge)
+                                          'appliance', edge, location[dev_id])
 
             user['dev_id'] = [dev_id]
             user['location'] = location[dev_id]
