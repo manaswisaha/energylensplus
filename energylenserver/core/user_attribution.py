@@ -105,9 +105,15 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 # Indicates that there is single contender
                 dev_id = contending_users[0]
 
+                appl_list = poss_user.md_appl.unique()
+                if len(appl_list) == 1:
+                    appliance = appl_list[0]
+                else:
+                    appliance = appliance[dev_id]
+
                 user['dev_id'] = [dev_id]
                 user['location'] = location[dev_id]
-                user['appliance'] = appliance[dev_id]
+                user['appliance'] = appliance
 
             else:
                 # There are contending users for this edge
