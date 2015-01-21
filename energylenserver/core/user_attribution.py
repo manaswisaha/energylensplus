@@ -8,7 +8,7 @@ from energylenserver.models import functions as mod_func
 from classifier import classify_activity, correct_label
 from functions import exists_in_metadata
 
-"""
+""" 
 User Attribution Module
 """
 
@@ -53,6 +53,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             # -- Use metadata i.e. meter only approach
             where, what = classify_activity(metadata_df, m_magnitude)
 
+            if len(user_list) == 1:
+                user['dev_id'] = user_list[0]
             user['dev_id'] = "Unknown"
             user['location'] = where
             user['appliance'] = what
@@ -80,7 +82,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
             appl_list = poss_user.md_appl.unique()
 
-            if len(appliance) == 1:
+            if len(appl_list) == 1:
                 appliance = appl_list[0]
             else:
                 appliance = correct_label(appliance[dev_id], pd.Series([appliance[dev_id]]),
