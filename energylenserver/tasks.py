@@ -556,8 +556,8 @@ def find_time_slice(result_labels):
                                end_event=off_event)
         activity.save()
 
-        logger.debug("Time slice for activity: %s uses %s in %s between %s and %s",
-                     who, what, where, time.ctime(start_time), time.ctime(end_time))
+        logger.debug("[%d] Time slice for activity: %s uses %s in %s between %s and %s",
+                     apt_no, who, what, where, time.ctime(start_time), time.ctime(end_time))
     except Exception, e:
         logger.exception("[FindTimeSliceException]:: %s", str(e))
         return return_error
@@ -580,14 +580,19 @@ def apportion_energy(result_labels):
     :return: energy usage
     """
     try:
-        logger.debug("Apportioning energy..")
-
         apt_no, start_time, end_time, activity = result_labels
 
         if (start_time == 'ignore' and end_time == 'ignore' and
                 activity == 'ignore'):
-            logger.debug("Ignoring request")
+            logger.debug("Ignoring apportionment request")
             return
+
+        # Activity labels
+        act_loc = activity.location
+        act_appl = activity.appliance
+
+        logger.debug("[%d] Apportioning energy:: Using %s in %s between %s and %s",
+                     apt_no, act_appl, act_loc, time.ctime(start_time), time.ctime(end_time))
 
         user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
         n_users_at_home = len(user_list)
@@ -597,7 +602,6 @@ def apportion_energy(result_labels):
             return
 
         # Determine appliance type
-        act_appl = activity.appliance
         md_records = mod_func.retrieve_metadata(apt_no)
         metadata_df = read_frame(md_records, verbose=False)
         metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
@@ -621,7 +625,6 @@ def apportion_energy(result_labels):
             return
 
         # For presence based appliances, apportion based on stay duration
-        act_loc = activity.location
 
         presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
         users_list = [mod_func.get_user(u) for u in user_list]
