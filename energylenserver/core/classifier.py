@@ -139,7 +139,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
         return "Unknown"
 
 
-def correct_label(label, pred_label, label_type, edge):
+def correct_label(label, pred_label, label_type, edge, act_location):
     """
     Classified label correction using Metadata
     Procedure: Match with the Metadata. If doesn't match then correct based on magnitude
@@ -157,10 +157,10 @@ def correct_label(label, pred_label, label_type, edge):
 
     # Check if it matches with the metadata
     if label_type == "location":
-        in_metadata, matched_md = func.exists_in_metadata(
+        in_metadata, matched_md_l = func.exists_in_metadata(
             apt_no, label, "all", magnitude, metadata_df, logger, "dummy_user")
     else:
-        in_metadata, matched_md = func.exists_in_metadata(
+        in_metadata, matched_md_l = func.exists_in_metadata(
             apt_no, "all", label, magnitude, metadata_df, logger, "dummy_user")
 
     # Indicates the (label, edge_mag) does not exist --> incorrect label
@@ -171,36 +171,62 @@ def correct_label(label, pred_label, label_type, edge):
         in_metadata, matched_md_list = func.exists_in_metadata(
             apt_no, "not_all", "not_all", magnitude, metadata_df, logger, "dummy_user")
 
-        # Select the one closest to the metadata
+        # Correction only if the inferred appliance is not audio
         if in_metadata:
+            # Matched entries
             matched_md = pd.concat(matched_md_list)
-            matched_md = matched_md[
-                matched_md.md_power_diff == matched_md.md_power_diff.min()]
-            logger.debug(
-                "Entry with least distance from the metadata:\n %s", matched_md)
-            if label_type == "location":
-                unique_label = matched_md.md_loc.unique().tolist()
-            else:
-                unique_label = matched_md.md_appl.unique().tolist()
+            matched_md.reset_index(drop=True, inplace=True)
 
-            if len(unique_label) == 1:
-                label = unique_label[0]
-            else:
-                # Multiple matched entries - select the one with the
-                # maximum count in the pred_label
-                idict = func.list_count_items(pred_label)
+            # From metadata, if inferred appliance is audio or presence based
+            metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
 
-                # Remove the entries not in unique label list
-                filtered_l = [key for key in idict.keys() if key in unique_label]
+            md_df = metadata_df.ix[:, ['appliance', 'presence_based',
+                                       'audio_based']].drop_duplicates()
+            md_df.reset_index(inplace=True, drop=True)
 
-                # Get the max count
-                new_label_list = []
-                for key in filtered_l:
-                    for l in pred_label:
-                        if key == l:
-                            new_label_list.append(key)
+            md_audio = md_df.ix[0]['audio_based']
+            md_presence = md_df.ix[0]['presence_based']
 
-                label = func.get_max_class(pd.Series(new_label_list))
+            # Non-audio based
+            if not md_audio:
+                # Presence based appliance
+                if md_presence:
+                    matched_md = matched_md[matched_md.md_loc == act_location]
+                    appl_list = matched_md.md_appl.unique()
+
+                    if len(appl_list) == 1:
+                        label = appl_list[0]
+                        logger.debug("Corrected Label: %s --> %s", old_label, label)
+                        return label
+
+                # Correction process -- Select the one closest to the metadata
+                matched_md = matched_md[
+                    matched_md.md_power_diff == matched_md.md_power_diff.min()]
+                logger.debug(
+                    "Entry with least distance from the metadata:\n %s", matched_md)
+                if label_type == "location":
+                    unique_label = matched_md.md_loc.unique().tolist()
+                else:
+                    unique_label = matched_md.md_appl.unique().tolist()
+
+                if len(unique_label) == 1:
+                    label = unique_label[0]
+                else:
+                    # Multiple matched entries - select the one with the
+                    # maximum count in the pred_label
+                    idict = func.list_count_items(pred_label)
+
+                    # Remove the entries not in unique label list
+                    filtered_l = [key for key in idict.keys() if key in unique_label]
+
+                    # Get the max count
+                    new_label_list = []
+                    for key in filtered_l:
+                        for l in pred_label:
+                            if key == l:
+                                new_label_list.append(key)
+
+                    label = func.get_max_class(pd.Series(new_label_list))
 
         else:
             # No matching metadata found
@@ -390,7 +416,7 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
         appliance = func.get_max_class(test_df['pred_label'])
 
         if n_users_at_home == 1:
-            appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge)
+            appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge, "dummmy")
 
         '''
         sliced_df = test_df[
