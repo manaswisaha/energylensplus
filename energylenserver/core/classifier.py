@@ -190,7 +190,7 @@ def correct_label(label, pred_label, label_type, edge, act_location):
             # Non-audio based
             if not md_audio:
                 # Presence based appliance
-                if md_presence:
+                if md_presence and act_location != "dummy":
                     matched_md = matched_md[matched_md.md_loc == act_location]
                     appl_list = matched_md.md_appl.unique()
 
