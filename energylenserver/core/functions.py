@@ -33,11 +33,11 @@ def get_max_class(pred_label_list):
     """
 
     if len(pred_label_list) == 0:
-        logger.debug("Predicted label list empty!")
+        # logger.debug("Predicted label list empty!")
         return "Unknown"
 
     pred_list = list_count_items(pred_label_list)
-    logger.debug("Predicted list: %s", pred_list)
+    # logger.debug("Predicted list: %s", pred_list)
 
     grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
     grpcount_label.columns = ['lcount']
@@ -49,10 +49,10 @@ def get_max_class(pred_label_list):
         total += value
     pred_label_count = float(pred_list[pred_label])
     count_percent = (pred_label_count / total) * 100
-    logger.debug("Percentage: %s", count_percent)
+    # logger.debug("Percentage: %s", count_percent)
     if (count_percent == 50.0 and len(pred_list) == 2) or (count_percent < 50.0):
         pred_label = "Unknown"
-    logger.debug("Predicted Label: %s\n", pred_label)
+    # logger.debug("Predicted Label: %s\n", pred_label)
 
     return pred_label
 
@@ -288,6 +288,7 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             s_time = e_time + 1
             e_time = s_time + stay_duration
 
+        logger.debug("Location list:: %s", location_l)
         duration_df = pd.DataFrame({'start_time': st_list, 'end_time': et_list,
                                     'label': location_l},
                                    columns=['start_time', 'end_time', 'label'])
