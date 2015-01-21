@@ -346,9 +346,9 @@ def classify_edge(edge):
                 now_time = int(time.time())
                 if (now_time - event_time) < 15 * 60:
                     edgeHandler.apply_async(args=[edge], countdown=upload_interval)
+                    return return_error
                 else:
-                    edge.delete()
-                return return_error
+                    continue
             else:
                 location_dict[dev_id] = location
 
@@ -362,9 +362,9 @@ def classify_edge(edge):
                 now_time = int(time.time())
                 if (now_time - event_time) < 15 * 60:
                     edgeHandler.apply_async(args=[edge], countdown=upload_interval)
+                    return return_error
                 else:
-                    edge.delete()
-                return return_error
+                    continue
             else:
                 appliance_dict[dev_id] = appliance
 

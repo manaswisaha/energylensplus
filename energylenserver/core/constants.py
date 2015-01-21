@@ -17,7 +17,7 @@ FRAME_SHIFT = int((no_of_sec / 2) * FS)     # Frame shift = 50% overlap
 # How much percent change from the metadata - to define the lower bound of predicted power
 lower_mdp_percent_change = 0.15
 # How much percent change from the metadata - to define the upper bound of predicted power
-upper_mdp_percent_change = 0.2
+upper_mdp_percent_change = 0.25
 
 # Upload interval
 upload = 2  # 2 minutes
