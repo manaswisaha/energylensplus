@@ -647,7 +647,7 @@ def apportion_energy(result_labels):
             return
         # Merge slices where the user columns have the same values
         presence_df = core_f.merge_presence_matrix(presence_df)
-        logger.debug("Presence matrix::\n %s", presence_df)
+        logger.debug("[Apprt] Presence matrix::\n %s", presence_df)
 
         # Determine actual usage/wastage of a user based on
         # time of stay in the room of activity handling all complex cases
@@ -750,7 +750,7 @@ def determine_wastage(apt_no):
             # Merge slices where the user columns have the same values
             # logger.debug("Presence DF: \n %s", presence_df)
             presence_df = core_f.merge_presence_matrix(presence_df)
-            # logger.debug("Merged Presence Matrix:\n %s", presence_df)
+            logger.debug("Merged Presence Matrix:\n %s", presence_df)
 
             # Determine wastage - find rooms of activity that are empty
             user_columns = presence_df.columns - ['start_time', 'end_time']
