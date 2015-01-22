@@ -107,6 +107,8 @@ def localize_new_data(apt_no, start_time, end_time, user):
         dev_id = user.dev_id
         sensor = "wifi"
 
+        # Get training data
+        train_df = get_trained_model(sensor, apt_no, pmodel)
         if len(train_df) == 0:
             location = "Unknown"
             return location
@@ -124,7 +126,6 @@ def localize_new_data(apt_no, start_time, end_time, user):
         test_df = read_frame(data, verbose=False)
 
         # Format data for classification
-        train_df = get_trained_model(sensor, apt_no, pmodel)
         test_df = pre_p_w.format_data_for_classification(test_df)
 
         # Classify
