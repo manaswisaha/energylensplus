@@ -310,19 +310,20 @@ def classify_edge(edge):
             start_time = event_time - p_window
             end_time = event_time
 
-            now_time = int(time.time())
-            if (now_time - event_time) <= 2 * 60:
-                edgeHandler.apply_async(args=[edge], countdown=upload_interval)
-                return return_error
-
         # --- Preprocessing ---
-        # Step 2: Determine user at home
+        # Determine user at home
         user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
         n_users_at_home = len(user_list)
 
         if n_users_at_home == 0:
             logger.debug("No user at home. Ignoring edge activity.")
             return return_error
+
+        if event_type == "OFF":
+            now_time = int(time.time())
+            if (now_time - event_time) <= 2 * 60:
+                edgeHandler.apply_async(args=[edge], countdown=upload_interval)
+                return return_error
 
         # --- Classification --
         location_dict = {}
