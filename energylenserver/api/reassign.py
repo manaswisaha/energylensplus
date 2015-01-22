@@ -84,6 +84,7 @@ def correct_inference(user, parameters):
                                           occupant_dev_id=to_occupant)
 
                 gt_entry.save()
+                logger.debug("Validation report entries marked by %s saved!", submitted_by)
 
             except Exception, e:
                 logger.exception("[UpdateActivitiesException]:: %s", str(e))
