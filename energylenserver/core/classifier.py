@@ -46,6 +46,9 @@ def get_trained_model(sensor, apt_no, phone_model):
         data = mod_func.get_sensor_training_data("wifi", apt_no, user_list)
         train_df = read_frame(data, verbose=False)
 
+        if len(train_df) == 0:
+            return train_df
+
         logger.debug("Training classes: %s", train_df.label.unique())
 
         dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/wifi/')
@@ -55,7 +58,7 @@ def get_trained_model(sensor, apt_no, phone_model):
             filename_arr = file_i.split("_")
             # Use model if exists
             if filename_arr[0] == str(apt_no) and filename_arr[1] == phone_model:
-                n_records = filename_arr[2]
+                n_records = int(filename_arr[2])
 
                 if n_records != len(train_df):
                     # Create a new training model
@@ -78,7 +81,7 @@ def get_trained_model(sensor, apt_no, phone_model):
             filename_arr = file_i.split("_")
             # Use model if exists
             if filename_arr[0] == str(apt_no) and filename_arr[1] == phone_model:
-                n_trained_appl = filename_arr[2]
+                n_trained_appl = int(filename_arr[2])
                 # Number of appliances in the metadata
                 data = mod_func.retrieve_metadata(apt_no)
                 metadata_df = read_frame(data, verbose=False)
