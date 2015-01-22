@@ -37,7 +37,7 @@ def get_max_class(pred_label_list):
         return "Unknown"
 
     pred_list = list_count_items(pred_label_list)
-    # logger.debug("Predicted list: %s", pred_list)
+    logger.debug("Predicted list: %s", pred_list)
 
     grpcount_label = pd.DataFrame.from_dict(pred_list, orient="index")
     grpcount_label.columns = ['lcount']
