@@ -643,6 +643,7 @@ def apportion_energy(result_labels):
 
         # For presence based appliances, apportion based on stay duration
 
+        start_user = activity.start_event.dev_id
         presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
         users_list = [mod_func.get_user(u) for u in user_list]
         for user in users_list:
@@ -662,6 +663,11 @@ def apportion_energy(result_labels):
         if isinstance(presence_df, NoneType) or len(presence_df) == 0:
             logger.debug("Empty presence matrix formed")
             return
+
+        # Assign the activity location to the first time slice for
+        # user who started the activity
+        presence_df.ix[0, str(start_user.dev_id)] = 1
+
         # Merge slices where the user columns have the same values
         presence_df = core_f.merge_presence_matrix(presence_df)
         logger.debug("[Apprt] Presence matrix::\n %s", presence_df)
