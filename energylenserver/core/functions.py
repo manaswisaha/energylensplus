@@ -6,10 +6,11 @@ from django_pandas.io import read_frame
 
 from common_imports import *
 from constants import WIFI_THRESHOLD, stay_duration
-from constants import lower_mdp_percent_change, upper_mdp_percent_change
 from energylenserver.models import functions as mod_func
+from energylenserver.core import location as lc
 from energylenserver.core import movement as acl
-
+from energylenserver.preprocessing import wifi as pre_p_w
+from constants import lower_mdp_percent_change, upper_mdp_percent_change
 
 """
 Contains common functions
@@ -219,6 +220,8 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
     """
 
     dev_id = user.dev_id
+    pmodel = user.phone_model
+
     # Get classified Wifi data
     # data = mod_func.get_labeled_data("wifi", start_time, end_time, act_location, [user])
     data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
@@ -255,11 +258,19 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             # logger.debug("Between [%s] and [%s] sliced len:: %d", time.ctime(s_time),
             #              time.ctime(e_time), len(sliced_df))
 
+            # Decide whether to localize
+            if "Unknown" in sliced_df.label.tolist():
+
+                # Format data for classification
+                train_df = get_trained_model("wifi", apt_no, pmodel)
+                test_df = pre_p_w.format_data_for_classification(sliced_df)
+
+                # Classify
+                pred_label = lc.determine_location(train_df, test_df)
+                sliced_df['label'] = pred_label
+
             if len(sliced_df) > 0:
-                if len(sliced_df['label']) == 0:
-                    location = prev_location
-                else:
-                    location = get_max_class(sliced_df['label'])
+                location = get_max_class(sliced_df['label'])
 
                 if location == act_location:
                     location = 1
@@ -267,7 +278,14 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
                     location = 0
 
             else:
-                location = 0
+                if not isinstance(prev_location, str):
+                    location = prev_location
+                    if location == act_location:
+                        location = 1
+                    else:
+                        location = 0
+                else:
+                    location = 0
 
             # Check for location change. Accept only if accl shows movement
             if not isinstance(prev_location, str):
