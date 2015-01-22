@@ -49,8 +49,6 @@ def get_trained_model(sensor, apt_no, phone_model):
         if len(train_df) == 0:
             return train_df
 
-        logger.debug("Training classes: %s", train_df.label.unique())
-
         dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/wifi/')
         folder_listing = os.listdir(dst_folder)
 
@@ -60,12 +58,8 @@ def get_trained_model(sensor, apt_no, phone_model):
             if filename_arr[0] == str(apt_no) and filename_arr[1] == phone_model:
                 n_records = int(filename_arr[2])
 
-                if n_records != len(train_df):
-                    # Create a new training model
-                    train_df = pre_p_w.format_train_data(train_df, apt_no, phone_model)
-                    return train_df
-                else:
-                    # Else use existing
+                if n_records == len(train_df):
+                    # Use existing
                     train_df = pd.read_csv(dst_folder + file_i)
                     return train_df
 
@@ -86,15 +80,11 @@ def get_trained_model(sensor, apt_no, phone_model):
                 data = mod_func.retrieve_metadata(apt_no)
                 metadata_df = read_frame(data, verbose=False)
                 metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
-                metadata_df = metadata_df[-metadata_df.appliance.isin(['Fridge'])]
+                # metadata_df = metadata_df[-metadata_df.appliance.isin(['Fridge'])]
                 m_appl_count = len(metadata_df.appliance.unique())
 
-                if n_trained_appl < m_appl_count:
-                    # Create a new training model
-                    model = audio.train_audio_classification_model(sensor, apt_no, phone_model)
-                    return model
-                else:
-                    # Else use existing
+                if n_trained_appl == m_appl_count:
+                    # Use existing
                     model = joblib.load(dst_folder + file_i)
                     return model
 

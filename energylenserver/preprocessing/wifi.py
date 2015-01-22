@@ -75,6 +75,8 @@ def format_train_data(train_df, apt_no, phone_model):
     Formats training data into features
     """
 
+    logger.debug("Training classes: %s", train_df.label.unique())
+
     # Output file
     dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/wifi/')
     if not os.path.exists(dst_folder):

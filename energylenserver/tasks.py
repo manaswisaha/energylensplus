@@ -303,8 +303,8 @@ def classify_edge(edge):
 
         if edge.type == "rising":
             event_type = "ON"
-            start_time = event_time - 60
-            end_time = event_time + p_window
+            start_time = event_time + 60
+            end_time = start_time + p_window
         else:
             event_type = "OFF"
             start_time = event_time - p_window
@@ -602,6 +602,22 @@ def apportion_energy(result_labels):
             logger.error("No user at home. Something went wrong!")
             return
 
+        # For Fridge
+        if act_appl == "Fridge":
+            # Distribute energy amongst all
+            power = activity.power
+            usage = apprt.get_energy_consumption(start_time, end_time, power)
+            usage /= n_users_at_home
+            stayed_for = end_time - start_time
+            for devid in users_list:
+                user = mod_func.get_user(devid)
+                usage_entry = EnergyUsageLog(activity=activity,
+                                             start_time=start_time, end_time=end_time,
+                                             stayed_for=stayed_for, usage=usage,
+                                             dev_id=user, shared=True)
+                usage_entry.save()
+                return
+
         # Determine appliance type
         md_records = mod_func.retrieve_metadata(apt_no)
         metadata_df = read_frame(md_records, verbose=False)
@@ -612,7 +628,7 @@ def apportion_energy(result_labels):
 
         md_entry = metadata_df.ix[0]
 
-        # For non-presence based appliances e.g Geyser, Microwave, Music System, Fridge
+        # For non-presence based appliances e.g Geyser, Microwave, Music System
         if not md_entry.presence_based:
             power = activity.power
             usage = apprt.get_energy_consumption(start_time, end_time, power)
