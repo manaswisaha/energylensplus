@@ -267,10 +267,12 @@ def check_if_edge(df, index, power_stream):
             # For falling edge: for comparison with curr_next_diff
             mag_abs = math.fabs(magnitude)
             if mag_abs <= 100:
+                logger.debug("Fabs Magnitude:: %d [%d]", mag_abs, int(math.floor(0.25 * mag_abs)))
                 per_current_val = int(math.floor(0.25 * mag_abs))
             else:
                 per_current_val = 50
-            logger.debug("Fabs Magnitude:: %d", mag_abs)
+                logger.debug("Fabs Magnitude:: %d [%d]", mag_abs, 50)
+
         return "Not an edge", {}
 
     return "Not an edge", {}
