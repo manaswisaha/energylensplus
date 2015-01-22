@@ -157,7 +157,7 @@ def determine_user_home_status(start_time, end_time, apt_no):
         home_ap = mod_func.get_home_ap(apt_no)
 
         # Setting the start time to be 5 minutes before the event time
-        start_time = start_time - 3 * 60
+        start_time = start_time - 4 * 60
 
         # Get Wifi data
         data = mod_func.get_sensor_data("wifi", start_time, end_time, dev_id_list)
