@@ -1,6 +1,12 @@
 # Author: Manaswi Saha
 
+import os
+import time as t
 import pandas as pd
+from django.conf import settings
+from django_pandas.io import read_frame
+from energylenserver.models import functions as mod_func
+
 # Enable Logging
 import logging
 logger = logging.getLogger('energylensplus_django')
@@ -61,6 +67,29 @@ def format_data(ip_df):
 
     return op_df
 
+base_dir = settings.BASE_DIR
+
+
+def format_train_data(train_df, apt_no, phone_model):
+    """
+    Formats training data into features
+    """
+
+    # Output file
+    dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/wifi/')
+    if not os.path.exists(dst_folder):
+        os.makedirs(dst_folder)
+    filename = str(apt_no) + "_" + phone_model + "_" + str(len(train_df))
+    traindata_file = dst_folder + filename + "_kNN_" + str(int(t.time())) + '.csv'
+
+    # Feature extraction
+    train_df = format_data_for_classification(train_df)
+
+    # Saving data as a csv file
+    train_df.to_csv(traindata_file, index=False)
+
+    return train_df
+
 
 def format_data_for_classification(data_df):
     """
@@ -88,7 +117,14 @@ def format_data_for_classification(data_df):
         op_df.ix[t, macid] = rssi
         op_df.ix[t, 'label'] = label
 
-    op_df.reset_index(drop=True)
+    op_df.reset_index(drop=True, inplace=True)
+
+    # Create frame
+    for mac in mac_list:
+        op_df[mac].fillna(-200, inplace=True)
+
+    op_df.sort(['time'], inplace=True)
+    return op_df
 
     '''
     mac_rssi_map = {}
@@ -121,11 +157,3 @@ def format_data_for_classification(data_df):
 
     op_df['label'] = label_list
     '''
-
-    # Create frame
-    for mac in mac_list:
-        op_df[mac].fillna(-200, inplace=True)
-
-    op_df.sort(['time'], inplace=True)
-
-    return op_df

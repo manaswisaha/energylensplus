@@ -37,10 +37,39 @@ base_dir = settings.BASE_DIR
 def get_trained_model(sensor, apt_no, phone_model):
     """
     Get trained model or train model if isn't trained
+    # Future TODO: Adding new localization models
     """
     if sensor == "wifi":
-        # Future TODO: Adding new localization models
-        return
+
+        # Get WiFi training data
+        user_list = mod_func.get_users_for_training(apt_no, phone_model)
+        data = mod_func.get_sensor_training_data("wifi", apt_no, user_list)
+        train_df = read_frame(data, verbose=False)
+
+        logger.debug("Training classes: %s", train_df.label.unique())
+
+        dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/wifi/')
+        folder_listing = os.listdir(dst_folder)
+
+        for file_i in folder_listing:
+            filename_arr = file_i.split("_")
+            # Use model if exists
+            if filename_arr[0] == str(apt_no) and filename_arr[1] == phone_model:
+                n_records = filename_arr[2]
+
+                if n_records != len(train_df):
+                    # Create a new training model
+                    train_df = pre_p_w.format_train_data(train_df, apt_no, phone_model)
+                    return train_df
+                else:
+                    # Else use existing
+                    train_df = pd.read_csv(dst_folder + file_i)
+                    return train_df
+
+        # Model folder empty -- No model exists - Create one
+        train_df = pre_p_w.format_train_data(train_df, apt_no, phone_model)
+        return train_df
+
     if sensor in ["rawaudio", "audio"]:
         dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/audio/')
         folder_listing = os.listdir(dst_folder)
@@ -49,7 +78,7 @@ def get_trained_model(sensor, apt_no, phone_model):
             filename_arr = file_i.split("_")
             # Use model if exists
             if filename_arr[0] == str(apt_no) and filename_arr[1] == phone_model:
-                no_appl_model = filename_arr[2]
+                n_trained_appl = filename_arr[2]
                 # Number of appliances in the metadata
                 data = mod_func.retrieve_metadata(apt_no)
                 metadata_df = read_frame(data, verbose=False)
@@ -57,28 +86,18 @@ def get_trained_model(sensor, apt_no, phone_model):
                 metadata_df = metadata_df[-metadata_df.appliance.isin(['Fridge'])]
                 m_appl_count = len(metadata_df.appliance.unique())
 
-                if no_appl_model < m_appl_count:
+                if n_trained_appl < m_appl_count:
                     # Create a new training model
                     model = audio.train_audio_classification_model(sensor, apt_no, phone_model)
+                    return model
                 else:
                     # Else use existing
                     model = joblib.load(dst_folder + file_i)
-
-            # Else create a new training model
-            else:
-                model = audio.train_audio_classification_model(sensor, apt_no, phone_model)
-            return model
+                    return model
 
         # Model folder empty -- No model exists - Create one
-        model = audio.train_audio_classfication_model(sensor, apt_no, phone_model)
+        model = audio.train_audio_classification_model(sensor, apt_no, phone_model)
         return model
-
-
-def get_wifi_training_data(apt_no, user_list):
-    data = mod_func.get_sensor_training_data("wifi", apt_no, user_list)
-    train_df = read_frame(data, verbose=False)
-
-    return train_df
 
 
 def localize_new_data(apt_no, start_time, end_time, user):
@@ -86,11 +105,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
     try:
         pmodel = user.phone_model
         dev_id = user.dev_id
-
-        # Get WiFi training data
-        user_list = mod_func.get_users_for_training(apt_no, pmodel)
-        train_df = get_wifi_training_data(apt_no, user_list)
-        logger.debug("Training classes: %s", train_df.label.unique())
+        sensor = "wifi"
 
         if len(train_df) == 0:
             location = "Unknown"
@@ -109,7 +124,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
         test_df = read_frame(data, verbose=False)
 
         # Format data for classification
-        train_df = pre_p_w.format_data_for_classification(train_df)
+        train_df = get_trained_model(sensor, apt_no, pmodel)
         test_df = pre_p_w.format_data_for_classification(test_df)
 
         # Classify
@@ -249,6 +264,7 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
     try:
         pmodel = user.phone_model
         dev_id = user.dev_id
+        sensor = "wifi"
 
         # Get WiFi test data
         data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
@@ -273,10 +289,6 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
             return location
         # '''
 
-        # Get WiFi training data
-        user_list = mod_func.get_users_for_training(apt_no, pmodel)
-        train_df = get_wifi_training_data(apt_no, user_list)
-
         '''
         # Get queryset of filtering later
         data_all = WiFiTestData.objects.all()
@@ -288,7 +300,7 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
         '''
 
         # Format data for classification
-        train_df = pre_p_w.format_data_for_classification(train_df)
+        train_df = get_trained_model(sensor, apt_no, pmodel)
         test_df = pre_p_w.format_data_for_classification(test_df)
 
         # Classify
