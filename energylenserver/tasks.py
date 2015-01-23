@@ -488,8 +488,9 @@ def classify_edge(edge):
             event.save()
 
         # Falling edge with no ON events
-        if n_on_event_records == 0 and event_type == 'OFF':
-            return return_error
+        if where != "Unknown":
+            if n_on_event_records == 0 and event_type == 'OFF':
+                return return_error
 
     except Exception, e:
         logger.exception("[ClassifyEdgeException]:: %s", e)

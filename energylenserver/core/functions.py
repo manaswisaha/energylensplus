@@ -1,7 +1,8 @@
-import time
+import os
 import math
 import pandas as pd
 import numpy as np
+from django.conf import settings
 from django_pandas.io import read_frame
 
 from common_imports import *
@@ -15,6 +16,7 @@ from constants import lower_mdp_percent_change, upper_mdp_percent_change
 """
 Contains common functions
 """
+base_dir = settings.BASE_DIR
 
 
 def list_count_items(ilist):
