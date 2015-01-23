@@ -31,7 +31,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
     # Get the list of appliances with their types
     md_df['appliance'] = md_df.appliance.apply(lambda s: s.split('_')[0])
-    md_df = md_df.ix[:, ['appliance']].drop_duplicates()
+    tmp_md_df = md_df.ix[:, ['appliance']].drop_duplicates()
+    md_df = md_df.ix[tmp_md_df.index]
     md_df.set_index(['appliance'], inplace=True)
     logger.debug("Appliances with their types:%s", md_df)
     audio_based = md_df[md_df.audio_based == 1].index.tolist()
