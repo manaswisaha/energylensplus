@@ -340,7 +340,7 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             s_time = e_time + 1
             e_time = s_time + stay_duration
 
-        logger.debug("Location list:: %s", location_l)
+        logger.debug("[%s] Location list for %s:: %s", user, act_location, location_l)
         duration_df = pd.DataFrame({'start_time': st_list, 'end_time': et_list,
                                     'label': location_l},
                                    columns=['start_time', 'end_time', 'label'])

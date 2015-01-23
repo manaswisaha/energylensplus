@@ -83,7 +83,7 @@ def match_events(apt_no, off_event):
 
     filtered_df = df[(df.event_mag >= min_mag) & (df.event_mag <= max_mag)]
 
-    logger.debug("Filtered on events based on magnitude range: \n%s", filtered_df)
+    # logger.debug("Filtered on events based on magnitude range: \n%s", filtered_df)
 
     if len(filtered_df) == 0:
         return False
