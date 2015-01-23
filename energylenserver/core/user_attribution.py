@@ -35,11 +35,12 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
     md_df = md_df.ix[tmp_md_df.index]
     md_df.set_index(['appliance'], inplace=True)
     # logger.debug("Appliances with their types: \n%s", md_df)
-
     audio_based = md_df[md_df.audio_based == 1].index.tolist()
     if 'TV' in audio_based:
         audio_based.remove('TV')
     presence_based = md_df[md_df.presence_based == 1].index.tolist()
+    logger.debug("Audio based appliances:: %s", audio_based)
+    logger.debug("Presence based appliances:: %s", presence_based)
 
     users = location.keys()
 
