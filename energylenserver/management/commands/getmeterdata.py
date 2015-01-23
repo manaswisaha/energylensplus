@@ -304,14 +304,15 @@ class Command(BaseCommand):
                         sys.exit(1)
 
             # Create Payload
-            payload = "Metadata/Extra/PhysicalParameter='Power' and (Metadata/Extra/FlatNumber = "
+            payload = ("Metadata/Extra/PhysicalParameter='Power' and "
+                       "(Metadata/LoadLocation/FlatNumber = ")
 
             list_len = len(apt_no_list)
             for i, apt_no in enumerate(apt_no_list):
                 payload += "'" + apt_no + "'"
 
                 if i != (list_len - 1):
-                    payload += " or Metadata/Extra/FlatNumber = "
+                    payload += " or Metadata/LoadLocation/FlatNumber = "
                 else:
                     payload += ")"
             logger.debug("Payload:\n [%s]", payload)
