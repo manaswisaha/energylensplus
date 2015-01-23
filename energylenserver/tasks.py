@@ -453,11 +453,6 @@ def classify_edge(edge):
                         who = "Unknown"
                         where = "Unknown"
                         what = "Unknown"
-                elif n_on_event_records == 0 and event_type == 'OFF':
-                    # Falling edge with no ON events
-                    who = "Unknown"
-                    where = "Unknown"
-                    what = "Unknown"
             logger.debug("[%s] - [%d] :: After filter: Determined labels: %s %s %s" %
                          (time.ctime(event_time), magnitude, who, where, what))
 
@@ -476,10 +471,11 @@ def classify_edge(edge):
                 event.save()
 
                 # ONLY FOR TESTING
-                message = "In %s, %s uses %s consuming %s Watts" % (
-                    where, user.name, what, magnitude)
-                inform_user(user.dev_id, message)
-                logger.debug("Notified User: %s", who)
+                if apt_no == 1201:
+                    message = "In %s, %s uses %s consuming %s Watts" % (
+                        where, user.name, what, magnitude)
+                    inform_user(user.dev_id, message)
+                    logger.debug("Notified User: %s", who)
 
         # For "Unknown" label
         elif isinstance(who, str):
@@ -491,9 +487,13 @@ def classify_edge(edge):
                              event_type=event_type, apt_no=apt_no)
             event.save()
 
+        # Falling edge with no ON events
+        if n_on_event_records == 0 and event_type == 'OFF':
+            return return_error
+
     except Exception, e:
         logger.exception("[ClassifyEdgeException]:: %s", e)
-        return 'ignore', 'ignore', 'ignore', 'ignore'
+        return return_error
 
     return who[0], what, where, event
 
@@ -703,7 +703,7 @@ def determine_wastage(apt_no):
         # Retrieve last 30 minutes' events
         for event in on_event_records:
             on_time = event.event_time
-            if (now_time - on_time) <= 30 * 60:
+            if (now_time - on_time) <= wastage_threshold + 5:
                 on_events.append(event)
 
         logger.debug("Number of ongoing events: %s", len(on_events))
