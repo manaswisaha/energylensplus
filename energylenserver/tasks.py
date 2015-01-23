@@ -609,7 +609,7 @@ def apportion_energy(result_labels):
             usage = apprt.get_energy_consumption(start_time, end_time, power)
             usage /= n_users_at_home
             stayed_for = end_time - start_time
-            for devid in users_list:
+            for devid in user_list:
                 user = mod_func.get_user(devid)
                 usage_entry = EnergyUsageLog(activity=activity,
                                              start_time=start_time, end_time=end_time,

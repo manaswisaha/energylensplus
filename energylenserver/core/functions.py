@@ -208,6 +208,40 @@ def classify_movement(apt_no, start_time, end_time, user):
         return False
 
 
+def get_trained_model(sensor, apt_no, phone_model):
+    """
+    Get trained model or train model if isn't trained
+    # Future TODO: Adding new localization models
+    """
+    if sensor == "wifi":
+
+        # Get WiFi training data
+        user_list = mod_func.get_users_for_training(apt_no, phone_model)
+        data = mod_func.get_sensor_training_data("wifi", apt_no, user_list)
+        train_df = read_frame(data, verbose=False)
+
+        if len(train_df) == 0:
+            return train_df
+
+        dst_folder = os.path.join(base_dir, 'energylenserver/trained_models/wifi/')
+        folder_listing = os.listdir(dst_folder)
+
+        for file_i in folder_listing:
+            filename_arr = file_i.split("_")
+            # Use model if exists
+            if filename_arr[0] == str(apt_no) and filename_arr[1] == phone_model:
+                n_records = int(filename_arr[2])
+
+                if n_records == len(train_df):
+                    # Use existing
+                    train_df = pd.read_csv(dst_folder + file_i)
+                    return train_df
+
+        # Model folder empty -- No model exists - Create one
+        train_df = pre_p_w.format_train_data(train_df, apt_no, phone_model)
+        return train_df
+
+
 def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
     """
     Determines duration of a user in each location he was in

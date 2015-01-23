@@ -8,7 +8,7 @@ from energylenserver.models import functions as mod_func
 from classifier import classify_activity, correct_label
 from functions import exists_in_metadata
 
-""" 
+"""
 User Attribution Module
 """
 
