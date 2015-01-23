@@ -25,7 +25,19 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
     data = mod_func.retrieve_metadata(apt_no)
     metadata_df = read_frame(data, verbose=False)
 
+    md_df = metadata_df.copy()
+
     m_magnitude = math.fabs(magnitude)
+
+    # Get the list of appliances with their types
+    md_df['appliance'] = md_df.appliance.apply(lambda s: s.split('_')[0])
+    md_df = md_df.ix[:, ['appliance']].drop_duplicates()
+    md_df.set_index(['appliance'], inplace=True)
+    logger.debug("Appliances with their types:%s", md_df)
+    audio_based = md_df[md_df.audio_based == 1].index.tolist()
+    if 'TV' in audio_based:
+        audio_based.remove('TV')
+    presence_based = md_df[md_df.presence_based == 1].index.tolist()
 
     users = location.keys()
 
@@ -48,14 +60,23 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
         logger.debug("Edge did not match with the metadata for any user.")
         logger.debug("Location classification is incorrect or Unknown")
 
-        if magnitude < 0:
+        # Check for non-presence based appliance using the inferred appliance
+        presence_status = False
+        for appl in appliance.values():
+            if appl in presence_based:
+                presence_status = True
+                break
+
+        if magnitude < 0 and not presence_status:
             # May indicate a non-presence based appliance e.g. Microwave
             # -- Use metadata i.e. meter only approach
             where, what = classify_activity(metadata_df, m_magnitude)
 
             if len(user_list) == 1:
                 user['dev_id'] = user_list[0]
-            user['dev_id'] = "Unknown"
+            else:
+                user['dev_id'] = "Unknown"
+
             user['location'] = where
             user['appliance'] = what
             return user
@@ -83,14 +104,45 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             appl_list = poss_user.md_appl.unique()
 
             if len(appl_list) == 1:
-                appliance = appl_list[0]
+                appl = appl_list[0]
             else:
-                appliance = correct_label(appliance[dev_id], pd.Series([appliance[dev_id]]),
-                                          'appliance', edge, location[dev_id])
+                appl_audio_list = poss_user.md_audio.unique()
+                if len(appl_audio_list) > 1 and len(poss_user) > 2:
+                    poss_user = poss_user[
+                        poss_user.md_power_diff == poss_user.md_power_diff.min()]
+                    poss_user = poss_user.reset_index(drop=True)
+
+                    if len(poss_user) == 1:
+                        # Indicates that there is single entry
+                        appl = poss_user.ix[0]['md_appl']
+
+                        user['dev_id'] = [dev_id]
+                        user['location'] = location[dev_id]
+                        user['appliance'] = appl
+                        return
+                    else:
+                        appl_audio_list = poss_user.md_audio.unique()
+
+                if len(appl_audio_list) == 1:
+                    # If both are audio based or otherwise then use correct label
+                    appl = correct_label(appliance[dev_id], pd.Series([appliance[dev_id]]),
+                                         'appliance', edge, location[dev_id])
+                else:
+                    # If the inferred appliance is audio based then select the entry
+                    # that is audio based and vice versa
+                    appl_audio = md_df.ix[appliance[dev_id]]['audio_based']
+                    for idx in poss_user.index:
+                        md_aud = poss_user.ix[idx]['md_audio']
+                        md_appliance = poss_user.ix[idx]['md_appl']
+                        if md_appliance == 'TV':
+                            md_aud = False
+
+                        if md_aud == appl_audio:
+                            appl = md_appliance
 
             user['dev_id'] = [dev_id]
             user['location'] = location[dev_id]
-            user['appliance'] = appliance
+            user['appliance'] = appl
 
         else:
             # Resolving conflict by
@@ -107,16 +159,16 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
                 appl_list = poss_user.md_appl.unique()
                 if len(appl_list) == 1:
-                    appliance = appl_list[0]
+                    appl = appl_list[0]
                 else:
-                    appliance = appliance[dev_id]
+                    appl = appliance[dev_id]
 
                 user['dev_id'] = [dev_id]
                 user['location'] = location[dev_id]
-                user['appliance'] = appliance
+                user['appliance'] = appl
 
             else:
-                # There are contending users for this edge
+                # There are contending users for this event
                 # Matching appliance for resolving conflict
                 idx_list = []
                 poss_user_orig = poss_user.copy()
