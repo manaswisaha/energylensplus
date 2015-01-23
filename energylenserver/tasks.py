@@ -474,7 +474,7 @@ def classify_edge(edge):
                 if apt_no == 1201:
                     message = "In %s, %s uses %s consuming %s Watts" % (
                         where, user.name, what, magnitude)
-                    inform_user(user.dev_id, message)
+                    inform_user(353321065540000, message)
                     logger.debug("Notified User: %s", who)
 
         # For "Unknown" label
