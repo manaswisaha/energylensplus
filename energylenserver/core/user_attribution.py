@@ -79,11 +79,13 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
             user['location'] = where
             user['appliance'] = what
+            logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
             return user
 
         user['dev_id'] = "Unknown"
         user['location'] = "Unknown"
         user['appliance'] = "Unknown"
+        logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
         return user
 
     # Select the entry with the matching appliance for a user
@@ -119,6 +121,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         user['dev_id'] = [dev_id]
                         user['location'] = location[dev_id]
                         user['appliance'] = appl
+
+                        logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
                         return
                     else:
                         appl_audio_list = poss_user.md_audio.unique()
@@ -213,6 +217,6 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         user['location'] = "Unknown"
                         user['appliance'] = "Unknown"
 
-    logger.debug("Matched user(s) for edge with mag %d: %s", m_magnitude, user)
+    logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
 
     return user
