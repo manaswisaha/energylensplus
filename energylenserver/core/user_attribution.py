@@ -129,8 +129,11 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         return
                     else:
                         appl_audio_list = poss_user.md_audio.unique()
+                        appl_list = poss_user.md_appl.unique()
 
-                if len(appl_audio_list) == 1:
+                if len(appl_list) == 1:
+                    appl = appl_list[0]
+                elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
                     appl = correct_label(appliance[dev_id], pd.Series([appliance[dev_id]]),
                                          'appliance', edge, location[dev_id])
