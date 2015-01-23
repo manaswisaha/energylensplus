@@ -4,7 +4,7 @@ SERVER_IP = '192.168.1.238'
 # SERVER_IP = 'energy.iiitd.edu.in'
 
 # Participating apartments
-apt_no_list = ['1201', '101', '103', '1003']  # , '102A']
+apt_no_list = ['1201', '101', '103']  # , '102A']
 
 # Default users
 unknown_id = 123456789123456
