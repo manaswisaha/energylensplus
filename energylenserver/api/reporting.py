@@ -293,6 +293,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
                                                   'wastage': int(round(
                                                       act_wastage_df.ix[appl]['wastage']))
                                                   })
+    logger.debug("[%s]::%s", api, options)
 
     return options
 
@@ -403,6 +404,7 @@ def disaggregated_energy(user, activity_name, start_time, end_time):
                                "wastage_times": w_entry,
                                # "shared": shared_entries[aentry['id']]
                                })
+    logger.debug("DisaggActivities::%s", activities)
 
     return activities
 

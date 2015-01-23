@@ -291,11 +291,12 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             # Getting location of the slice
             sliced_df = labeled_df[
                 (labeled_df.timestamp >= s_time) & (labeled_df.timestamp <= e_time)]
+            pred_label = sliced_df['label'].tolist()
             # logger.debug("Between [%s] and [%s] sliced len:: %d", time.ctime(s_time),
             #              time.ctime(e_time), len(sliced_df))
 
             # Decide whether to localize
-            if "Unknown" in sliced_df.label.tolist():
+            if "Unknown" in pred_label:
 
                 # Format data for classification
                 train_df = get_trained_model("wifi", apt_no, pmodel)
@@ -303,10 +304,9 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
 
                 # Classify
                 pred_label = lc.determine_location(train_df, test_df)
-                sliced_df['label'] = pred_label
 
-            if len(sliced_df) > 0:
-                location = get_max_class(sliced_df['label'])
+            if len(pred_label) > 0:
+                location = get_max_class(pred_label)
 
                 if location == act_location:
                     location = 1
