@@ -123,7 +123,7 @@ def format_data_for_classification(data_df):
 
     # Create frame
     for mac in mac_list:
-        op_df[mac].fillna(-200, inplace=True)
+        op_df[mac].fillna(-100, inplace=True)
 
     op_df.sort(['time'], inplace=True)
     return op_df
