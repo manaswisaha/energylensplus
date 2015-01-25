@@ -240,8 +240,7 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
                 for appl in act_usage_df.index:
                     options['activities'].append({'name': appl,
-                                                  'usage': int(round(act_usage_df.ix[appl]['usage'])
-                                                               )
+                                                  'usage': round(act_usage_df.ix[appl]['usage'], 2)
                                                   })
 
     elif api == ENERGY_WASTAGE_REPORT_API:
@@ -290,8 +289,8 @@ def get_energy_report(dev_id, api, start_time, end_time):
 
                 for appl in act_wastage_df.index:
                     options['activities'].append({'name': appl,
-                                                  'wastage': int(round(
-                                                      act_wastage_df.ix[appl]['wastage']))
+                                                  'wastage': round(
+                                                      act_wastage_df.ix[appl]['wastage'], 2)
                                                   })
     logger.debug("[%s]::%s", api, options)
 

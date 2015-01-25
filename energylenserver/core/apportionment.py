@@ -14,7 +14,7 @@ def get_energy_consumption(start_time, end_time, power):
     for the specified power
     """
     energy = round(float(end_time - start_time) / 3600.0, 2) * power
-    return int(energy)
+    return energy
 
 
 def calculate_consumption(user_list, presence_df, activity):
@@ -38,7 +38,7 @@ def calculate_consumption(user_list, presence_df, activity):
             user_column = str(user_id)
 
             slices = indiv_slices_df[indiv_slices_df[user_column] == 1]
-            logger.debug("indiv_slices::\n %s", slices)
+            logger.debug("[%d] Indiv_slices::\n %s", user_id, slices)
 
             for idx in slices.index:
                 st = slices.ix[idx]['start_time']
