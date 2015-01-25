@@ -326,7 +326,7 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             # Check for location change. Accept only if accl shows movement
             if not isinstance(prev_location, str):
                 accl_sliced_df = accl_df[
-                    (accl_df.timestamp >= s_time - 300) & (accl_df.timestamp <= e_time)]
+                    (accl_df.timestamp >= s_time - 240) & (accl_df.timestamp <= e_time)]
                 accl = get_max_class(accl_sliced_df['label'])
 
                 if prev_location != location:
