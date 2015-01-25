@@ -40,6 +40,7 @@ from energylenserver.constants import apt_no_list, SERVER_IP
 from energylenserver.functions import *
 from energylenserver.meter import smap
 from energylenserver.tasks import meterDataHandler
+from energylenserver.models.models import MeterInfo
 
 
 # Enable Logging
@@ -241,6 +242,13 @@ class Client:
                             # For use in the next task, rename it with prev_<filename>
                             new_file = os.path.join(meter_uuid_folder, "prev_" + curr_file)
                             os.renames(file_path, new_file)
+
+                            # Start the process only if participants are registered
+                            try:
+                                meter = MeterInfo.objects.get(meter_uuid=uuid)
+                            except MeterInfo.DoesNotExist, e:
+                                logger.debug("No registered users for this apt meter")
+                                return
 
                             # Create an event and pass it on to the listeners
                             # for consuming this file
