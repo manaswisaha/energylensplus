@@ -326,7 +326,7 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             # Check for location change. Accept only if accl shows movement
             if not isinstance(prev_location, str):
                 accl_sliced_df = accl_df[
-                    (accl_df.timestamp >= s_time) & (accl_df.timestamp <= e_time)]
+                    (accl_df.timestamp >= s_time - 300) & (accl_df.timestamp <= e_time)]
                 accl = get_max_class(accl_sliced_df['label'])
 
                 if prev_location != location:
@@ -361,14 +361,15 @@ def merge_presence_matrix(presence_df):
     """
     try:
         user_columns = presence_df.columns - ['start_time', 'end_time']
+        presence_df.sort(['start_time'], inplace=True)
 
         merged_presence_df = presence_df.copy()
 
         prev_idx = presence_df.index[0]
         for idx in presence_df.index[1:]:
 
-            row = presence_df.ix[idx]
-            prev_row = presence_df.ix[prev_idx]
+            row = merged_presence_df.ix[idx]
+            prev_row = merged_presence_df.ix[prev_idx]
 
             flag = True
             for col in user_columns:
@@ -377,11 +378,13 @@ def merge_presence_matrix(presence_df):
                     break
             # Merge
             if flag:
-                merged_presence_df.ix[idx, 'start_time'] = presence_df.ix[prev_idx]['start_time']
+                merged_presence_df.ix[idx, 'start_time'] = merged_presence_df.ix[
+                    prev_idx]['start_time']
                 merged_presence_df.drop(prev_idx, inplace=True)
 
             prev_idx = idx
 
+        merged_presence_df.sort(['start_time'], inplace=True)
         merged_presence_df.reset_index(drop=True, inplace=True)
         return merged_presence_df
 
