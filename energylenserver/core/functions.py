@@ -361,7 +361,6 @@ def merge_presence_matrix(presence_df):
     """
     try:
         user_columns = presence_df.columns - ['start_time', 'end_time']
-        presence_df.sort(['start_time'], inplace=True)
 
         merged_presence_df = presence_df.copy()
 
