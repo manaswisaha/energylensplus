@@ -1,6 +1,6 @@
 import math
 import pandas as pd
-import numpy as np
+import random
 from django_pandas.io import read_frame
 
 from common_imports import *
@@ -19,7 +19,9 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
     """
     logger.debug("[Identifying users]")
     logger.debug("-" * stars)
+
     user = {}
+    m_magnitude = math.fabs(magnitude)
 
     # Get Metadata
     data = mod_func.retrieve_metadata(apt_no)
@@ -27,14 +29,13 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
     md_df = metadata_df.copy()
 
-    m_magnitude = math.fabs(magnitude)
-
     # Get the list of appliances with their types
     md_df['appliance'] = md_df.appliance.apply(lambda s: s.split('_')[0])
     tmp_md_df = md_df.ix[:, ['appliance']].drop_duplicates()
     md_df = md_df.ix[tmp_md_df.index]
     md_df.set_index(['appliance'], inplace=True)
     # logger.debug("Appliances with their types: \n%s", md_df)
+
     audio_based = md_df[md_df.audio_based == 1].index.tolist()
     if 'TV' in audio_based:
         audio_based.remove('TV')
@@ -76,7 +77,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             where, what = classify_activity(metadata_df, m_magnitude)
 
             if len(user_list) == 1:
-                user['dev_id'] = user_list[0]
+                user['dev_id'] = [user_list[0]]
             else:
                 user['dev_id'] = "Unknown"
 
@@ -102,15 +103,18 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
     if len(poss_user) > 0:
         contending_users = poss_user.dev_id.unique().tolist()
+
         if len(contending_users) == 1:
-            # Indicates that there is single contender
-            dev_id = contending_users[0]
+
+            sel_user = contending_users[0]
 
             appl_list = poss_user.md_appl.unique()
 
             if len(appl_list) == 1:
                 appl = appl_list[0]
             else:
+                # If the inferred appliance is audio based then select the entry
+                # that is audio based and vice versa
                 appl_audio_list = poss_user.md_audio.unique()
                 if len(appl_audio_list) > 1 and len(poss_user) > 2:
                     poss_user = poss_user[
@@ -118,11 +122,10 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     poss_user = poss_user.reset_index(drop=True)
 
                     if len(poss_user) == 1:
-                        # Indicates that there is single entry
                         appl = poss_user.ix[0]['md_appl']
 
-                        user['dev_id'] = [dev_id]
-                        user['location'] = location[dev_id]
+                        user['dev_id'] = [sel_user]
+                        user['location'] = location[sel_user]
                         user['appliance'] = appl
 
                         logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
@@ -133,14 +136,14 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
                 if len(appl_list) == 1:
                     appl = appl_list[0]
+
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
-                    appl = correct_label(appliance[dev_id], pd.Series([appliance[dev_id]]),
-                                         'appliance', edge, location[dev_id])
+                    appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
+                                         'appliance', edge, location[sel_user])
                 else:
-                    # If the inferred appliance is audio based then select the entry
-                    # that is audio based and vice versa
-                    appl_audio = md_df.ix[appliance[dev_id]]['audio_based']
+
+                    appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
                     for idx in poss_user.index:
                         md_aud = poss_user.ix[idx]['md_audio']
                         md_appliance = poss_user.ix[idx]['md_appl']
@@ -149,9 +152,10 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
                         if md_aud == appl_audio:
                             appl = md_appliance
+                            break
 
-            user['dev_id'] = [dev_id]
-            user['location'] = location[dev_id]
+            user['dev_id'] = [sel_user]
+            user['location'] = location[sel_user]
             user['appliance'] = appl
 
         else:
@@ -159,69 +163,148 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             # selected entry with least distance to the metadata
             poss_user = poss_user[
                 poss_user.md_power_diff == poss_user.md_power_diff.min()]
+            poss_user.reset_index(drop=True, inplace=True)
             logger.debug(
                 "Entry for multiple contending users with md_power_diff:\n %s", poss_user)
             contending_users = poss_user.dev_id.unique().tolist()
 
             if len(contending_users) == 1:
                 # Indicates that there is single contender
-                dev_id = contending_users[0]
+                sel_user = contending_users[0]
 
                 appl_list = poss_user.md_appl.unique()
+                appl_audio_list = poss_user.md_audio.unique()
+
                 if len(appl_list) == 1:
                     appl = appl_list[0]
-                else:
-                    appl = appliance[dev_id]
 
-                user['dev_id'] = [dev_id]
-                user['location'] = location[dev_id]
+                elif len(appl_audio_list) == 1:
+                    # If both are audio based or otherwise then use correct label
+                    appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
+                                         'appliance', edge, location[sel_user])
+                else:
+
+                    appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
+                    for idx in poss_user.index:
+                        md_aud = poss_user.ix[idx]['md_audio']
+                        md_appliance = poss_user.ix[idx]['md_appl']
+                        if md_appliance == 'TV':
+                            md_aud = False
+
+                        if md_aud == appl_audio:
+                            appl = md_appliance
+                            break
+
+                user['dev_id'] = [sel_user]
+                user['location'] = location[sel_user]
                 user['appliance'] = appl
 
             else:
                 # There are contending users for this event
-                # Matching appliance for resolving conflict
-                idx_list = []
-                poss_user_orig = poss_user.copy()
-                for user_i in contending_users:
-                    appl = appliance[user_i]
-                    logger.debug("User: %s Appl: %s", user_i, appl)
-                    poss_user = poss_user_orig[(poss_user_orig.md_appl == appl) &
-                                               (poss_user_orig.dev_id == user_i)]
-                    if len(poss_user) != 0:
-                        idx_list += poss_user.index.tolist()
-                poss_user = poss_user_orig.ix[idx_list]
 
-                logger.debug("Filtered entry for multiple contending users:\n %s", poss_user)
-                contending_users = poss_user.dev_id.unique().tolist()
+                # Check if <location, appliance> is same for all
+                loc_list = poss_user.md_loc.unique()
+                appl_list = poss_user.md_appl.unique()
 
-                if len(contending_users) == 0:
-                    logger.debug("Appliance Classification incorrect")
+                # If all are non-audio based, then select <location,
+                # appliance> pair
+                audio_status = False
+                for devid in contending_users:
+                    if appliance[devid] == "Unknown":
+                        continue
+                    if appliance[devid] in audio_based:
+                        audio_status = True
+                        break
 
-                    user['dev_id'] = "Unknown"
-                    user['location'] = "Unknown"
-                    user['appliance'] = "Unknown"
-
-                elif len(contending_users) == 1:
-                    # Indicates that there is single contender
-                    dev_id = contending_users[0]
-
-                    user['dev_id'] = [dev_id]
-                    user['location'] = location[dev_id]
-                    user['appliance'] = appliance[dev_id]
+                # E.g. Dining Room - Fridge
+                if len(loc_list) == 1 and len(appl_list) == 1 and not audio_status:
+                    logger.debug("Shared event - same pair! Selecting random user..")
+                    # Selecting a random user
+                    sel_user = random.choice(contending_users)
+                    entry_idx = poss_user[poss_user.dev_id == sel_user].index
+                    user['dev_id'] = [sel_user]
+                    user['location'] = loc_list[0]
+                    user['appliance'] = appl_list[0]
 
                 else:
-                    # Users share the time slice having the same magnitude
-                    users = poss_user.dev_id.unique().tolist()
-                    if len(users) > 0:
+
+                    # Matching appliance for resolving conflict
+                    idx_list = []
+                    poss_user_orig = poss_user.copy()
+                    for user_i in contending_users:
+                        appl = appliance[user_i]
+                        logger.debug("User: %s Appl: %s", user_i, appl)
+                        poss_user = poss_user_orig[(poss_user_orig.md_appl == appl) &
+                                                   (poss_user_orig.dev_id == user_i)]
+                        if len(poss_user) != 0:
+                            idx_list += poss_user.index.tolist()
+                    poss_user = poss_user_orig.ix[idx_list]
+
+                    logger.debug("Filtered entry for multiple contending users:\n %s", poss_user)
+                    contending_users = poss_user.dev_id.unique().tolist()
+
+                    if len(contending_users) == 0:
+                        logger.debug("Appliance Classification incorrect")
+                        contending_users = poss_user_orig.dev_id.unique().tolist()
+
+                        appl_audio_list = poss_user_orig.md_audio.unique()
+                        appl_list = poss_user_orig.md_appl.unique()
+                        loc_list = poss_user_orig.md_loc.unique()
+
+                        if len(appl_audio_list) == 1:
+                            # If both are audio based or otherwise then use correct label
+                            appl = "Unknown"
+                            loc = "Unknown"
+                            sel_user = "Unknown"
+
+                        else:
+                            appl_dict = {}
+                            loc_dict = {}
+                            for devid in contending_users:
+                                appl_audio = md_df.ix[appliance[devid]]['audio_based']
+                                for idx in poss_user_orig.index:
+                                    md_aud = poss_user_orig.ix[idx]['md_audio']
+                                    md_appliance = poss_user_orig.ix[idx]['md_appl']
+                                    md_location = poss_user_orig.ix[idx]['md_loc']
+                                    if md_appliance == 'TV':
+                                        md_aud = False
+
+                                    if md_aud == appl_audio:
+                                        appl_dict[devid] = md_appliance
+                                        loc_dict[devid] = md_location
+
+                            if len(appl_dict) == 1:
+                                sel_user = [appl_dict.keys[0]]
+                                appl = appl_dict[sel_user]
+                                loc = loc_dict[sel_user]
+                            else:
+                                sel_user = "Unknown"
+                                loc = "Unknown"
+                                appl = "Unknown"
+
+                        user['dev_id'] = sel_user
+                        user['location'] = loc
+                        user['appliance'] = appl
+
+                    elif len(contending_users) == 1:
+                        # Indicates that there is single contender
+                        sel_user = contending_users[0]
+
+                        user['dev_id'] = [sel_user]
+                        user['location'] = location[sel_user]
+                        user['appliance'] = appliance[sel_user]
+
+                    else:
+                        # Users share the time slice having the same magnitude
+                        # users = poss_user.dev_id.unique().tolist()
+                        # if len(users) > 0:
                         logger.debug("Shared event! Selecting random user..")
                         # Selecting a random user
-                        user['dev_id'] = [users[0]]
-                        user['location'] = location[users[0]]
-                        user['appliance'] = appliance[users[0]]
-                    else:
-                        user['dev_id'] = "Unknown"
-                        user['location'] = "Unknown"
-                        user['appliance'] = "Unknown"
+                        sel_user = random.choice(contending_users)
+                        entry_idx = poss_user[poss_user.dev_id == sel_user].index
+                        user['dev_id'] = [sel_user]
+                        user['location'] = location[sel_user]
+                        user['appliance'] = poss_user.ix[entry_idx[0]]['md_appl']
 
     logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
 

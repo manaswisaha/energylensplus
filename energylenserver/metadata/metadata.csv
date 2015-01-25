@@ -1,3 +1,4 @@
 apt_no,appliance,location,power,presence_based,audio_based,how_many
-1201,Fridge,Dining Room,38,0,1,1
+1201,Fridge,Dining Room,40,0,0,1
+103,Fridge,Kitchen,164,0,0,1
 
