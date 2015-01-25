@@ -424,6 +424,16 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
         if n_users_at_home == 1:
             appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge, "dummmy")
 
+        if appliance == "Unknown":
+
+            # Select appliance with maximum count
+            appl_count_df = test_df.ix[:, ['pred_label']]
+            appl_count_df['count'] = [0] * len(appl_count_df)
+            appl_count_df = appl_count_df.groupby(['pred_label']).count()
+            appl_count_df.sort(['count'], ascending=False, inplace=True)
+            appliance = appl_count_df.index[0]
+            logger.debug("Selected max count appliance:: %s", appliance)
+
         '''
         sliced_df = test_df[
             (test_df.timestamp >= (start_time + 60)) & (test_df.timestamp) <= end_time]
