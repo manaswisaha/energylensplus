@@ -34,7 +34,7 @@ def match_events(apt_no, off_event):
     new_on_events = []
     for event in on_events:
         on_time = event.event_time
-        if (off_time - on_time) <= 24 * 60 * 60:
+        if (off_time - on_time) < 24 * 60 * 60:
             new_on_events.append(event)
 
     id_list = []

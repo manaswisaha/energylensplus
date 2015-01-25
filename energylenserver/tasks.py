@@ -437,10 +437,14 @@ def classify_edge(edge):
                 what = "Unknown"
 
             else:
+                now_time = int(time.time())
                 # Determine the on going events of inferred appliance in the inferred location
                 on_event_records = mod_func.get_on_events_by_location(apt_no, end_time, where)
                 on_event_records_df = read_frame(on_event_records, verbose=False)
-                on_event_records_df = on_event_records_df[on_event_records_df.appliance == what]
+                on_event_records_df['event_time'] = on_event_records_df.event_time.astype('int')
+                on_event_records_df = on_event_records_df[(on_event_records_df.appliance == what) &
+                                                          (now_time - on_event_records_df.event_time
+                                                           < 24 * 3600)]
                 n_on_event_records = len(on_event_records_df)
                 logger.debug("Number of ongoing events: %s", n_on_event_records)
 
