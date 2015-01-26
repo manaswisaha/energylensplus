@@ -34,11 +34,10 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
     tmp_md_df = md_df.ix[:, ['appliance']].drop_duplicates()
     md_df = md_df.ix[tmp_md_df.index]
     md_df.set_index(['appliance'], inplace=True)
+    md_df.ix['TV', 'audio_based'] = False
     # logger.debug("Appliances with their types: \n%s", md_df)
 
     audio_based = md_df[md_df.audio_based == 1].index.tolist()
-    if 'TV' in audio_based:
-        audio_based.remove('TV')
     presence_based = md_df[md_df.presence_based == 1].index.tolist()
     logger.debug("Audio based appliances:: %s", audio_based)
     logger.debug("Presence based appliances:: %s", presence_based)
@@ -111,7 +110,12 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             appl_list = poss_user.md_appl.unique()
 
             if len(appl_list) == 1:
-                appl = appl_list[0]
+                md_audio = poss_user.md_audio.unique()[0]
+                appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
+                if md_audio == appl_audio:
+                    appl = appl_list[0]
+                else:
+                    appl = "Unknown"
             else:
                 # If the inferred appliance is audio based then select the entry
                 # that is audio based and vice versa
@@ -135,7 +139,12 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         appl_list = poss_user.md_appl.unique()
 
                 if len(appl_list) == 1:
-                    appl = appl_list[0]
+                    md_audio = appl_audio_list[0]
+                    appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
+                    if md_audio == appl_audio:
+                        appl = appl_list[0]
+                    else:
+                        appl = "Unknown"
 
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
@@ -147,8 +156,6 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     for idx in poss_user.index:
                         md_aud = poss_user.ix[idx]['md_audio']
                         md_appliance = poss_user.ix[idx]['md_appl']
-                        if md_appliance == 'TV':
-                            md_aud = False
 
                         if md_aud == appl_audio:
                             appl = md_appliance
@@ -176,7 +183,11 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 appl_audio_list = poss_user.md_audio.unique()
 
                 if len(appl_list) == 1:
-                    appl = appl_list[0]
+                    appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
+                    if md_audio == appl_audio:
+                        appl = appl_list[0]
+                    else:
+                        appl = "Unknown"
 
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label

@@ -476,8 +476,8 @@ def classify_edge(edge):
 
                 # ONLY FOR TESTING
                 if apt_no == 1201:
-                    message = "In %s, %s uses %s consuming %s Watts" % (
-                        where, user.name, what, magnitude)
+                    message = "At %s, %s uses %s in %s consuming %s Watts" % (
+                        time.ctime(event_time), user.name, what, where, magnitude)
                     inform_user(353321065540000, message)
 
         # For "Unknown" label
