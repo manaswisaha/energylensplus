@@ -476,7 +476,7 @@ def classify_edge(edge):
 
                 # ONLY FOR TESTING
                 if apt_no == 1201:
-                    message = "At %s, %s uses %s in %s consuming %s Watts" % (
+                    message = "At %s, %s used %s in %s consuming %s Watts" % (
                         time.ctime(event_time), user.name, what, where, magnitude)
                     inform_user(353321065540000, message)
 
