@@ -48,6 +48,8 @@ def training_compute_power(apt_no, start_time, end_time):
     if apt_no != 1201:
         # 102A
         time_diff = -9
+    elif apt_no == 103:
+        time_diff = 3
     else:
         time_diff = 0
 
