@@ -45,13 +45,12 @@ def training_compute_power(apt_no, start_time, end_time):
     # If phone is ahead, subtract from the time sent
     # If phone is behind, add to the time sent
 
-    if apt_no != 1201:
-        # 102A
-        time_diff = -9
+    if apt_no == 1201:
+        time_diff = 0
     elif apt_no == 103:
         time_diff = 3
-    else:
-        time_diff = 0
+    elif apt_no == 102:
+        time_diff = -9
 
     # Convert time to seconds and add/subtract the difference time
     start_time = start_time + time_diff
