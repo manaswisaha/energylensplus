@@ -156,6 +156,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     for idx in poss_user.index:
                         md_aud = poss_user.ix[idx]['md_audio']
                         md_appliance = poss_user.ix[idx]['md_appl']
+                        if md_appliance == "TV":
+                            md_aud = False
 
                         if md_aud == appl_audio:
                             appl = md_appliance
