@@ -460,7 +460,6 @@ def upload_stats(request):
 
         if str(e) == "request data read error":
             logger.error("[UploadStatsException Occurred] Request Data Error::%s", e)
-            return HttpResponse(json.dumps(UPLOAD_SUCCESS), content_type="application/json")
         else:
             logger.exception("[UploadStatsException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
