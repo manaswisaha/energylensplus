@@ -403,7 +403,8 @@ def upload_data(request):
     except Exception, e:
 
         if str(e) == "request data read error":
-            upload_logger.error("[UploadDataException Occurred]::%s", e)
+            upload_logger.error("[UploadDataException Occurred] Request Data Error::%s", e)
+            return HttpResponse(json.dumps(UPLOAD_SUCCESS), content_type="application/json")
         else:
             upload_logger.exception("[UploadDataException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
@@ -458,7 +459,8 @@ def upload_stats(request):
     except Exception, e:
 
         if str(e) == "request data read error":
-            logger.error("[UploadStatsException Occurred]::%s", e)
+            logger.error("[UploadStatsException Occurred] Request Data Error::%s", e)
+            return HttpResponse(json.dumps(UPLOAD_SUCCESS), content_type="application/json")
         else:
             logger.exception("[UploadStatsException Occurred]::%s", e)
         return HttpResponse(json.dumps(UPLOAD_UNSUCCESSFUL), content_type="application/json")
