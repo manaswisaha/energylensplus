@@ -263,6 +263,7 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
     data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
 
     labeled_df = read_frame(data, verbose=False)
+    labeled_df.drop_duplicates(labeled_df.columns[1:], inplace=True)
     labeled_df.sort(['timestamp'], inplace=True)
 
     logger.debug("Location: %s User: %s Labeled len: %d", act_location, user, len(labeled_df))

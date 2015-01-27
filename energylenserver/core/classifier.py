@@ -45,6 +45,7 @@ def get_trained_model(sensor, apt_no, phone_model):
         user_list = mod_func.get_users_for_training(apt_no, phone_model)
         data = mod_func.get_sensor_training_data("wifi", apt_no, user_list)
         train_df = read_frame(data, verbose=False)
+        train_df.drop_duplicates(train_df.columns[1:], inplace=True)
 
         if len(train_df) == 0:
             return train_df
@@ -117,6 +118,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
                                timestamp__gte=s_time,
                                timestamp__lte=end_time)
         test_df = read_frame(data, verbose=False)
+        test_df.drop_duplicates(test_df.columns[1:], inplace=True)
 
         # Format data for classification
         test_df = pre_p_w.format_data_for_classification(test_df)
@@ -263,6 +265,7 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
         # Get WiFi test data
         data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
         test_df = read_frame(data, verbose=False)
+        test_df.drop_duplicates(test_df.columns[1:], inplace=True)
 
         # '''
         location_list = test_df.label.unique()
@@ -404,6 +407,7 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
         # Get test data
         data = mod_func.get_sensor_data(sensor, start_time, end_time, [dev_id])
         test_df = read_frame(data, verbose=False)
+        test_df.drop_duplicates(test_df.columns[1:], inplace=True)
 
         if len(test_df) == 0:
             logger.debug("No audio test data")
