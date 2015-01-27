@@ -385,7 +385,6 @@ def upload_data(request):
 
         if request.method == 'POST':
             upload_logger.info("[POST Request Received] - %s" % sys._getframe().f_code.co_name)
-            upload_logger.debug("Request body:: %s", request)
 
             payload = request.FILES
             file_container = payload['uploadedfile']
@@ -405,6 +404,7 @@ def upload_data(request):
 
         if str(e) == "request data read error":
             upload_logger.error("[UploadDataException Occurred] Request Data Error::%s", e)
+            upload_logger.debug("Request body:: %s", request)
             return HttpResponse(json.dumps(UPLOAD_SUCCESS), content_type="application/json")
         else:
             upload_logger.exception("[UploadDataException Occurred]::%s", e)
