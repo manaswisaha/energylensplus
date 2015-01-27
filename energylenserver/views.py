@@ -385,6 +385,7 @@ def upload_data(request):
 
         if request.method == 'POST':
             upload_logger.info("[POST Request Received] - %s" % sys._getframe().f_code.co_name)
+            upload_logger.debug("Request body:: %s", request)
 
             payload = request.FILES
             file_container = payload['uploadedfile']
