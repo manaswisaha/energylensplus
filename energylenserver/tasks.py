@@ -444,7 +444,7 @@ def classify_edge(edge):
                 on_event_records_df['event_time'] = on_event_records_df.event_time.astype('int')
                 on_event_records_df = on_event_records_df[(on_event_records_df.appliance == what) &
                                                           (now_time - on_event_records_df.event_time
-                                                           < 24 * 3600)]
+                                                           < 12 * 3600)]
                 n_on_event_records = len(on_event_records_df)
                 logger.debug("Number of ongoing events: %s", n_on_event_records)
 
