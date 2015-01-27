@@ -436,7 +436,7 @@ def get_inferred_activities(user):
     # '''
 
     end_time = time.time()
-    start_time = end_time - report_period
+    start_time = end_time - report_period * 2
 
     records = mod_func.retrieve_finished_activities(start_time, end_time)
 
