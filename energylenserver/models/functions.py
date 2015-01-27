@@ -459,7 +459,8 @@ def retrieve_finished_activities(start_time, end_time):
         # Retrieves all activities - for validation report generation and
         # usage/wastage reports
         records = ActivityLog.objects.filter(end_time__gte=start_time,
-                                             end_time__lte=end_time)
+                                             end_time__lte=end_time,
+                                             report_sent=False)
 
     except Exception, e:
         logger.error("[RetrieveFinishedActivitiesException]:: %s", e)

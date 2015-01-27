@@ -18,4 +18,4 @@ REASSIGN_INFERENCE_API = "inference/reassign/"
 ENERGY_COMPARISON_API = "energy/comparison/"
 
 # API Parameters
-report_period = 60 * 60  # 60 * 60  # 1 hour (in seconds)
+report_period = 2 * 60 * 60  # 60 * 60  # 1 hour (in seconds)

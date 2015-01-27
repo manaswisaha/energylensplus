@@ -882,6 +882,13 @@ def send_validation_report():
             data_to_send['options']['appliances'] = appliances
             data_to_send['options']['occupants'] = occupants
 
+            # Get a list of the activities and update the model
+            act_list = []
+            for item in activities:
+                act_list.append(item['id'])
+            act_records = ActivityLog.objects.filter(id__in=act_list)
+            act_records.update(report_sent=True)
+
             # Send the message
             send_notification(reg_id, data_to_send)
             logger.debug("Sent report to:: %s", user.name)

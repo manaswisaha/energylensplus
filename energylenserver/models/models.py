@@ -146,6 +146,7 @@ class ActivityLog(models.Model):
     meter = models.ForeignKey(MeterInfo)
     start_event = models.ForeignKey(EventLog, related_name=("ON event"))
     end_event = models.ForeignKey(EventLog, related_name=("OFF event"))
+    report_sent = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'ActivityLog'
