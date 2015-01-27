@@ -1,6 +1,6 @@
 # Names of nodes to start
 #   most will only start one node:
-CELERYD_NODES="energylens-worker1 energylens-worker2 energylens-worker3"
+CELERYD_NODES="energylens-worker1 energylens-worker2 energylens-worker3 energylens-worker4 energylens-worker5"
 #   but you can also start multiple and configure settings
 #   for each in CELERYD_OPTS (see `celery multi --help` for examples).
 # CELERYD_NODES="worker1 worker2 worker3"
