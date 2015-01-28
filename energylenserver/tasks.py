@@ -12,6 +12,7 @@ from __future__ import absolute_import
 from energylenserver.setup_django_envt import *
 
 import os
+import csv
 import time
 import math
 import random
@@ -24,6 +25,7 @@ import numpy as np
 import datetime as dt
 from multiprocessing.managers import BaseManager
 
+from django.conf import settings
 from celery import shared_task
 from django_pandas.io import read_frame
 
@@ -63,6 +65,9 @@ meter_logger = logging.getLogger('energylensplus_meterdata')
 
 
 # Global variables
+base_dir = settings.BASE_DIR
+dst_folder = os.path.join(base_dir, 'energylenserver/data/phone/')
+
 # Model mapping with filenames
 
 FILE_MODEL_MAP = {
@@ -100,6 +105,24 @@ except Exception, e:
 # '''
 
 """
+Helper functions
+"""
+
+
+def create_file(filename):
+
+    if not os.path.isfile(filename):
+        with open(filename, "w+") as myfile:
+            writer = csv.writer(myfile)
+            writer.writerow(["timestamp", "filename"])
+
+
+def write_to_file(filename, data):
+
+    with open(filename, "a+") as myfile:
+        writer = csv.writer(myfile)
+        writer.writerow(data)
+"""
 Data Handlers
 """
 
@@ -120,6 +143,36 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
     """
 
     try:
+        filepath_full = os.path.join(dst_folder, "data_tracker.csv")
+        now_time = time.time()
+
+        # Check existence of data file tracker and act accordingly
+        if os.path.isfile(filepath_full):
+            ftracker_df = pd.read_csv(filepath_full)
+
+            flag = False
+            # Don't go ahead if file already been dealt with
+            if filename in ftracker_df.filename.tolist():
+                flag = True
+
+            # Create new file if entries older than 5 days
+            start_timestamp = ftracker_df.ix[0]['timestamp']
+            if now_time - start_timestamp >= 5 * 24 * 3600:
+                # new_file = os.path.join(dst_folder,
+                #                         "prev_data_tracker_" + str(int(now_time)) + "_.csv")
+                # Delete the tracker file
+                try:
+                    os.unlink(filepath_full)
+                except Exception, e:
+                    logger.error("Deletion of tracker file failed ::%s", e)
+                # Create new file
+                create_file(filepath_full)
+            if flag:
+                return
+
+        else:
+            create_file(filepath_full)
+
         # Create a dataframe for preprocessing
         if sensor_name != 'rawaudio':
             try:
@@ -152,6 +205,10 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
 
         # --Store data in the model--
         model[0]().insert_records(user, filepath, model[1])
+
+        # Add an entry to the db -- to prevent data duplication
+        record = [now_time, filename]
+        write_to_file(filepath_full, record)
 
         logger.debug("FILE:: %s", filename)
         '''
