@@ -13,8 +13,8 @@ gcm_logfile="$ELENSHOME/logs/gcmserver.log"
 worker_logfile1="$ELENSHOME/logs/energylens-worker1.log"
 worker_logfile2="$ELENSHOME/logs/energylens-worker2.log"
 worker_logfile3="$ELENSHOME/logs/energylens-worker3.log"
-worker_logfile4="$ELENSHOME/logs/energylens-worker4.log"
-worker_logfile5="$ELENSHOME/logs/energylens-worker5.log"
+# worker_logfile4="$ELENSHOME/logs/energylens-worker4.log"
+# worker_logfile5="$ELENSHOME/logs/energylens-worker5.log"
 meterdata_logfile="$ELENSHOME/logs/meter_data.log"
 error_logfile="$ELENSHOME/logs/error.log"
 
@@ -60,15 +60,15 @@ elif [ "$arg" = 'stop' ]; then
 	# Managing log files
     cd "$ELENSHOME/logs/"
     no_of_log_files=$(ls -1 *.log | wc -l)
-    if [ $no_of_log_files = 11 ]; then
+    if [ $no_of_log_files = 9 ]; then
 	   cp $default_logfile "$ELENSHOME/logs/old_logs/django"_`date +%F_%T`".log"
 	   cp $main_logfile "$ELENSHOME/logs/old_logs/energylens"_`date +%F_%T`".log"
 	   cp $gcm_logfile "$ELENSHOME/logs/old_logs/gcmserver"_`date +%F_%T`".log"
 	   cp $worker_logfile1 "$ELENSHOME/logs/old_logs/energylens-worker1"_`date +%F_%T`".log"
 	   cp $worker_logfile2 "$ELENSHOME/logs/old_logs/energylens-worker2"_`date +%F_%T`".log"
 	   cp $worker_logfile3 "$ELENSHOME/logs/old_logs/energylens-worker3"_`date +%F_%T`".log"
-	   cp $worker_logfile4 "$ELENSHOME/logs/old_logs/energylens-worker4"_`date +%F_%T`".log"
-	   cp $worker_logfile5 "$ELENSHOME/logs/old_logs/energylens-worker5"_`date +%F_%T`".log"
+	   # cp $worker_logfile4 "$ELENSHOME/logs/old_logs/energylens-worker4"_`date +%F_%T`".log"
+	   # cp $worker_logfile5 "$ELENSHOME/logs/old_logs/energylens-worker5"_`date +%F_%T`".log"
 	   cp $meterdata_logfile "$ELENSHOME/logs/old_logs/meter_data"_`date +%F_%T`".log"
 	   cp $error_logfile "$ELENSHOME/logs/old_logs/error"_`date +%F_%T`".log"
 	   
@@ -78,8 +78,8 @@ elif [ "$arg" = 'stop' ]; then
 	   cat /dev/null > $worker_logfile1
 	   cat /dev/null > $worker_logfile2
 	   cat /dev/null > $worker_logfile3
-	   cat /dev/null > $worker_logfile4
-	   cat /dev/null > $worker_logfile5
+	   # cat /dev/null > $worker_logfile4
+	   # cat /dev/null > $worker_logfile5
 	   cat /dev/null > $meterdata_logfile
 	   cat /dev/null > $error_logfile
 	fi
@@ -100,8 +100,10 @@ elif [ "$arg" = 'restart' ]; then
 	sleep 5
 
 	# Restart Celery
-	sudo /etc/init.d/celerybeat restart
-	sudo /etc/init.d/celeryd restart
+	sudo /etc/init.d/celerybeat stop
+	sudo /etc/init.d/celeryd stop
+	sudo /etc/init.d/celeryd start
+	sudo /etc/init.d/celerybeat start
 
 	# Start Meter data collection service
 	python manage.py getmeterdata &
