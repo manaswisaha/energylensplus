@@ -150,25 +150,27 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
         if os.path.isfile(filepath_full):
             ftracker_df = pd.read_csv(filepath_full)
 
-            flag = False
-            # Don't go ahead if file already been dealt with
-            if filename in ftracker_df.filename.tolist():
-                flag = True
+            if len(ftracker_df) > 0:
 
-            # Create new file if entries older than 5 days
-            start_timestamp = ftracker_df.ix[0]['timestamp']
-            if now_time - start_timestamp >= 5 * 24 * 3600:
-                # new_file = os.path.join(dst_folder,
-                #                         "prev_data_tracker_" + str(int(now_time)) + "_.csv")
-                # Delete the tracker file
-                try:
-                    os.unlink(filepath_full)
-                except Exception, e:
-                    logger.error("Deletion of tracker file failed ::%s", e)
-                # Create new file
-                create_file(filepath_full)
-            if flag:
-                return
+                flag = False
+                # Don't go ahead if file already been dealt with
+                if filename in ftracker_df.filename.tolist():
+                    flag = True
+
+                # Create new file if entries older than 5 days
+                start_timestamp = ftracker_df.ix[0]['timestamp']
+                if now_time - start_timestamp >= 5 * 24 * 3600:
+                    # new_file = os.path.join(dst_folder,
+                    #                         "prev_data_tracker_" + str(int(now_time)) + "_.csv")
+                    # Delete the tracker file
+                    try:
+                        os.unlink(filepath_full)
+                    except Exception, e:
+                        logger.error("Deletion of tracker file failed ::%s", e)
+                    # Create new file
+                    create_file(filepath_full)
+                if flag:
+                    return
 
         else:
             create_file(filepath_full)
