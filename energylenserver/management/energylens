@@ -49,6 +49,7 @@ elif [ "$arg" = 'stop' ]; then
 
 	# Stop Django Commands
 	kill -9 `ps aux | grep "python manage.py" | grep -v grep | awk '{print $2}'`
+	sudo tcpkill -9 port 50000
 
 	# Stop Django-Apache Server
 	sudo service apache2 stop
@@ -91,6 +92,7 @@ elif [ "$arg" = 'restart' ]; then
 	
 	# Stop Django commands
 	kill -9 `ps aux | grep "python manage.py" | grep -v grep | awk '{print $2}'`
+	sudo tcpkill -9 port 50000
 
 	# Django Server
 	touch "$ELENSHOME/energylensplus/wsgi.py"
