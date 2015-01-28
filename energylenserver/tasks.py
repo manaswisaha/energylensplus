@@ -534,10 +534,14 @@ def classify_edge(edge):
                 event.save()
 
                 # ONLY FOR TESTING
-                if apt_no == 1201:
-                    message = "At %s, %s used %s in %s consuming %s Watts" % (
-                        time.ctime(event_time), user.name, what, where, magnitude)
-                    inform_user(353321065540000, message)
+                try:
+                    if apt_no == 1201:
+                        message = "At %s, %s used %s in %s consuming %s Watts" % (
+                            time.ctime(event_time), user.name, what, where, magnitude)
+                        inform_user(353321065540000, message)
+                except Exception, e:
+                    logger.debug("Client problem:: %s", e)
+                    continue
 
         # For "Unknown" label
         elif isinstance(who, str):
