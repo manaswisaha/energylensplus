@@ -156,6 +156,8 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
                 # Don't go ahead if file already been dealt with
                 if filename in ftracker_df.filename.tolist():
                     flag = True
+                    logger.debug("File %s already inserted in the database!"
+                                 "flag:: %s", filename, flag)
 
                 # Create new file if entries older than 5 days
                 start_timestamp = ftracker_df.ix[0]['timestamp']
