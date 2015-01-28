@@ -93,9 +93,9 @@ class WiFiData(SensorData):
                                               "(timestamp, macid, ssid, rssi, label) "
                                               "SET dev_id_id = " + str(user.dev_id), [filename])
             # logger.debug("Number of records inserted: %d", records_inserted)
+            os.remove(filename)
         except Exception, e:
             logger.error("[FileSaveException] WiFiData::%s", str(e))
-        os.remove(filename)
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -137,9 +137,9 @@ class RawAudioData(SensorData):
                                               "SET timestamp = @timestamp/1000.0, "
                                               "dev_id_id = " + str(user.dev_id), [filename])
             # logger.debug("Number of records inserted: %d", records_inserted)
+            os.remove(filename)
         except Exception, e:
             logger.error("[FileSaveException] RawAudioData::%s", str(e))
-        os.remove(filename)
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -192,9 +192,10 @@ class MFCCFeatureSet(SensorData):
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
             # logger.debug("Number of records inserted: %d", records_inserted)
+            os.remove(filename)
+
         except Exception, e:
             logger.error("[FileSaveException] MFCCFeatureSet::%s", str(e))
-        os.remove(filename)
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -235,9 +236,9 @@ class LightData(SensorData):
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
             # logger.debug("Number of records inserted: %d", records_inserted)
+            os.remove(filename)
         except Exception, e:
             logger.error("[FileSaveException] LightData::%s", str(e))
-        os.remove(filename)
 
     class Meta(SensorData.Meta):
         abstract = True
@@ -281,9 +282,9 @@ class MagData(SensorData):
                                               "SET timestamp = @timestamp/1000.0, "
                                               " dev_id_id = " + str(user.dev_id), [filename])
             # logger.debug("Number of records inserted: %d", records_inserted)
+            os.remove(filename)
         except Exception, e:
             logger.error("[FileSaveException] MagData::%s", str(e))
-        os.remove(filename)
 
     class Meta(SensorData.Meta):
         abstract = True
