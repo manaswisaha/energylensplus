@@ -170,6 +170,7 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
                     # Create new file
                     create_file(filepath_full)
                 if flag:
+                    os.remove(filepath)
                     return
 
         else:
