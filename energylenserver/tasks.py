@@ -239,7 +239,10 @@ def phoneDataHandler(filename, sensor_name, filepath, training_status, user):
 
         upload_logger.debug("Successful Upload! File: %s", filename)
     except Exception, e:
-        logger.exception("[PhoneDataHandlerException]:: %s", e)
+        if "No such file or directory" in str(e):
+            logger.error("[PhoneDataHandlerException]:: %s", e)
+        else:
+            logger.exception("[PhoneDataHandlerException]:: %s", e)
 
 
 @shared_task
