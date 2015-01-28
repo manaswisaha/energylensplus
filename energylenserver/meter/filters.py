@@ -31,9 +31,12 @@ def filter_select_maxtime_edge(df):
 
     # Select the edge with the maximum timestamp lying within a minute
     idx_list = []
+    rm_idx_list = []
     for i, idx in enumerate(tmp_df.index):
 
         if idx == tmp_df.index[-1]:
+            if idx in rm_idx_list:
+                break
             if idx not in idx_list:
                 idx_list.append(idx)
             break
@@ -58,6 +61,7 @@ def filter_select_maxtime_edge(df):
             elif curr_diff < 0.5 * thresmin and t_mag <= 60:
                 if idx not in idx_list:
                     idx_list.append(idx)
+                    rm_idx_list.append(next_idx)
             else:
                 if t_mag <= 60:
                     threshold = 0.2
