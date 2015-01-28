@@ -318,7 +318,8 @@ def import_from_file(filename, csvfile):
 
     # Save file in a temporary location
     new_filename = ('data_file_' + sensor_name + '_' + str(
-        user.dev_id) + '_' + str(int(time.time())) + '.csv')
+        user.dev_id) + '_' + filename_l[-2] + "_" + filename_l[-1] +
+        "_" + str(int(time.time())) + '.csv')
     path = default_storage.save(new_filename, ContentFile(csvfile.read()))
     filepath = os.path.join(settings.MEDIA_ROOT, path)
 
