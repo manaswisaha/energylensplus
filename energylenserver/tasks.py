@@ -93,7 +93,7 @@ class ClientManager(BaseManager):
 # Establishing connection with the running GCM Server
 try:
     ClientManager.register('get_client_obj')
-    manager = ClientManager(address=('localhost', 150000), authkey='abracadabra')
+    manager = ClientManager(address=('localhost', 65000), authkey='abracadabra')
     manager.connect()
     client = manager.get_client_obj()
     if client is None or client == "":

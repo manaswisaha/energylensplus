@@ -35,7 +35,7 @@ class Command(BaseCommand):
 
             ClientManager.register('get_client', callable=lambda: client)
             ClientManager.register('get_client_obj', callable=lambda: msg_client_obj)
-            manager = ClientManager(address=('', 150000), authkey='abracadabra')
+            manager = ClientManager(address=('', 65000), authkey='abracadabra')
             server = manager.get_server()
             logger.debug("Got server")
             t = threading.Thread(target=lambda: server.serve_forever())
