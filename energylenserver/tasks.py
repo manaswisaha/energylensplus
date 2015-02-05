@@ -479,6 +479,7 @@ def classify_edge(edge):
 
             # Determine if presence based
             md_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
+            md_df = md_df[md_df.appliance == what]
             md_df.reset_index(inplace=True, drop=True)
 
             if not md_df.ix[0]['presence_based']:
