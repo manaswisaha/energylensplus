@@ -459,6 +459,7 @@ def classify_edge(edge):
             user_record = users.first()
             user = user_record.dev_id
             who = [user_record]
+            where = location_dict[user]
 
         logger.debug("[%s] - [%d] :: Determined labels: %s %s %s" %
                      (time.ctime(event_time), magnitude, who, where, what))
