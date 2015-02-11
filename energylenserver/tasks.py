@@ -409,7 +409,7 @@ def classify_edge(edge):
             elif location == no_test_data:
 
                 now_time = int(time.time())
-                if (now_time - event_time) < 15 * 60:
+                if (now_time - event_time) < 30 * 60:
                     edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                     return return_error
                 else:
@@ -425,7 +425,7 @@ def classify_edge(edge):
             elif appliance == no_test_data:
 
                 now_time = int(time.time())
-                if (now_time - event_time) < 15 * 60:
+                if (now_time - event_time) < 30 * 60:
                     edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                     return return_error
                 else:
@@ -442,7 +442,7 @@ def classify_edge(edge):
             return return_error
 
         # Step 3: Determine user based on location, appliance and metadata
-        if n_users_at_home > 1:
+        if n_users_at_home >= 1:
             user = attrib.identify_user(
                 apt_no, magnitude, location_dict, appliance_dict, user_list, edge)
             who = user['dev_id']
@@ -455,12 +455,14 @@ def classify_edge(edge):
                     user_records.append(mod_func.get_user(u))
                 who = user_records
 
+        '''
         elif n_users_at_home == 1:
             user_record = users.first()
             user = user_record.dev_id
             who = [user_record]
             where = location_dict[user]
             what = appliance_dict[user]
+        '''
 
         logger.debug("[%s] - [%d] :: Determined labels: %s %s %s" %
                      (time.ctime(event_time), magnitude, who, where, what))
@@ -484,9 +486,11 @@ def classify_edge(edge):
 
             if not md_df.ix[0]['presence_based']:
                 metadata_df = metadata_df[metadata_df.appliance == what]
+
             else:
                 metadata_df = metadata_df[(metadata_df.location == where) &
                                           (metadata_df.appliance == what)]
+
             metadata_df.reset_index(inplace=True, drop=True)
 
             if len(metadata_df) == 0:
