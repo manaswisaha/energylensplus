@@ -468,7 +468,7 @@ def classify_edge(edge):
         # in the inferred location with the specified magnitude does not exceed
         # the number of appliances
 
-        if where != "Unknown":
+        if where != "Unknown" and what != "Unknown":
 
             # Get count of inferred appliance in the inferred location
             data = mod_func.retrieve_metadata(apt_no)
