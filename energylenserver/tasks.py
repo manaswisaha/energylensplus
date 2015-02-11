@@ -455,14 +455,10 @@ def classify_edge(edge):
                     user_records.append(mod_func.get_user(u))
                 who = user_records
 
-        '''
-        elif n_users_at_home == 1:
+        if n_users_at_home == 1:
             user_record = users.first()
             user = user_record.dev_id
             who = [user_record]
-            where = location_dict[user]
-            what = appliance_dict[user]
-        '''
 
         logger.debug("[%s] - [%d] :: Determined labels: %s %s %s" %
                      (time.ctime(event_time), magnitude, who, where, what))
