@@ -397,7 +397,11 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
 
         return appliance
     except Exception, e:
-        logger.exception("[ClassifyApplianceException]::%s", e)
+        if str(e) == "(1205, 'Lock wait timeout exceeded; try restarting transaction')":
+            logger.error("[ClassifyApplianceException]::%s", e)
+            return appliance
+        else:
+            logger.exception("[ClassifyApplianceException]::%s", e)
         return False
 
 
