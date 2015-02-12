@@ -24,6 +24,9 @@ def match_events(apt_no, off_event):
     off_location = off_event.location
     off_appliance = off_event.appliance
 
+    if off_appliance == "Unknown":
+        return False
+
     # Extract rising edges occurring before the fall edge
     # with similar power
     on_events = mod_func.get_on_events(apt_no, off_time)
@@ -34,7 +37,7 @@ def match_events(apt_no, off_event):
     new_on_events = []
     for event in on_events:
         on_time = event.event_time
-        if (off_time - on_time) < 24 * 60 * 60:
+        if (off_time - on_time) < 12 * 60 * 60:
             new_on_events.append(event)
 
     id_list = []
