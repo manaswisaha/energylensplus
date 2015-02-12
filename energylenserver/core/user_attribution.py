@@ -152,8 +152,11 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
-                    appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
-                                         'appliance', edge, location[sel_user])
+                    logger.debug("Selecting random entry from multiple appliances")
+                    sel_idx = random.choice(poss_user.index)
+                    appl = poss_user.ix[sel_idx]['md_appl']
+                    # appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
+                    #                      'appliance', edge, location[sel_user])
                 else:
 
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
@@ -200,8 +203,11 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
-                    appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
-                                         'appliance', edge, location[sel_user])
+                    logger.debug("Selecting random entry")
+                    sel_idx = random.choice(poss_user.index)
+                    appl = poss_user.ix[sel_idx]['md_appl']
+                    # appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
+                    #                      'appliance', edge, location[sel_user])
                 else:
 
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
