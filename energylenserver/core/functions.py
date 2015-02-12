@@ -305,7 +305,7 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
                 test_df = pre_p_w.format_data_for_classification(sliced_df)
 
                 # Classify
-                pred_label = lc.determine_location(train_df, test_df)
+                pred_label = pd.Series(lc.determine_location(train_df, test_df))
 
             if len(pred_label) > 0:
                 location = get_max_class(pred_label)
