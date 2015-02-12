@@ -24,9 +24,6 @@ def match_events(apt_no, off_event):
     off_location = off_event.location
     off_appliance = off_event.appliance
 
-    if off_appliance == "Unknown":
-        return False
-
     # Extract rising edges occurring before the fall edge
     # with similar power
     on_events = mod_func.get_on_events(apt_no, off_time)
@@ -95,15 +92,20 @@ def match_events(apt_no, off_event):
     # if appliance is a presence based appliance
 
     metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
-    metadata_df = metadata_df[metadata_df.appliance == off_appliance]
-    metadata_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
-    metadata_df.reset_index(inplace=True, drop=True)
 
-    if not metadata_df.ix[0]['presence_based']:
-        filtered_df = filtered_df[filtered_df.appliance == off_appliance]
+    if off_appliance != "Unknown":
+        metadata_df = metadata_df[metadata_df.appliance == off_appliance]
+        metadata_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
+        metadata_df.reset_index(inplace=True, drop=True)
+
+        if not metadata_df.ix[0]['presence_based']:
+            filtered_df = filtered_df[filtered_df.appliance == off_appliance]
+        else:
+            filtered_df = filtered_df[(filtered_df.location == off_location) &
+                                      (filtered_df.appliance == off_appliance)]
     else:
-        filtered_df = filtered_df[(filtered_df.location == off_location) &
-                                  (filtered_df.appliance == off_appliance)]
+        filtered_df = filtered_df[filtered_df.location == off_location]
+
     filtered_df.reset_index(drop=True, inplace=True)
 
     if len(filtered_df) == 0:
