@@ -262,8 +262,8 @@ def meterDataHandler(df, file_path):
 
     apt_no = meter.apt_no
     meter_logger.debug("Detecting Edges for Apt:: %s UUID:: %s", apt_no, uuid)
-    apt_users = retrieve_users(apt_no)
-    if len(apt_users) == 0:
+    apt_users = mod_func.retrieve_users(apt_no)
+    if apt_users.count() == 0:
         meter_logger.debug("No active users for this apartment")
         return
 
