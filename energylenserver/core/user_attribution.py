@@ -135,7 +135,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         user['appliance'] = appl
 
                         logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
-                        return
+                        return user
                     else:
                         appl_audio_list = poss_user.md_audio.unique()
                         appl_list = poss_user.md_appl.unique()
