@@ -146,7 +146,10 @@ def localize_new_data(apt_no, start_time, end_time, user):
         return location
 
     except Exception, e:
-        logger.exception("[ClassifyNewLocationDataException]:: %s", e)
+        if str(e) == "(1205, 'Lock wait timeout exceeded; try restarting transaction')":
+            logger.error("[ClassifyNewLocationDataException]:: %s", e)
+        else:
+            logger.exception("[ClassifyNewLocationDataException]:: %s", e)
         return "Unknown"
 
 
