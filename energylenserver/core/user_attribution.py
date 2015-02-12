@@ -175,6 +175,13 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         if md_aud == appl_audio:
                             appl = md_appliance
                             break
+                        else:
+                            appl = "Unknown"
+                    if appl == "Unknown":
+                        poss_user = poss_user[poss_user.md_audio == appl_audio]
+                        if len(poss_user) > 0:
+                            idx = poss_user.index[0]
+                            appl = poss_user.ix[idx]['md_appl']
 
             user['dev_id'] = [sel_user]
             user['location'] = location[sel_user]
@@ -231,6 +238,13 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         if md_aud == appl_audio:
                             appl = md_appliance
                             break
+                        else:
+                            appl = "Unknown"
+                    if appl == "Unknown":
+                        poss_user = poss_user[poss_user.md_audio == appl_audio]
+                        if len(poss_user) > 0:
+                            idx = poss_user.index[0]
+                            appl = poss_user.ix[idx]['md_appl']
 
                 user['dev_id'] = [sel_user]
                 user['location'] = location[sel_user]
