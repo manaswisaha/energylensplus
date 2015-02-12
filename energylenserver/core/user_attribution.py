@@ -149,6 +149,12 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         appl = appl_list[0]
                     else:
                         appl = "Unknown"
+                elif len(appl_list) > 1 and len(appl_audio_list) == 1:
+                    poss_user = poss_user[
+                        poss_user.md_power_diff == poss_user.md_power_diff.min()]
+                    logger.debug("Selecting random entry from different appliances")
+                    sel_idx = random.choice(poss_user.index)
+                    appl = poss_user.ix[sel_idx]['md_appl']
 
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
@@ -200,6 +206,13 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         appl = appl_list[0]
                     else:
                         appl = "Unknown"
+
+                elif len(appl_list) > 1 and len(appl_audio_list) == 1:
+                    poss_user = poss_user[
+                        poss_user.md_power_diff == poss_user.md_power_diff.min()]
+                    logger.debug("Selecting random entry from different appliances with mindiff")
+                    sel_idx = random.choice(poss_user.index)
+                    appl = poss_user.ix[sel_idx]['md_appl']
 
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
