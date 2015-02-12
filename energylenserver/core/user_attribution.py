@@ -70,7 +70,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 presence_status = True
                 break
 
-        if magnitude < 0 and not presence_status:
+        if not presence_status:
             # May indicate a non-presence based appliance e.g. Microwave
             # -- Use metadata i.e. meter only approach
             where, what = classify_activity(metadata_df, m_magnitude)

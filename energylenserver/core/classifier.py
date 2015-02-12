@@ -464,7 +464,8 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
 
 def classify_activity(metadata_df, magnitude):
     """
-    Uses metadata matching to determine appliance and location
+    Uses metadata matching to determine appliance and location for only
+    non-presence based appliance
     """
     logger.debug("[Classifying activity] - [%d]", magnitude)
     logger.debug("-" * stars)
@@ -472,6 +473,8 @@ def classify_activity(metadata_df, magnitude):
     # Check for existence
     md_list = []
     metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+
+    metadata_df = metadata_df[metadata_df.md_presence == False]
     for md_i in metadata_df.index:
         md_power = metadata_df.ix[md_i]['power']
         md_appl = metadata_df.ix[md_i]['appliance']
