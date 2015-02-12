@@ -114,6 +114,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
                 if md_audio == appl_audio:
                     appl = appl_list[0]
+                elif appliance[sel_user] == "TV":
+                    appl = appl_list[0]
                 else:
                     appl = "Unknown"
             else:
@@ -142,6 +144,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     md_audio = appl_audio_list[0]
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
                     if md_audio == appl_audio:
+                        appl = appl_list[0]
+                    elif appliance[sel_user] == "TV":
                         appl = appl_list[0]
                     else:
                         appl = "Unknown"
@@ -188,6 +192,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     md_audio = appl_audio_list[0]
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
                     if md_audio == appl_audio:
+                        appl = appl_list[0]
+                    elif appliance[sel_user] == "TV":
                         appl = appl_list[0]
                     else:
                         appl = "Unknown"
