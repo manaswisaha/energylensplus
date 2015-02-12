@@ -297,7 +297,8 @@ def get_presence_matrix(apt_no, user, start_time, end_time, act_location):
             #              time.ctime(e_time), len(sliced_df))
 
             # Decide whether to localize
-            if "Unknown" in pred_label:
+            if "Unknown" in pred_label.tolist() or "none" in pred_label.tolist():
+                logger.debug("Localizing..")
 
                 # Format data for classification
                 train_df = get_trained_model("wifi", apt_no, pmodel)
