@@ -474,7 +474,7 @@ def classify_activity(metadata_df, magnitude):
     md_list = []
     metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
 
-    metadata_df = metadata_df[metadata_df.md_presence == False]
+    metadata_df = metadata_df[metadata_df.presence_based == 0]
     for md_i in metadata_df.index:
         md_power = metadata_df.ix[md_i]['power']
         md_appl = metadata_df.ix[md_i]['appliance']
