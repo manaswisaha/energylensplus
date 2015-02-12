@@ -335,7 +335,11 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
         return location
 
     except Exception, e:
-        logger.exception("[ClassifyLocationException]:: %s", e)
+        if str(e) == "(1205, 'Lock wait timeout exceeded; try restarting transaction')":
+            logger.exception("[ClassifyLocationException]:: %s", e)
+            return location
+        else:
+            logger.exception("[ClassifyLocationException]:: %s", e)
         return False
 
     return location
