@@ -257,11 +257,15 @@ def meterDataHandler(df, file_path):
     try:
         meter = MeterInfo.objects.get(meter_uuid=uuid)
     except MeterInfo.DoesNotExist, e:
-        meter_logger.debug("No registered users for this apt meter")
+        meter_logger.debug("No registered users for this apartment")
         return
 
     apt_no = meter.apt_no
     meter_logger.debug("Detecting Edges for Apt:: %s UUID:: %s", apt_no, uuid)
+    apt_users = retrieve_users(apt_no)
+    if len(apt_users) == 0:
+        meter_logger.debug("No active users for this apartment")
+        return
 
     try:
         # -- Detect Edge --
