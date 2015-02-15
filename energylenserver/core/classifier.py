@@ -150,7 +150,7 @@ def localize_new_data(apt_no, start_time, end_time, user):
             logger.error("[ClassifyNewLocationDataException]:: %s", e)
         else:
             logger.exception("[ClassifyNewLocationDataException]:: %s", e)
-        return "Unknown"
+        return location
 
 
 def correct_label(label, pred_label, label_type, edge, act_location):
@@ -337,12 +337,9 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
     except Exception, e:
         if str(e) == "(1205, 'Lock wait timeout exceeded; try restarting transaction')":
             logger.error("[ClassifyLocationException]:: %s", e)
-            return location
         else:
             logger.exception("[ClassifyLocationException]:: %s", e)
-        return False
-
-    return location
+        return location
 
 
 def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home):
@@ -399,10 +396,9 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
     except Exception, e:
         if str(e) == "(1205, 'Lock wait timeout exceeded; try restarting transaction')":
             logger.error("[ClassifyApplianceException]::%s", e)
-            return appliance
         else:
             logger.exception("[ClassifyApplianceException]::%s", e)
-        return False
+        return appliance
 
 
 def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_users_at_home):
@@ -465,9 +461,7 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
 
     except Exception, e:
         logger.exception("[ClassifyApplianceAudioException]::%s", e)
-        return False
-
-    return appliance
+        return appliance
 
 
 def classify_activity(metadata_df, magnitude):
