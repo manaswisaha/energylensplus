@@ -22,6 +22,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
     user = {}
     m_magnitude = math.fabs(magnitude)
+    edge_time = edge.timestamp
 
     # Get Metadata
     data = mod_func.retrieve_metadata(apt_no)
@@ -110,6 +111,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             appl_list = poss_user.md_appl.unique()
 
             if len(appl_list) == 1:
+                appl = appl_list[0]
+                '''
                 md_audio = poss_user.md_audio.unique()[0]
                 appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
                 if md_audio == appl_audio:
@@ -118,7 +121,47 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     appl = appl_list[0]
                 else:
                     appl = "Unknown"
+                '''
             else:
+                '''
+                # Determine the ongoing events of inferred appliance in the inferred location
+                on_event_records = mod_func.get_on_events_by_location(
+                    apt_no, edge_time, location[sel_user])
+                on_event_records_df = read_frame(on_event_records, verbose=False)
+                on_event_records_df['event_time'] = on_event_records_df.event_time.astype('int')
+
+                idx_list = []
+                now_time = int(time.time())
+                for idx in poss_user.index:
+                    md_appliance = poss_user.ix[idx]['md_appl']
+                    m_df = metadata_df[metadata_df.appliance == md_appliance]
+
+                    # Check for ongoing events
+                    on_event_records_df = on_event_records_df[
+                        (on_event_records_df.appliance == md_appliance) &
+                        (now_time - on_event_records_df.event_time
+                         < 12 * 3600)]
+                    n_on_event_records = len(on_event_records_df)
+                    logger.debug("Number of ongoing events: %s", n_on_event_records)
+
+                    if n_on_event_records > 0 and edge.type == "rising":
+
+                        no_of_appl = m_df.ix[0]['how_many']
+                        logger.debug("Count for %s in %s: %d", md_appliance,
+                                     location[sel_user], no_of_appl)
+
+                        if n_on_event_records == no_of_appl:
+                            idx_list.append(idx)
+
+                sel_idx_list = poss_user.index.tolist() - idx_list
+                poss_user = poss_user.ix[sel_idx_list]
+                poss_user.reset_index(inplace=True, drop=True)
+
+                if len(poss_user) == 1:
+                    logger.debug("Selecting entry that hasn't started")
+                    appl = poss_user.ix[0]['md_appl']
+                '''
+
                 # If the inferred appliance is audio based then select the entry
                 # that is audio based and vice versa
                 appl_audio_list = poss_user.md_audio.unique()
@@ -141,6 +184,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         appl_list = poss_user.md_appl.unique()
 
                 if len(appl_list) == 1:
+                    appl = appl_list[0]
+                    '''
                     md_audio = appl_audio_list[0]
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
                     if md_audio == appl_audio:
@@ -149,7 +194,10 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         appl = appl_list[0]
                     else:
                         appl = "Unknown"
+                    '''
                 elif len(appl_list) > 1 and len(appl_audio_list) == 1:
+
+                    # elif len(poss_user) > 1:
                     poss_user = poss_user[
                         poss_user.md_power_diff == poss_user.md_power_diff.min()]
                     logger.debug("Selecting random entry from different appliances")
@@ -205,6 +253,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 appl_audio_list = poss_user.md_audio.unique()
 
                 if len(appl_list) == 1:
+                    appl = appl_list[0]
+                    '''
                     md_audio = appl_audio_list[0]
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
                     if md_audio == appl_audio:
@@ -213,6 +263,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         appl = appl_list[0]
                     else:
                         appl = "Unknown"
+                    '''
 
                 elif len(appl_list) > 1 and len(appl_audio_list) == 1:
                     poss_user = poss_user[
