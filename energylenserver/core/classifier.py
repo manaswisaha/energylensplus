@@ -492,6 +492,8 @@ def classify_activity(metadata_df, magnitude):
                                          'md_power_diff': md_power_diff},
                                         index=[magnitude]))
 
+    if len(md_list) == 0:
+        return "Unknown", "Unknown"
     # Determine location and appliance in use
     fil_md_df = pd.concat(md_list)
     fil_md_df.reset_index(drop=True, inplace=True)
