@@ -65,6 +65,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
         logger.debug("Location classification is incorrect or Unknown")
 
         # Check for non-presence based appliance using the inferred appliance
+        '''
         presence_status = False
         for appl in appliance.values():
             if appl in presence_based:
@@ -72,19 +73,20 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 break
 
         if not presence_status:
-            # May indicate a non-presence based appliance e.g. Microwave
-            # -- Use metadata i.e. meter only approach
-            where, what = classify_activity(metadata_df, m_magnitude)
+        '''
+        # May indicate a non-presence based appliance e.g. Microwave
+        # -- Use metadata i.e. meter only approach
+        where, what = classify_activity(metadata_df, m_magnitude)
 
-            if len(user_list) == 1:
-                user['dev_id'] = [user_list[0]]
-            else:
-                user['dev_id'] = "Unknown"
+        if len(user_list) == 1:
+            user['dev_id'] = [user_list[0]]
+        else:
+            user['dev_id'] = "Unknown"
 
-            user['location'] = where
-            user['appliance'] = what
-            logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
-            return user
+        user['location'] = where
+        user['appliance'] = what
+        logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
+        return user
 
         user['dev_id'] = "Unknown"
         user['location'] = "Unknown"
