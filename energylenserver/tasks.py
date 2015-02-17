@@ -704,10 +704,14 @@ def apportion_energy(result_labels):
         metadata_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
         metadata_df.reset_index(drop=True, inplace=True)
 
-        md_entry = metadata_df.ix[0]
+        if len(metadata_df) == 0 and act_appl == "Unknown":
+            pres_based = False
+        else:
+            md_entry = metadata_df.ix[0]
+            pres_based = md_entry.presence_based
 
         # For non-presence based appliances e.g Geyser, Microwave, Music System
-        if not md_entry.presence_based:
+        if not pres_based:
             power = activity.power
             usage = apprt.get_energy_consumption(start_time, end_time, power)
             stayed_for = end_time - start_time
