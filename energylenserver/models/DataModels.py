@@ -62,14 +62,14 @@ class AcclData(SensorData):
 class AcclTrainData(AcclData):
 
     class Meta(AcclData.Meta):
-        db_table = 'AcclTrainData'
+        db_table = 'accltraindata'
         app_label = 'energylenserver'
 
 
 class AcclTestData(AcclData):
 
     class Meta(AcclData.Meta):
-        db_table = 'AcclTestData'
+        db_table = 'accltestdata'
         app_label = 'energylenserver'
 # '''
 # WiFi
@@ -105,14 +105,14 @@ class WiFiData(SensorData):
 class WiFiTrainData(WiFiData):
 
     class Meta(WiFiData.Meta):
-        db_table = 'WiFiTrainData'
+        db_table = 'wifitraindata'
         app_label = 'energylenserver'
 
 
 class WiFiTestData(WiFiData):
 
     class Meta(WiFiData.Meta):
-        db_table = 'WiFiTestData'
+        db_table = 'wifitestdata'
         app_label = 'energylenserver'
 
 # Audio
@@ -149,14 +149,14 @@ class RawAudioData(SensorData):
 class RawAudioTrainData(RawAudioData):
 
     class Meta(RawAudioData.Meta):
-        db_table = 'RawAudioTrainData'
+        db_table = 'rawaudiotraindata'
         app_label = 'energylenserver'
 
 
 class RawAudioTestData(RawAudioData):
 
     class Meta(RawAudioData.Meta):
-        db_table = 'RawAudioTestData'
+        db_table = 'rawaudiotestdata'
         app_label = 'energylenserver'
 
 
@@ -205,14 +205,14 @@ class MFCCFeatureSet(SensorData):
 class MFCCFeatureTrainSet(MFCCFeatureSet):
 
     class Meta(MFCCFeatureSet.Meta):
-        db_table = 'MFCCFeatureTrainSet'
+        db_table = 'mfccfeaturetrainset'
         app_label = 'energylenserver'
 
 
 class MFCCFeatureTestSet(MFCCFeatureSet):
 
     class Meta(MFCCFeatureSet.Meta):
-        db_table = 'MFCCFeatureTestSet'
+        db_table = 'mfccfeaturetestset'
         app_label = 'energylenserver'
 
 # Light Sensor
@@ -248,14 +248,14 @@ class LightData(SensorData):
 class LightTrainData(LightData):
 
     class Meta(LightData.Meta):
-        db_table = 'LightTrainData'
+        db_table = 'lighttraindata'
         app_label = 'energylenserver'
 
 
 class LightTestData(LightData):
 
     class Meta(LightData.Meta):
-        db_table = 'LightTestData'
+        db_table = 'lighttestdata'
         app_label = 'energylenserver'
 
 # Magnetometer
@@ -294,13 +294,13 @@ class MagData(SensorData):
 class MagTrainData(MagData):
 
     class Meta(MagData.Meta):
-        db_table = 'MagTrainData'
+        db_table = 'magtraindata'
         app_label = 'energylenserver'
 
 
 class MagTestData(MagData):
 
     class Meta(MagData.Meta):
-        db_table = 'MagTestData'
+        db_table = 'magtestdata'
         app_label = 'energylenserver'
 # '''

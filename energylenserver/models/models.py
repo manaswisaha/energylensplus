@@ -38,7 +38,7 @@ class RegisteredUsers(Devices):
     email_id = models.CharField(max_length=100, null=True)
 
     class Meta(Devices.Meta):
-        db_table = 'RegisteredUsers'
+        db_table = 'registeredusers'
         app_label = app_label_str
 
 
@@ -56,7 +56,7 @@ class AccessPoints(models.Model):
         return self.ssid + "-" + self.macid
 
     class Meta:
-        db_table = 'AccessPoints'
+        db_table = 'accesspoints'
         app_label = app_label_str
 
 
@@ -77,7 +77,7 @@ class Metadata(models.Model):
         return self.dev_id.apt_no + "-" + self.appliance + "-" + self.location
 
     class Meta:
-        db_table = 'Metadata'
+        db_table = 'metadata'
         app_label = app_label_str
 
 
@@ -91,7 +91,7 @@ class MeterInfo(models.Model):
     apt_no = models.IntegerField()
 
     class Meta:
-        db_table = 'MeterInfo'
+        db_table = 'meterinfo'
         app_label = app_label_str
 
 
@@ -108,7 +108,7 @@ class Edges(models.Model):
     meter = models.ForeignKey(MeterInfo)
 
     class Meta:
-        db_table = 'Edges'
+        db_table = 'edges'
         app_label = app_label_str
         get_latest_by = 'timestamp'
 
@@ -128,7 +128,7 @@ class EventLog(models.Model):
     apt_no = models.IntegerField()
 
     class Meta:
-        db_table = 'EventLog'
+        db_table = 'eventlog'
         app_label = app_label_str
 
 
@@ -149,7 +149,7 @@ class ActivityLog(models.Model):
     report_sent = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'ActivityLog'
+        db_table = 'activitylog'
         app_label = app_label_str
 
 
@@ -167,7 +167,7 @@ class EnergyUsageLog(models.Model):
     shared = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'EnergyUsageLog'
+        db_table = 'energyusagelog'
         app_label = app_label_str
 
 
@@ -184,7 +184,7 @@ class EnergyWastageLog(models.Model):
     dev_id = models.ForeignKey(RegisteredUsers)
 
     class Meta:
-        db_table = 'EnergyWastageLog'
+        db_table = 'energywastagelog'
         app_label = app_label_str
 
 
@@ -204,7 +204,7 @@ class GroundTruthLog(models.Model):
     occupant_dev_id = models.ForeignKey(RegisteredUsers, related_name=("Actual user"))
 
     class Meta:
-        db_table = 'GroundTruthLog'
+        db_table = 'groundtruthlog'
         app_label = app_label_str
 
 
@@ -220,7 +220,7 @@ class EnergyWastageNotif(models.Model):
     message = models.CharField(max_length=255)
 
     class Meta:
-        db_table = 'EnergyWastageNotif'
+        db_table = 'energywastagenotif'
         app_label = app_label_str
 
 
@@ -261,7 +261,7 @@ class UsageLogScreens(models.Model):
             logger.error("[SaveStatsException] UsageLogScreens::%s", str(e))
 
     class Meta:
-        db_table = 'UsageLogScreens'
+        db_table = 'usagelogscreens'
         app_label = app_label_str
 
 
@@ -294,7 +294,7 @@ class BatteryUsage(models.Model):
             logger.error("[SaveStatsException] BatteryUsage::%s", str(e))
 
     class Meta:
-        db_table = 'BatteryUsage'
+        db_table = 'batteryusage'
         app_label = app_label_str
 
 
@@ -327,5 +327,5 @@ class UsageLogNotifs(models.Model):
             logger.error("[SaveStatsException] UsageLogNotifs::%s", str(e))
 
     class Meta:
-        db_table = 'UsageLogNotifs'
+        db_table = 'usagelognotifs'
         app_label = app_label_str
