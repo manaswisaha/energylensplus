@@ -3,6 +3,7 @@ import numpy as np
 from energylenserver.models.models import EnergyUsageLog, EnergyWastageLog
 from energylenserver.models import functions as mod_func
 from constants import wastage_threshold
+from energylenserver.common_offline import *
 
 # Enable Logging
 from common_imports import *
@@ -31,6 +32,16 @@ def calculate_consumption(user_list, presence_df, activity):
         indiv_slices_df = presence_df.ix[presence_df.index - time_shared_slices_df.index]
 
         user_list = [mod_func.get_user(int(u)) for u in user_columns]
+
+        # Offline processing - evaluation - START
+        apt_no = activity.apt_no
+        run_no = read_run_no()
+        run_folder = res_folder + "offline/" + run_no
+
+        usage_log = run_folder + '/' + str(apt_no) + '_usageLog.csv'
+        wastage_log = run_folder + '/' + str(apt_no) + '_wastageLog.csv'
+        # Offline processing - evaluation - END
+
         # Energy Usage - for individual slices (not shared)
         for user in user_list:
 
@@ -50,12 +61,48 @@ def calculate_consumption(user_list, presence_df, activity):
                 # logger.debug("User %s Activity: %s, [%s -- %s] stayed for %s used: %s Wh",
                 # user, activity, st, et, stayed_for, usage)
 
+                '''
+                Commented for offline processing
+
                 # Create usage entry in the log
                 usage_entry = EnergyUsageLog(activity=activity,
                                              start_time=st, end_time=et,
                                              stayed_for=stayed_for, usage=usage,
                                              dev_id=user, shared=False)
                 usage_entry.save()
+                '''
+
+                # Offline processing - evaluation - START
+                if not os.path.isfile(usage_log):
+                    eval_usage_df = pd.DataFrame({'id': [0], 'apt_no': [apt_no],
+                                                  'activity_id': [activity.id],
+                                                  'start_time': [start_time],
+                                                  'end_time': [end_time],
+                                                  'stayed_for': [stayed_for], 'usage': [usage],
+                                                  'dev_id': [user_id], 'shared': [0]},
+                                                 columns=['id', 'apt_no', 'activity_id',
+                                                          'start_time', 'end_time',
+                                                          'stayed_for', 'usage', 'dev_id',
+                                                          'shared'])
+
+                    eval_usage_df.to_csv(usage_log, index=False)
+                else:
+                    eval_usage_df = pd.read_csv(usage_log)
+                    usage_i_df = pd.DataFrame({'id': [len(eval_usage_df)], 'apt_no': [apt_no],
+                                               'activity_id': [activity.id],
+                                               'start_time': [start_time],
+                                               'end_time': [end_time],
+                                               'stayed_for': [stayed_for], 'usage': [usage],
+                                               'dev_id': [user_id], 'shared': [0]},
+                                              columns=['id', 'apt_no', 'activity_id',
+                                                       'start_time', 'end_time',
+                                                       'stayed_for', 'usage', 'dev_id',
+                                                       'shared'])
+
+                    eval_usage_df = pd.concat([eval_usage_df, usage_i_df])
+                    eval_usage_df.reset_index(drop=True, inplace=True)
+                    eval_usage_df.to_csv(usage_log, index=False)
+                # Offline processing - evaluation - END
 
         # Energy Usage - for shared slices
         for idx in time_shared_slices_df.index:
@@ -75,11 +122,45 @@ def calculate_consumption(user_list, presence_df, activity):
                 usage = get_energy_consumption(st, et, power) / n_users
 
                 # Create usage entry in the log
+                '''
+                Commented for offline processing
                 usage_entry = EnergyUsageLog(activity=activity,
                                              start_time=st, end_time=et,
                                              stayed_for=stayed_for, usage=usage,
                                              dev_id=user, shared=True)
                 usage_entry.save()
+                '''
+                # Offline processing - evaluation - START
+                if not os.path.isfile(usage_log):
+                    eval_usage_df = pd.DataFrame({'id': [0], 'apt_no': [apt_no],
+                                                  'activity_id': [activity.id],
+                                                  'start_time': [st],
+                                                  'end_time': [et],
+                                                  'stayed_for': [stayed_for], 'usage': [usage],
+                                                  'dev_id': [user.dev_id], 'shared': [1]},
+                                                 columns=['id', 'apt_no', 'activity_id',
+                                                          'start_time', 'end_time',
+                                                          'stayed_for', 'usage', 'dev_id',
+                                                          'shared'])
+
+                    eval_usage_df.to_csv(usage_log, index=False)
+                else:
+                    eval_usage_df = pd.read_csv(usage_log)
+                    usage_i_df = pd.DataFrame({'id': [len(eval_usage_df)], 'apt_no': [apt_no],
+                                               'activity_id': [activity.id],
+                                               'start_time': [st],
+                                               'end_time': [et],
+                                               'stayed_for': [stayed_for], 'usage': [usage],
+                                               'dev_id': [user.dev_id], 'shared': [1]},
+                                              columns=['id', 'apt_no', 'activity_id',
+                                                       'start_time', 'end_time',
+                                                       'stayed_for', 'usage', 'dev_id',
+                                                       'shared'])
+
+                    eval_usage_df = pd.concat([eval_usage_df, usage_i_df])
+                    eval_usage_df.reset_index(drop=True, inplace=True)
+                    eval_usage_df.to_csv(usage_log, index=False)
+                # Offline processing - evaluation - END
 
         # Energy Wastage
         w_slices_ix = presence_df[presence_df.user_count == 0].index
@@ -117,18 +198,95 @@ def calculate_consumption(user_list, presence_df, activity):
                     if left_for >= wastage_threshold:
 
                         # Create wastage entry in the log
+                        '''
+                        Commented for offline processing
+
                         wastage_entry = EnergyWastageLog(activity=activity,
                                                          start_time=st, end_time=et,
                                                          left_for=left_for, wastage=usage,
                                                          dev_id=user)
                         wastage_entry.save()
+                        '''
+                        # Offline processing - evaluation - START
+                        if not os.path.isfile(wastage_log):
+                            eval_wastage_df = pd.DataFrame({'id': [0], 'apt_no': [apt_no],
+                                                            'activity_id': [activity.id],
+                                                            'start_time': [st],
+                                                            'end_time': [et],
+                                                            'left_for': [left_for],
+                                                            'wastage': [usage],
+                                                            'dev_id': [user.dev_id]},
+                                                           columns=['id', 'apt_no', 'activity_id',
+                                                                    'start_time', 'end_time',
+                                                                    'left_for', 'wastage',
+                                                                    'dev_id'])
+
+                            eval_wastage_df.to_csv(wastage_log, index=False)
+                        else:
+                            eval_wastage_df = pd.read_csv(wastage_log)
+                            wastage_i_df = pd.DataFrame({'id': [len(eval_wastage_df)],
+                                                         'apt_no': [apt_no],
+                                                         'activity_id': [activity.id],
+                                                         'start_time': [st],
+                                                         'end_time': [et],
+                                                         'left_for': [left_for],
+                                                         'wastage': [usage],
+                                                         'dev_id': [user.dev_id]},
+                                                        columns=['id', 'apt_no', 'activity_id',
+                                                                 'start_time', 'end_time',
+                                                                 'left_for', 'wastage',
+                                                                 'dev_id'])
+
+                            eval_wastage_df = pd.concat([eval_wastage_df, wastage_i_df])
+                            eval_wastage_df.reset_index(drop=True, inplace=True)
+                            eval_wastage_df.to_csv(wastage_log, index=False)
+                        # Offline processing - evaluation - END
                     else:
                         # Declare it as a usage
+                        '''
+                        Commented for offline processing
                         usage_entry = EnergyUsageLog(activity=activity,
                                                      start_time=st, end_time=et,
                                                      stayed_for=left_for, usage=usage,
                                                      dev_id=user, shared=shared)
                         usage_entry.save()
+                        '''
+
+                        # Offline processing - evaluation - START
+                        if not os.path.isfile(usage_log):
+                            eval_usage_df = pd.DataFrame({'id': [0], 'apt_no': [apt_no],
+                                                          'activity_id': [activity.id],
+                                                          'start_time': [st],
+                                                          'end_time': [et],
+                                                          'stayed_for': [stayed_for],
+                                                          'usage': [usage],
+                                                          'dev_id': [user.dev_id],
+                                                          'shared': [int(shared)]},
+                                                         columns=['id', 'apt_no', 'activity_id',
+                                                                  'start_time', 'end_time',
+                                                                  'stayed_for', 'usage', 'dev_id',
+                                                                  'shared'])
+
+                            eval_usage_df.to_csv(usage_log, index=False)
+                        else:
+                            eval_usage_df = pd.read_csv(usage_log)
+                            usage_i_df = pd.DataFrame({'id': [len(eval_usage_df)],
+                                                       'apt_no': [apt_no],
+                                                       'activity_id': [activity.id],
+                                                       'start_time': [st],
+                                                       'end_time': [et],
+                                                       'stayed_for': [stayed_for], 'usage': [usage],
+                                                       'dev_id': [user.dev_id],
+                                                       'shared': [int(shared)]},
+                                                      columns=['id', 'apt_no', 'activity_id',
+                                                               'start_time', 'end_time',
+                                                               'stayed_for', 'usage', 'dev_id',
+                                                               'shared'])
+
+                            eval_usage_df = pd.concat([eval_usage_df, usage_i_df])
+                            eval_usage_df.reset_index(drop=True, inplace=True)
+                            eval_usage_df.to_csv(usage_log, index=False)
+                        # Offline processing - evaluation - END
 
     except Exception, e:
         logger.exception("[CalculateConsumptionException]:: %s", e)

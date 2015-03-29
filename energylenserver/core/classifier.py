@@ -30,6 +30,8 @@ from energylenserver.preprocessing import wifi as pre_p_w
 from energylenserver.preprocessing import audio as pre_p_a
 from constants import lower_mdp_percent_change, upper_mdp_percent_change, no_test_data
 
+# Offline processing
+from energylenserver.common_offline import *
 
 base_dir = settings.BASE_DIR
 
@@ -286,6 +288,19 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
                 location = correct_label(location, test_df['label'], 'location', edge)
                 data.update(label=location)
             '''
+
+            # Offline processing - evaluation
+            '''
+            Check with ground truth and
+            attribute reason = location classification attribution
+            '''
+            match, gt_record = match_ground_truth(apt_no, edge.timestamp, location, "dummy")
+            # Write location
+            write_classification_labels(apt_no, dev_id, edge.timestamp, "location", location)
+            if not match:
+                write_reason(apt_no, dev_id, edge.timestamp, "location", "localization")
+            else:
+                write_reason(apt_no, dev_id, edge.timestamp, "correct", "")
             return location
         # '''
 
@@ -315,6 +330,19 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
             location = "Unknown"
         else:
             location = func.get_max_class(sliced_df['pred_label'])
+
+        # Offline processing - evaluation
+        '''
+        Check with ground truth and
+        attribute reason = location classification attribution
+        '''
+        match, gt_record = match_ground_truth(apt_no, edge.timestamp, location, "dummy")
+        # Write location
+        write_classification_labels(apt_no, dev_id, edge.timestamp, "location", location)
+        if not match:
+            write_reason(apt_no, dev_id, edge.timestamp, "location", "localization")
+        else:
+            write_reason(apt_no, dev_id, edge.timestamp, "correct", "")
 
         '''
         Commented: Can't correct bcoz we need user's location for usage/detection
@@ -382,6 +410,22 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
                     if len(appl_list) == 1:
                         appliance = appl_list[0]
                         logger.debug("Selected Appliance:: %s", appliance)
+
+                        # Offline processing - evaluation
+                        '''
+                        Check with ground truth and
+                        attribute reason = algorithm attribution
+                        '''
+                        match, gt_record = match_ground_truth(
+                            apt_no, edge.timestamp, "dummy", appliance)
+                        # Write appliance
+                        write_classification_labels(apt_no, dev_id, edge.timestamp,
+                                                    "appliance", appliance)
+                        if not match:
+                            write_reason(apt_no, user.dev_id, edge.timestamp,
+                                         "appliance", "algo_not audio_based")
+                        else:
+                            write_reason(apt_no, user.dev_id, edge.timestamp, "correct", "")
                 # --Classify using audio--
                 else:
                     appliance = classify_appliance_using_audio(apt_no, start_time, end_time,
@@ -431,9 +475,13 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
         test_df['pred_label'] = pred_label
 
         appliance = func.get_max_class(test_df['pred_label'])
+        details = "algo_appliance classification"
 
         if n_users_at_home == 1:
             appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge, "dummmy")
+
+            # Offline processing - evaluation
+            details = "algo_appliance correction"
 
         if appliance == "Unknown":
 
@@ -445,6 +493,7 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
             appliance = appl_count_df.index[0]
             logger.debug("Selected max count appliance:: %s", appliance)
 
+            details = "algo_appliance attribution"
         '''
         sliced_df = test_df[
             (test_df.timestamp >= (start_time + 60)) & (test_df.timestamp) <= end_time]
@@ -454,6 +503,21 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
         else:
             appliance = func.get_max_class(sliced_df['pred_label'])
         '''
+
+        # Offline processing - evaluation
+        '''
+        Check with ground truth and
+        attribute reason = algorithm attribution
+        '''
+        match, gt_record = match_ground_truth(
+            apt_no, edge.timestamp, "dummy", appliance)
+        # Write appliance
+        write_classification_labels(apt_no, dev_id, edge.timestamp,
+                                    "appliance", appliance)
+        if not match:
+            write_reason(apt_no, dev_id, edge.timestamp, "appliance", details)
+        else:
+            write_reason(apt_no, dev_id, edge.timestamp, "correct", "")
 
         # Save appliance label to the database
         data.update(label=appliance)
@@ -494,6 +558,7 @@ def classify_activity(metadata_df, magnitude):
 
     if len(md_list) == 0:
         return "Unknown", "Unknown"
+
     # Determine location and appliance in use
     fil_md_df = pd.concat(md_list)
     fil_md_df.reset_index(drop=True, inplace=True)

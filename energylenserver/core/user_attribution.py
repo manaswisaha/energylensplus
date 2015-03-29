@@ -1,3 +1,4 @@
+import os
 import math
 import pandas as pd
 import random
@@ -7,6 +8,7 @@ from common_imports import *
 from energylenserver.models import functions as mod_func
 from classifier import classify_activity, correct_label
 from functions import exists_in_metadata
+from energylenserver.common_offline import *
 
 """
 User Attribution Module
@@ -78,14 +80,30 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
         # -- Use metadata i.e. meter only approach
         where, what = classify_activity(metadata_df, m_magnitude)
 
+        user['location'] = where
+        user['appliance'] = what
+
         if len(user_list) == 1:
             user['dev_id'] = [user_list[0]]
         else:
             user['dev_id'] = "Unknown"
-
-        user['location'] = where
-        user['appliance'] = what
         logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
+
+        details = "algo_classify both"
+        # Offline processing - evaluation - START
+        '''
+        Check with ground truth and
+        attribute reason = activity correction
+        '''
+        match, reason = match_ground_truth(
+            apt_no, edge_time, where, what)
+        if not match:
+            write_reason(apt_no, "common", edge.timestamp, reason, details)
+        else:
+            write_reason(apt_no, "common", edge.timestamp, "correct", "")
+
+        # Offline processing - evaluation - END
+
         return user
 
         user['dev_id'] = "Unknown"
@@ -114,6 +132,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
             if len(appl_list) == 1:
                 appl = appl_list[0]
+
+                details = "algo_appliance classification"
                 '''
                 md_audio = poss_user.md_audio.unique()[0]
                 appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
@@ -180,6 +200,22 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         user['appliance'] = appl
 
                         logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
+
+                        details = "algo_similar appliance_distance diff"
+                        # Offline processing - evaluation - START
+                        '''
+                        Check with ground truth and
+                        attribute reason = activity correction
+                        '''
+                        match, reason = match_ground_truth(
+                            apt_no, edge_time, user['location'], user['appliance'])
+                        if not match:
+                            write_reason(apt_no, "common", edge.timestamp, reason, details)
+                        else:
+                            write_reason(apt_no, "common", edge.timestamp, "correct", "")
+
+                        # Offline processing - evaluation - END
+
                         return user
                     else:
                         appl_audio_list = poss_user.md_audio.unique()
@@ -197,6 +233,9 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     else:
                         appl = "Unknown"
                     '''
+
+                    details = "algo_similar appliance"
+
                 elif len(appl_list) > 1 and len(appl_audio_list) == 1:
 
                     # elif len(poss_user) > 1:
@@ -206,6 +245,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     sel_idx = random.choice(poss_user.index)
                     appl = poss_user.ix[sel_idx]['md_appl']
 
+                    details = "algo_similar appliance_distance diff"
+
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
                     logger.debug("Selecting random entry from multiple appliances")
@@ -213,6 +254,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     appl = poss_user.ix[sel_idx]['md_appl']
                     # appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
                     #                      'appliance', edge, location[sel_user])
+                    details = "algo_similar appliance_distance diff"
                 else:
 
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
@@ -233,9 +275,25 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                             idx = poss_user.index[0]
                             appl = poss_user.ix[idx]['md_appl']
 
+                    details = "algo_similar appliance_audio based"
+
             user['dev_id'] = [sel_user]
             user['location'] = location[sel_user]
             user['appliance'] = appl
+
+            # Offline processing - evaluation - START
+            '''
+            Check with ground truth and
+            attribute reason = activity correction
+            '''
+            match, reason = match_ground_truth(
+                apt_no, edge_time, user['location'], user['appliance'])
+            if not match:
+                write_reason(apt_no, "common", edge.timestamp, reason, details)
+            else:
+                write_reason(apt_no, "common", edge.timestamp, "correct", "")
+
+            # Offline processing - evaluation - END
 
         else:
             # Resolving conflict by
@@ -255,6 +313,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                 appl_audio_list = poss_user.md_audio.unique()
 
                 if len(appl_list) == 1:
+                    # Contending appliances are same
                     appl = appl_list[0]
                     '''
                     md_audio = appl_audio_list[0]
@@ -266,23 +325,29 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     else:
                         appl = "Unknown"
                     '''
+                    details = "algo_similar appliance_multiple users_distance diff"
 
                 elif len(appl_list) > 1 and len(appl_audio_list) == 1:
+                    # Multiple contending appliances but both are audio based
                     poss_user = poss_user[
                         poss_user.md_power_diff == poss_user.md_power_diff.min()]
                     logger.debug("Selecting random entry from different appliances with mindiff")
                     sel_idx = random.choice(poss_user.index)
                     appl = poss_user.ix[sel_idx]['md_appl']
 
+                    details = "algo_similar appliance_multiple users_distance diff"
+
                 elif len(appl_audio_list) == 1:
+                    # Multiple contending audio based appliances
                     # If both are audio based or otherwise then use correct label
                     logger.debug("Selecting random entry")
                     sel_idx = random.choice(poss_user.index)
                     appl = poss_user.ix[sel_idx]['md_appl']
                     # appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
                     #                      'appliance', edge, location[sel_user])
+                    details = "algo_similar appliance_multiple users_distance diff"
                 else:
-
+                    # Multiple contending appliances - selecting based on appliance type
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
                     for idx in poss_user.index:
                         md_aud = poss_user.ix[idx]['md_audio']
@@ -298,6 +363,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         if len(poss_user) > 0:
                             idx = poss_user.index[0]
                             appl = poss_user.ix[idx]['md_appl']
+                    details = "algo_similar appliance_multiple users_audio based"
 
                 user['dev_id'] = [sel_user]
                 user['location'] = location[sel_user]
@@ -330,6 +396,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     user['location'] = loc_list[0]
                     user['appliance'] = appl_list[0]
 
+                    details = "algo_similar appliance"
+
                 else:
 
                     # Matching appliance for resolving conflict
@@ -361,6 +429,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                             loc = "Unknown"
                             sel_user = "Unknown"
 
+                            details = "algo_similar appliance_audio based confusion"
+
                         else:
                             appl_dict = {}
                             loc_dict = {}
@@ -386,6 +456,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                                 loc = "Unknown"
                                 appl = "Unknown"
 
+                            details = "algo_similar appliance_audio based"
+
                         user['dev_id'] = sel_user
                         user['location'] = loc
                         user['appliance'] = appl
@@ -398,6 +470,8 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         user['location'] = location[sel_user]
                         user['appliance'] = appliance[sel_user]
 
+                        details = "algo_similar appliance_audio classification"
+
                     else:
                         # Users share the time slice having the same magnitude
                         # users = poss_user.dev_id.unique().tolist()
@@ -409,6 +483,22 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         user['dev_id'] = [sel_user]
                         user['location'] = location[sel_user]
                         user['appliance'] = poss_user.ix[entry_idx[0]]['md_appl']
+
+                        details = "algo_similar appliance"
+
+            # Offline processing - evaluation - START
+            '''
+            Check with ground truth and
+            attribute reason = activity correction
+            '''
+            match, reason = match_ground_truth(
+                apt_no, edge_time, user['location'], user['appliance'])
+            if not match:
+                write_reason(apt_no, "common", edge.timestamp, reason, details)
+            else:
+                write_reason(apt_no, "common", edge.timestamp, "correct", "")
+
+            # Offline processing - evaluation - END
 
     logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
 

@@ -21,7 +21,6 @@ from types import NoneType
 from datetime import timedelta
 
 import pandas as pd
-import numpy as np
 import datetime as dt
 from multiprocessing.managers import BaseManager
 
@@ -67,6 +66,9 @@ meter_logger = logging.getLogger('energylensplus_meterdata')
 # Global variables
 base_dir = settings.BASE_DIR
 dst_folder = os.path.join(base_dir, 'energylenserver/data/phone/')
+
+# Offline Processing imports
+from energylenserver.common_offline import *
 
 # Model mapping with filenames
 
@@ -332,7 +334,8 @@ def edgeHandler(edge):
     """
     Starts the classification pipeline and relays edges based on edge type
     """
-    logger.debug("Starting the Classification pipeline..")
+    logger.debug("Starting the Classification pipeline for edge: [%s] :: %d",
+                 time.ctime(edge.timestamp), edge.magnitude)
     if edge.type == "falling":
         chain = (classify_edge.s(edge) |
                  find_time_slice.s() | apportion_energy.s())
@@ -387,11 +390,56 @@ def classify_edge(edge):
             logger.debug("No user at home. Ignoring edge activity.")
             return return_error
 
+        '''
+        For offline evaluation
+        '''
+        run_no = read_run_no()
+        run_folder = res_folder + "offline/" + run_no
+
+        # Creating event log
+        event_log = run_folder + '/' + str(apt_no) + '_common_eventLog.csv'
+
+        sp_status, gt_df_i = check_spurious_event(apt_no, event_time)
+        details = ''
+        if sp_status:
+            reason = 'spurious'
+        else:
+            reason = 'correct'
+
+        if not os.path.isfile(event_log):
+            eval_event_df = pd.DataFrame({'id': [0], 'edge_id': [edge.id],
+                                          'timestamp': [event_time], 'magnitude': [magnitude],
+                                          'location': [''], 'appliance': [''],
+                                          'dev_id': [''], 'event_type': [event_type],
+                                          'matched': [0], 'apt_no': [apt_no], 'reason': [reason],
+                                          'details': [details]},
+                                         columns=['id', 'edge_id', 'timestamp', 'location',
+                                                  'appliance', 'dev_id', 'event_type',
+                                                  'matched', 'apt_no', 'reason', 'details'])
+            eval_event_df.to_csv(event_log, index=False)
+        else:
+            eval_event_df = pd.read_csv(event_log)
+            event_i_df = pd.DataFrame({'id': [len(eval_event_df)], 'edge_id': [edge.id],
+                                       'timestamp': [event_time], 'magnitude': [magnitude],
+                                       'location': [''], 'appliance': [''],
+                                       'dev_id': [''], 'event_type': [event_type],
+                                       'matched': [0], 'apt_no': [apt_no], 'reason': [reason],
+                                       'details': [details]},
+                                      columns=['id', 'edge_id', 'timestamp', 'location',
+                                               'appliance', 'dev_id', 'event_type',
+                                               'matched', 'apt_no', 'reason', 'details'])
+            eval_event_df = pd.concat([eval_event_df, event_i_df])
+            eval_event_df.reset_index(drop=True, inplace=True)
+            eval_event_df.to_csv(event_log, index=False)
+
+        '''
+        # Commented for offline processing
         if event_type == "OFF":
             now_time = int(time.time())
             if (now_time - event_time) <= 2 * 60:
                 edgeHandler.apply_async(args=[edge], countdown=upload_interval)
                 return return_error
+        '''
 
         # --- Classification --
         location_dict = {}
@@ -405,11 +453,59 @@ def classify_edge(edge):
 
             logger.debug("For User: %s Mag: %s", user, magnitude)
 
+            '''
+            Offline processing for evaluation -- START
+            '''
+            # Creating event log
+            user_event_log = run_folder + '/' + str(apt_no) + '_' + str(dev_id) + '_eventLog.csv'
+            details = ''
+            if sp_status:
+                reason = 'spurious'
+            else:
+                reason = 'correct'
+
+            if not os.path.isfile(user_event_log):
+                u_eval_event_df = pd.DataFrame({'id': [0], 'edge_id': [edge.id],
+                                                'timestamp': [event_time],
+                                                'magnitude': [magnitude],
+                                                'location': [''], 'appliance': [''],
+                                                'dev_id': [dev_id], 'event_type': [event_type],
+                                                'matched': [0], 'apt_no': [apt_no],
+                                                'reason': [reason],
+                                                'details': [details]},
+                                               columns=['id', 'edge_id', 'timestamp', 'location',
+                                                        'appliance', 'dev_id', 'event_type',
+                                                        'matched', 'apt_no', 'reason', 'details'])
+                u_eval_event_df.to_csv(user_event_log, index=False)
+            else:
+                u_eval_event_df = pd.read_csv(user_event_log)
+                u_event_i_df = pd.DataFrame({'id': [len(u_eval_event_df)], 'edge_id': [edge.id],
+                                             'timestamp': [event_time],
+                                             'magnitude': [magnitude],
+                                             'location': [''], 'appliance': [''],
+                                             'dev_id': [dev_id], 'event_type': [event_type],
+                                             'matched': [0], 'apt_no': [apt_no],
+                                             'reason': [reason],
+                                             'details': [details]},
+                                            columns=['id', 'edge_id', 'timestamp', 'location',
+                                                     'appliance', 'dev_id', 'event_type',
+                                                     'matched', 'apt_no', 'reason', 'details'])
+                u_eval_event_df = pd.concat([u_eval_event_df, u_event_i_df])
+                u_eval_event_df.reset_index(drop=True, inplace=True)
+                u_eval_event_df.to_csv(user_event_log, index=False)
+            '''
+            Offline processing for evaluation -- END
+            '''
+
             # Step 1: Determine location for every user
             location = classifier.classify_location(
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
             if isinstance(location, bool):
                 continue
+            else:
+                location_dict[dev_id] = location
+            '''
+            # Commented for offline processing
             elif location == no_test_data:
 
                 now_time = int(time.time())
@@ -420,12 +516,18 @@ def classify_edge(edge):
                     continue
             else:
                 location_dict[dev_id] = location
+            '''
 
             # Step 2: Determine appliance for every user using audio
             appliance = classifier.classify_appliance(
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
             if isinstance(appliance, bool):
                 continue
+            else:
+                appliance_dict[dev_id] = appliance
+
+            '''
+            # Commented for offline processing
             elif appliance == no_test_data:
 
                 now_time = int(time.time())
@@ -434,8 +536,7 @@ def classify_edge(edge):
                     return return_error
                 else:
                     continue
-            else:
-                appliance_dict[dev_id] = appliance
+            '''
 
         logger.debug("Determined Locations: %s", location_dict)
         logger.debug("Determined Appliances: %s", appliance_dict)
@@ -507,14 +608,30 @@ def classify_edge(edge):
                 what = "Unknown"
 
             else:
-                now_time = int(time.time())
                 # Determine the ongoing events of inferred appliance in the inferred location
+                '''
+                Commented for offline processing
+
                 on_event_records = mod_func.get_on_events_by_location(apt_no, end_time, where)
                 on_event_records_df = read_frame(on_event_records, verbose=False)
                 on_event_records_df['event_time'] = on_event_records_df.event_time.astype('int')
-                on_event_records_df = on_event_records_df[(on_event_records_df.appliance == what) &
-                                                          (event_time - on_event_records_df.event_time
-                                                           < 12 * 3600)]
+                on_event_records_df = on_event_records_df[
+                    (on_event_records_df.appliance == what) &
+                    (event_time - on_event_records_df.event_time
+                     < 12 * 3600)]
+
+                '''
+
+                # Offline processing
+                on_event_records_df = get_on_events_by_location_offline(
+                    apt_no, end_time, where)
+                on_event_records_df['timestamp'] = on_event_records_df.timestamp.astype('int')
+                on_event_records_df = on_event_records_df[
+                    (on_event_records_df.appliance == what) &
+                    (event_time - on_event_records_df.timestamp
+                     < 12 * 3600)]
+                # Offline processing
+
                 n_on_event_records = len(on_event_records_df)
                 logger.debug("Number of ongoing events: %s", n_on_event_records)
 
@@ -532,27 +649,32 @@ def classify_edge(edge):
 
         # --- FILTER end---
 
+        '''
+        # Commented for offline processing
         if isinstance(who, list):
 
             # New record for each user for an edge - indicates multiple occupants
             # were present in the room during the event
-            for user in who:
-                # Create a record in the Event Log with edge id
-                # and store 'who', 'what', 'where' labels
-                event = EventLog(edge=edge, event_time=event_time,
-                                 location=where, appliance=what, dev_id=user,
-                                 event_type=event_type, apt_no=apt_no)
-                event.save()
+            # for user in who:
 
-                # ONLY FOR TESTING
-                try:
-                    if apt_no == 1201:
-                        message = "At %s, %s used %s in %s consuming %s Watts" % (
-                            time.ctime(event_time), user.name, what, where, magnitude)
-                        inform_user(353321065540000, message)
-                except Exception, e:
-                    logger.debug("Client problem:: %s", e)
-                    continue
+            # Create a record in the Event Log with edge id
+            # and store 'who', 'what', 'where' labels
+
+            event = EventLog(edge=edge, event_time=event_time,
+                             location=where, appliance=what, dev_id=user,
+                             event_type=event_type, apt_no=apt_no)
+            event.save()
+
+
+            # ONLY FOR TESTING
+            try:
+                if apt_no == 1201:
+                    message = "At %s, %s used %s in %s consuming %s Watts" % (
+                        time.ctime(event_time), user.name, what, where, magnitude)
+                    inform_user(353321065540000, message)
+            except Exception, e:
+                logger.debug("Client problem:: %s", e)
+                continue
 
         # For "Unknown" label
         elif isinstance(who, str):
@@ -563,6 +685,28 @@ def classify_edge(edge):
                              location=where, appliance=what, dev_id=user_record,
                              event_type=event_type, apt_no=apt_no)
             event.save()
+        '''
+
+        # For offline processing -- START
+        # Get index of the event
+        event_df = pd.read_csv(event_log)
+        event_df = event_df[event_df.timestamp == event_time]
+
+        if len(event_df) == 1:
+            idx = event_df.index[0]
+            event_df.ix[idx, 'location'] = where
+            event_df.ix[idx, 'appliance'] = what
+
+            if isinstance(who, list):
+                event_df.ix[idx, 'dev_id'] = who[0]
+            else:
+                event_df.ix[idx, 'dev_id'] = who
+
+            event_df.to_csv(event_log, index=False)
+        else:
+            logger.debug("Error! No record found in the log!!")
+            sys.exit(0)
+        # For offline processing -- END
 
         # Falling edge with no ON events
         if where != "Unknown" and what != "Unknown":
@@ -573,7 +717,8 @@ def classify_edge(edge):
         logger.exception("[ClassifyEdgeException]:: %s", e)
         return return_error
 
-    return who[0], what, where, event
+    # return who[0], what, where, event
+    return who[0], what, where, event_df
 
 
 @shared_task
@@ -598,13 +743,26 @@ def find_time_slice(result_labels):
                                    where == 'Unknown'):
             return return_error
 
+        # For offline processing - evaluation - START
+        idx = off_event.index[0]
+        off_event = off_event.ix[idx]
+        # For offline processing - evaluation - END
+
+        '''
         apt_no = off_event.edge.meter.apt_no
         off_time = off_event.event_time
         off_mag = off_event.edge.magnitude
+        '''
+        apt_no = off_event.apt_no
+        off_id = off_event.id
+        off_time = off_event.timestamp
+        off_mag = off_event.magnitude
 
         logger.debug("Determining activity duration: [%s] :: %s" % (
             time.ctime(off_time), str(off_mag)))
 
+        '''
+        Commented for offline processing
         # Match ON/OFF events
         matched_on_event = e_match.match_events(apt_no, off_event)
 
@@ -634,6 +792,65 @@ def find_time_slice(result_labels):
                                start_event=matched_on_event,
                                end_event=off_event)
         activity.save()
+        '''
+        # Offline processing - evaluation - START
+        matched_on_event = e_match.match_events_offline(off_event)
+
+        if isinstance(matched_on_event, bool):
+            logger.debug("No ON event found")
+            return return_error
+
+        # Update event and create a new activity
+        run_no = read_run_no()
+        run_folder = res_folder + "offline/" + run_no
+
+        # Updating event log
+        event_log = run_folder + '/' + str(apt_no) + '_common_eventLog.csv'
+        activity_log = run_folder + '/' + str(apt_no) + '_activityLog.csv'
+
+        event_df = pd.read_csv(event_log)
+        on_event_df = event_df[event_df.id == matched_on_event.id]
+        on_event_df.idx[0, 'matched'] = 1
+        off_event_df = event_df[event_df.id == off_id]
+        off_event_df.idx[0, 'matched'] = 1
+        event_df.to_csv(event_log, index=False)
+
+        # Inferred activity time slice
+        start_time = matched_on_event['timestamp']
+        end_time = off_time
+
+        power = round((math.fabs(off_mag) + matched_on_event.magnitude) / 2)
+        usage = apprt.get_energy_consumption(start_time, end_time, power)
+
+        # Create/update activity log
+        if not os.path.isfile(activity_log):
+            eval_activity_df = pd.DataFrame({'id': [0], 'apt_no': [apt_no],
+                                             'start_time': [start_time], 'end_time': [end_time],
+                                             'location': [where], 'appliance': [what],
+                                             'power': [power], 'usage': [usage],
+                                             'start_event': [matched_on_event.id],
+                                             'end_event': [off_id]},
+                                            columns=['id', 'apt_no', 'start_time', 'end_time',
+                                                     'location', 'appliance', 'power',
+                                                     'start_event', 'end_event'])
+            activity = eval_activity_df.ix[0]
+
+            eval_activity_df.to_csv(activity_log, index=False)
+        else:
+            eval_activity_df = pd.read_csv(activity_log)
+            activity_i_df = pd.DataFrame({'id': [len(eval_activity_df)], 'apt_no': [apt_no],
+                                          'start_time': [start_time], 'end_time': [end_time],
+                                          'location': [where], 'appliance': [what],
+                                          'power': [power], 'usage': [usage],
+                                          'start_event': [matched_on_event.id],
+                                          'end_event': [off_id]},
+                                         columns=['id', 'apt_no', 'start_time', 'end_time',
+                                                  'location', 'appliance', 'power',
+                                                  'start_event', 'end_event'])
+            activity = activity_i_df.ix[0]
+            eval_activity_df = pd.concat([eval_activity_df, activity_i_df])
+            eval_activity_df.reset_index(drop=True, inplace=True)
+            eval_activity_df.to_csv(activity_log, index=False)
 
         logger.debug("[%d] Time slice for activity: %s uses %s in %s between %s and %s",
                      apt_no, who, what, where, time.ctime(start_time), time.ctime(end_time))
@@ -680,6 +897,14 @@ def apportion_energy(result_labels):
             logger.error("No user at home. Something went wrong!")
             return
 
+        # Offline processing - evaluation - START
+        run_no = read_run_no()
+        run_folder = res_folder + "offline/" + run_no
+
+        # Updating usage log
+        usage_log = run_folder + '/' + str(apt_no) + '_usageLog.csv'
+        # Offline processing - evaluation - END
+
         # For Fridge
         if act_appl == "Fridge":
             # Distribute energy amongst all
@@ -689,11 +914,50 @@ def apportion_energy(result_labels):
             stayed_for = end_time - start_time
             for devid in user_list:
                 user = mod_func.get_user(devid)
+                '''
+                Commented for offline processing
+
                 usage_entry = EnergyUsageLog(activity=activity,
                                              start_time=start_time, end_time=end_time,
                                              stayed_for=stayed_for, usage=usage,
                                              dev_id=user, shared=True)
                 usage_entry.save()
+                '''
+
+                # Offline processing - evaluation - START
+
+                # Create/update usage log
+                if not os.path.isfile(usage_log):
+                    eval_usage_df = pd.DataFrame({'id': [0], 'apt_no': [apt_no],
+                                                  'activity_id': [activity.id],
+                                                  'start_time': [start_time],
+                                                  'end_time': [end_time],
+                                                  'stayed_for': [stayed_for], 'usage': [usage],
+                                                  'dev_id': [devid], 'shared': [1]},
+                                                 columns=['id', 'apt_no', 'activity_id',
+                                                          'start_time', 'end_time',
+                                                          'stayed_for', 'usage', 'dev_id',
+                                                          'shared'])
+
+                    eval_usage_df.to_csv(usage_log, index=False)
+                else:
+                    eval_usage_df = pd.read_csv(usage_log)
+                    usage_i_df = pd.DataFrame({'id': [len(eval_usage_df)], 'apt_no': [apt_no],
+                                               'activity_id': [activity.id],
+                                               'start_time': [start_time],
+                                               'end_time': [end_time],
+                                               'stayed_for': [stayed_for], 'usage': [usage],
+                                               'dev_id': [devid], 'shared': [1]},
+                                              columns=['id', 'apt_no', 'activity_id',
+                                                       'start_time', 'end_time',
+                                                       'stayed_for', 'usage', 'dev_id',
+                                                       'shared'])
+
+                    eval_usage_df = pd.concat([eval_usage_df, usage_i_df])
+                    eval_usage_df.reset_index(drop=True, inplace=True)
+                    eval_usage_df.to_csv(usage_log, index=False)
+
+                # Offline processing - evaluation - END
                 return
 
         # Determine appliance type
@@ -715,17 +979,61 @@ def apportion_energy(result_labels):
             power = activity.power
             usage = apprt.get_energy_consumption(start_time, end_time, power)
             stayed_for = end_time - start_time
+            '''
+            Commented for offline processing
+
             user = activity.start_event.dev_id
             usage_entry = EnergyUsageLog(activity=activity,
                                          start_time=start_time, end_time=end_time,
                                          stayed_for=stayed_for, usage=usage,
                                          dev_id=user, shared=False)
             usage_entry.save()
+            '''
+
+            # Offline processing - evaluation - START
+            devid = get_userid_from_event(apt_no, activity.start_event)
+
+            if not os.path.isfile(usage_log):
+                eval_usage_df = pd.DataFrame({'id': [0], 'apt_no': [apt_no],
+                                              'activity_id': [activity.id],
+                                              'start_time': [start_time],
+                                              'end_time': [end_time],
+                                              'stayed_for': [stayed_for], 'usage': [usage],
+                                              'dev_id': [devid], 'shared': [0]},
+                                             columns=['id', 'apt_no', 'activity_id',
+                                                      'start_time', 'end_time',
+                                                      'stayed_for', 'usage', 'dev_id',
+                                                      'shared'])
+
+                eval_usage_df.to_csv(usage_log, index=False)
+            else:
+                eval_usage_df = pd.read_csv(usage_log)
+                usage_i_df = pd.DataFrame({'id': [len(eval_usage_df)], 'apt_no': [apt_no],
+                                           'activity_id': [activity.id],
+                                           'start_time': [start_time],
+                                           'end_time': [end_time],
+                                           'stayed_for': [stayed_for], 'usage': [usage],
+                                           'dev_id': [devid], 'shared': [0]},
+                                          columns=['id', 'apt_no', 'activity_id',
+                                                   'start_time', 'end_time',
+                                                   'stayed_for', 'usage', 'dev_id',
+                                                   'shared'])
+
+                eval_usage_df = pd.concat([eval_usage_df, usage_i_df])
+                eval_usage_df.reset_index(drop=True, inplace=True)
+                eval_usage_df.to_csv(usage_log, index=False)
+            # Offline processing - evaluation - END
+
             return
 
         # For presence based appliances, apportion based on stay duration
 
-        start_user = activity.start_event.dev_id
+        # start_user = activity.start_event.dev_id
+
+        # Offline processing - evaluation - START
+        start_user = get_userid_from_event(apt_no, activity.start_event)
+        # Offline processing - evaluation - END
+
         presence_df = pd.DataFrame(columns=['start_time', 'end_time'])
         users_list = [mod_func.get_user(u) for u in user_list]
         for user in users_list:

@@ -66,3 +66,4 @@ energylenserver/tmp/
 energylenserver/test_code.py
 energylenserver/management/commands/startgcmserver.py
 logs/*.pid
+energylenserver/trained_models/

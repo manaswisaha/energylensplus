@@ -11,6 +11,8 @@ from energylenserver.common_imports import *
 from energylenserver.models import functions as mod_func
 from energylenserver.core import functions as func
 
+from energylenserver import common_offline as off_func
+
 # Enable Logging
 logger = logging.getLogger('energylensplus_django')
 
@@ -126,3 +128,117 @@ def match_events(apt_no, off_event):
     logger.debug("Final set:%s \n", filtered_df)
 
     return mod_func.get_on_event_by_id(filtered_df.ix[0]['id'])
+
+
+def match_events_offline(off_event):
+    """
+    Matches the off event with the rise event
+    """
+    apt_no = off_event.apt_no
+    off_time = off_event.timestamp
+    off_mag = math.fabs(off_event.magnitude)
+    off_location = off_event.location
+    off_appliance = off_event.appliance
+
+    # Extract rising edges occurring before the fall edge
+    # with similar power
+    on_events = off_func.get_on_events(apt_no, off_time)
+    if len(on_events) == 0:
+        return False
+
+    # Filter i: Remove all on events greater than 24 hours from off event
+    new_on_events = on_events[off_time - on_events.timestamp < 12 * 60 * 60]
+
+    id_list = []
+    mag_diff = []
+    location = []
+    appliance = []
+    event_mag = []
+    for idx in new_on_events.index:
+        on_event = new_on_events.ix[idx]
+
+        id_list.append(on_event.id)
+        event_mag.append(on_event.magnitude)
+        mag_diff.append(math.fabs(off_mag - on_event.magnitude))
+        location.append(on_event.location)
+        appliance.append(on_event.appliance)
+
+    df = pd.DataFrame({'id': id_list, 'event_mag': event_mag, 'mag_diff': mag_diff,
+                       'location': location, 'appliance': appliance},
+                      columns=['id', 'event_mag', 'mag_diff', 'location', 'appliance'])
+
+    # logger.debug("On Events DF: \n%s", df)
+
+    # Get Metadata
+    data = mod_func.retrieve_metadata(apt_no)
+    metadata_df = read_frame(data, verbose=False)
+
+    # Filter 1: Determine if appliance is multi-state
+    if func.determine_multi_state(metadata_df, off_location, off_appliance):
+        filtered_df = df[(df.location == off_location) &
+                         (df.appliance == off_appliance)]
+        filtered_df.reset_index(drop=True, inplace=True)
+
+        logger.debug("Filtered on events of a multi-state appl: \n%s", filtered_df)
+
+        if len(filtered_df) == 0:
+            return False
+
+        on_event_record = new_on_events[new_on_events.id == filtered_df.ix[0]['id']]
+        return on_event_record
+
+    # Filter 2: Match falling with rising edges where its magnitude is between
+    # a power threshold window
+    power = off_mag * percent_change
+    min_mag = off_mag - power
+    max_mag = off_mag + power
+
+    logger.debug("Magnitude::%s per_change: %s", off_mag, power)
+    logger.debug("Between min=[%s]  max=[%s]", min_mag, max_mag)
+
+    filtered_df = df[(df.event_mag >= min_mag) & (df.event_mag <= max_mag)]
+
+    # logger.debug("Filtered on events based on magnitude range: \n%s", filtered_df)
+
+    if len(filtered_df) == 0:
+        return False
+
+    # Filter 3: Matching with the same location and appliance
+    # if appliance is a presence based appliance
+
+    metadata_df['appliance'] = metadata_df.appliance.apply(lambda s: s.split('_')[0])
+
+    if off_appliance != "Unknown":
+        metadata_df = metadata_df[metadata_df.appliance == off_appliance]
+        metadata_df = metadata_df.ix[:, ['appliance', 'presence_based']].drop_duplicates()
+        metadata_df.reset_index(inplace=True, drop=True)
+
+        if not metadata_df.ix[0]['presence_based']:
+            filtered_df = filtered_df[filtered_df.appliance == off_appliance]
+        else:
+            filtered_df = filtered_df[(filtered_df.location == off_location) &
+                                      (filtered_df.appliance == off_appliance)]
+    else:
+        filtered_df = filtered_df[filtered_df.location == off_location]
+
+    filtered_df.reset_index(drop=True, inplace=True)
+
+    if len(filtered_df) == 0:
+        return False
+
+    logger.debug("Matched ON DF:\n%s", filtered_df)
+
+    # Resolve conflicts by --
+    # Filter 4: Taking the rising edge which is the closest to the off magnitude
+
+    min_mag_diff = filtered_df.mag_diff.min()
+    filtered_df = filtered_df[filtered_df.mag_diff == min_mag_diff]
+    filtered_df.reset_index(drop=True, inplace=True)
+
+    if len(filtered_df) == 0:
+        return False
+
+    logger.debug("Final set:%s \n", filtered_df)
+
+    on_event_record = new_on_events[new_on_events.id == filtered_df.ix[0]['id']]
+    return on_event_record

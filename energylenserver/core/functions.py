@@ -135,6 +135,7 @@ def determine_multi_state(metadata_df, location, appliance):
         if len(metadata_df) > 1:
             return True
         return False
+
     except Exception, e:
         logger.exception("[DetermineMultiStateApplException]:: %s", e)
         return False
@@ -154,7 +155,7 @@ def determine_user_home_status(start_time, end_time, apt_no):
         occupants = mod_func.retrieve_users(apt_no)
         occupants_df = read_frame(occupants, verbose=False)
 
-        dev_id_list = [occupants_df.ix[idx]['dev_id'] for idx in occupants_df.index]
+        dev_id_list = occupants_df.dev_id.tolist()
 
         # Get Home AP
         home_ap = mod_func.get_home_ap(apt_no)
