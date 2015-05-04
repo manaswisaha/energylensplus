@@ -146,6 +146,8 @@ def localize_new_data(apt_no, start_time, end_time, user):
                      location)
 
         return location
+        # Offline processing
+        return location, sliced_df
 
     except Exception, e:
         if str(e) == "(1205, 'Lock wait timeout exceeded; try restarting transaction')":
@@ -210,6 +212,9 @@ def correct_label(label, pred_label, label_type, edge, act_location):
                     matched_md = matched_md[matched_md.md_loc == act_location]
                     appl_list = matched_md.md_appl.unique()
 
+                    logger.debug("Entry in the same activity location %s:\n %s", act_location,
+                                 matched_md)
+
                     if len(appl_list) == 1:
                         label = appl_list[0]
                         logger.debug("Corrected Label: %s --> %s", old_label, label)
@@ -271,12 +276,14 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
         data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
         test_df = read_frame(data, verbose=False)
         test_df.drop_duplicates(test_df.columns[1:], inplace=True)
+        test_df.reset_index(drop=True, inplace=True)
 
         # '''
         location_list = test_df.label.unique()
         logger.debug("Pre-labeled locations: %s", location_list)
         if len(location_list) == 0:
             logger.debug("Insufficient test data")
+            return False  # For Offline processing
             return no_test_data
 
         if "none" not in location_list and "Unknown" not in location_list:
@@ -291,10 +298,10 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
 
             # Offline processing - evaluation
             '''
-            Check with ground truth and
-            attribute reason = location classification attribution
+            Check with ground truth and attribute reason
             '''
-            match, gt_record = match_ground_truth(apt_no, edge.timestamp, location, "dummy")
+            match = match_location(apt_no, dev_id, edge.timestamp, location)
+            logger.debug("Match %s", match)
             # Write location
             write_classification_labels(apt_no, dev_id, edge.timestamp, "location", location)
             if not match:
@@ -333,10 +340,9 @@ def classify_location(apt_no, start_time, end_time, user, edge, n_users_at_home)
 
         # Offline processing - evaluation
         '''
-        Check with ground truth and
-        attribute reason = location classification attribution
+        Check with ground truth and attribute reason
         '''
-        match, gt_record = match_ground_truth(apt_no, edge.timestamp, location, "dummy")
+        match = match_location(apt_no, dev_id, edge.timestamp, location)
         # Write location
         write_classification_labels(apt_no, dev_id, edge.timestamp, "location", location)
         if not match:
@@ -419,11 +425,11 @@ def classify_appliance(apt_no, start_time, end_time, user, edge, n_users_at_home
                         match, gt_record = match_ground_truth(
                             apt_no, edge.timestamp, "dummy", appliance)
                         # Write appliance
-                        write_classification_labels(apt_no, dev_id, edge.timestamp,
+                        write_classification_labels(apt_no, user.dev_id, edge.timestamp,
                                                     "appliance", appliance)
                         if not match:
                             write_reason(apt_no, user.dev_id, edge.timestamp,
-                                         "appliance", "algo_not audio_based")
+                                         "appliance", "not audio_based")
                         else:
                             write_reason(apt_no, user.dev_id, edge.timestamp, "correct", "")
                 # --Classify using audio--
@@ -459,9 +465,11 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
         data = mod_func.get_sensor_data(sensor, start_time, end_time, [dev_id])
         test_df = read_frame(data, verbose=False)
         test_df.drop_duplicates(test_df.columns[1:], inplace=True)
+        test_df.reset_index(drop=True, inplace=True)
 
         if len(test_df) == 0:
             logger.debug("No audio test data")
+            return False  # For Offline processing
             return no_test_data
 
         # Format data for classification
@@ -475,13 +483,15 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
         test_df['pred_label'] = pred_label
 
         appliance = func.get_max_class(test_df['pred_label'])
-        details = "algo_appliance classification"
+        details = "appliance classification"
 
+        # '''
         if n_users_at_home == 1:
-            appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge, "dummmy")
+            appliance = correct_label(appliance, test_df['pred_label'], 'appliance', edge, "dummy")
 
             # Offline processing - evaluation
-            details = "algo_appliance correction"
+            details = "appliance correction"
+        # '''
 
         if appliance == "Unknown":
 
@@ -493,7 +503,7 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
             appliance = appl_count_df.index[0]
             logger.debug("Selected max count appliance:: %s", appliance)
 
-            details = "algo_appliance attribution"
+            details = "appliance classification"
         '''
         sliced_df = test_df[
             (test_df.timestamp >= (start_time + 60)) & (test_df.timestamp) <= end_time]
@@ -506,8 +516,7 @@ def classify_appliance_using_audio(apt_no, start_time, end_time, user, edge, n_u
 
         # Offline processing - evaluation
         '''
-        Check with ground truth and
-        attribute reason = algorithm attribution
+        Check with ground truth and assign reason
         '''
         match, gt_record = match_ground_truth(
             apt_no, edge.timestamp, "dummy", appliance)

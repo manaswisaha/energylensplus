@@ -61,8 +61,8 @@ db_user = 'manaswi'
 db_pass = 'research'
 
 # Local machine settings
-# db_host = '127.0.0.1'
-# db_user = 'root'
+db_host = '127.0.0.1'
+db_user = 'root'
 
 DATABASES = {
     'default': {
@@ -140,6 +140,12 @@ LOGGING = {
             'filename': os.path.join(BASE_DIR, 'logs/meter_data.log'),
             'formatter': 'simple'
         },
+        'version2_log': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/version2.log'),
+            'formatter': 'simple'
+        },
         'error_log': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
@@ -170,6 +176,11 @@ LOGGING = {
         },
         'energylensplus_meterdata': {
             'handlers': ['meter_data'],
+            'propagate': True,
+            'level': 'DEBUG',
+        },
+        'energylensplus_version2': {
+            'handlers': ['version2_log'],
             'propagate': True,
             'level': 'DEBUG',
         },

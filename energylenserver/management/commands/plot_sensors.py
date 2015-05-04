@@ -22,6 +22,8 @@ from django.core.management.base import BaseCommand
 from common import *
 from energylenserver.common_imports import *
 from energylenserver.functions import *
+from energylenserver.core import functions as core_f
+from energylenserver.core import classifier as cl
 from energylenserver.models import functions as mod_func
 # from energylenserver.preprocessing import wifi as pre_p
 
@@ -40,12 +42,47 @@ def perfect_sq(no):
         return False
 
 
+def localize(apt_no, data_df, start_time, end_time, user):
+
+    data_df = data_df[data_df.label.isin(["Unknown", "none"])]
+    data_df.sort(['timestamp'], inplace=True)
+    data_df.reset_index(drop=True, inplace=True)
+
+    start_time = data_df.ix[data_df.index[0]]['timestamp']
+    end_time = data_df.ix[data_df.index[-1]]['timestamp']
+
+    # Divide into stay_duration (of 5 min) slices
+    stay_duration = 5 * 60
+    s_time = start_time
+    e_time = s_time + stay_duration
+    while e_time <= end_time:
+
+        diff = end_time - e_time
+
+        if diff < stay_duration:
+            e_time = e_time + diff
+
+        data_df = data_df[(data_df.timestamp >= s_time) &
+                          (data_df.timestamp <= e_time)]
+
+        if len(data_df) > 0:
+
+            st = data_df.ix[data_df.index[0]]['timestamp']
+            et = data_df.ix[data_df.index[-1]]['timestamp']
+
+            cl.localize_new_data(apt_no, st, et, user)
+
+        s_time = e_time + 1
+        e_time = s_time + stay_duration
+
+
 class Command(BaseCommand):
     help = "Plots sensor data"
 
     def handle(self, *args, **options):
 
         try:
+            apt_no = 1201
 
             # Get apt info
             m_data = mod_func.retrieve_metadata(apt_no)
@@ -55,28 +92,47 @@ class Command(BaseCommand):
             rooms_dict_val = {v: k for k, v in labels.items()}
 
             # Get occupant info
-            occupants = mod_func.retrieve_users(apt_no)
-            occupants_df = read_frame(occupants, verbose=False)
+            # occupants = mod_func.retrieve_users(apt_no)
+            # occupants_df = read_frame(occupants, verbose=False)
 
             # Plot sensor data
             start_time = d_times[apt_no]['st_time']
-            end_time = d_times[apt_no]['et_time']
-            # start_time = int(to_time("10/2/2015T00:00:00"))
-            end_time = int(to_time("12/2/2015T09:30:00"))
+            # end_time = d_times[apt_no]['et_time']
+            # start_time = int(to_time("26/1/2015T06:00:00"))
+            end_time = int(to_time("1/2/2015T00:00:00"))
 
-            for idx_user in occupants_df.index:
-                dev_id = occupants_df.ix[idx_user]['dev_id']
-                name = occupants_df.ix[idx_user]['name']
+            user_list = core_f.determine_user_home_status(start_time, end_time, apt_no)
+            n_users_at_home = len(user_list)
+
+            if n_users_at_home == 0:
+                self.stdout.write("No user at home. Ignoring edge activity.")
+                return
+
+            users = mod_func.get_users(user_list)
+            for user in users:
+                dev_id = user.dev_id
+                name = user.name
 
                 # Get Wifi labeled data
                 data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
                 df_orig = read_frame(data, verbose=False)
+
+                self.stdout.write("Plotting for %s [%s -- %s]" %
+                                  (name, time.ctime(start_time), time.ctime(end_time)))
+                self.stdout.write("-" * 100)
+
                 pred_labels = df_orig.label.unique()
-                self.stdout.write("Predicted labels:: %s" % pred_labels)
 
                 # Localize first if labels are Unknown
                 if "none" in pred_labels or "Unknown" in pred_labels:
                     self.stdout.write("Needs localization")
+
+                    localize(apt_no, df_orig, start_time, end_time, user)
+                    data = mod_func.get_sensor_data("wifi", start_time, end_time, [dev_id])
+                    df_orig = read_frame(data, verbose=False)
+                    pred_labels = df_orig.label.unique()
+
+                self.stdout.write("Predicted labels:: %s" % pred_labels)
 
                 # Sort, remove duplicates and change index of the original data frame
                 df_orig.drop_duplicates('timestamp', take_last=True, inplace=True)
@@ -93,13 +149,10 @@ class Command(BaseCommand):
 
                 # Creating plot data frame
                 time_range = range(start_time, end_time + 1)
-                self.stdout.write("Plotting for %s and %s" %
-                                  (time.ctime(start_time), time.ctime(end_time)))
-                self.stdout.write("-" * 100)
                 plot_df = pd.Series([0] * len(time_range), index=time_range)
                 plot_df.update(df_orig.n_label)
 
-                self.stdout.write("Plot draft %s" % plot_df.unique())
+                self.stdout.write("Plot: rooms %s" % plot_df.unique())
 
                 # Plot for n hours at a time
                 st = start_time

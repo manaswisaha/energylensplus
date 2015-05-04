@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 
 from energylenserver.models.models import EnergyUsageLog, EnergyWastageLog
@@ -76,8 +77,8 @@ def calculate_consumption(user_list, presence_df, activity):
                 if not os.path.isfile(usage_log):
                     eval_usage_df = pd.DataFrame({'id': [0], 'apt_no': [apt_no],
                                                   'activity_id': [activity.id],
-                                                  'start_time': [start_time],
-                                                  'end_time': [end_time],
+                                                  'start_time': [st],
+                                                  'end_time': [et],
                                                   'stayed_for': [stayed_for], 'usage': [usage],
                                                   'dev_id': [user_id], 'shared': [0]},
                                                  columns=['id', 'apt_no', 'activity_id',
@@ -90,8 +91,8 @@ def calculate_consumption(user_list, presence_df, activity):
                     eval_usage_df = pd.read_csv(usage_log)
                     usage_i_df = pd.DataFrame({'id': [len(eval_usage_df)], 'apt_no': [apt_no],
                                                'activity_id': [activity.id],
-                                               'start_time': [start_time],
-                                               'end_time': [end_time],
+                                               'start_time': [st],
+                                               'end_time': [et],
                                                'stayed_for': [stayed_for], 'usage': [usage],
                                                'dev_id': [user_id], 'shared': [0]},
                                               columns=['id', 'apt_no', 'activity_id',
@@ -290,4 +291,5 @@ def calculate_consumption(user_list, presence_df, activity):
 
     except Exception, e:
         logger.exception("[CalculateConsumptionException]:: %s", e)
+        sys.exit(0)
         return False

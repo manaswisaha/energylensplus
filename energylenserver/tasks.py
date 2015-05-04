@@ -91,7 +91,8 @@ FILE_MODEL_MAP = {
 class ClientManager(BaseManager):
     pass
 
-# '''
+'''
+# Commented for offline processing
 # Establishing connection with the running GCM Server
 try:
     ClientManager.register('get_client_obj')
@@ -104,7 +105,7 @@ try:
         logger.debug("Got the GCM Client: client obj type:: %s", type(client))
 except Exception, e:
     elogger.error("[InternalGCMClientConnectionException] %s", e)
-# '''
+'''
 
 """
 Helper functions
@@ -336,12 +337,24 @@ def edgeHandler(edge):
     """
     logger.debug("Starting the Classification pipeline for edge: [%s] :: %d",
                  time.ctime(edge.timestamp), edge.magnitude)
+    '''
+    Commented for offline processing
     if edge.type == "falling":
         chain = (classify_edge.s(edge) |
                  find_time_slice.s() | apportion_energy.s())
     else:
         chain = classify_edge.s(edge)
     chain()
+    '''
+    if edge.type == "falling":
+        event_result = classify_edge(edge)
+        activity_result = find_time_slice(event_result)
+        apportion_energy(activity_result)
+    else:
+        event_result = classify_edge(edge)
+
+    # Offline processing - evaluation
+
     logger.debug("Classification Pipeline ended for edge: [%s] :: %d",
                  time.ctime(edge.timestamp), edge.magnitude)
 
@@ -399,7 +412,11 @@ def classify_edge(edge):
         # Creating event log
         event_log = run_folder + '/' + str(apt_no) + '_common_eventLog.csv'
 
-        sp_status, gt_df_i = check_spurious_event(apt_no, event_time)
+        missed_status, sp_status = check_spurious_missed_event(apt_no, event_time)
+
+        if is_missed_set() and missed_status:
+            return return_error
+
         details = ''
         if sp_status:
             reason = 'spurious'
@@ -409,25 +426,27 @@ def classify_edge(edge):
         if not os.path.isfile(event_log):
             eval_event_df = pd.DataFrame({'id': [0], 'edge_id': [edge.id],
                                           'timestamp': [event_time], 'magnitude': [magnitude],
-                                          'location': [''], 'appliance': [''],
-                                          'dev_id': [''], 'event_type': [event_type],
-                                          'matched': [0], 'apt_no': [apt_no], 'reason': [reason],
-                                          'details': [details]},
-                                         columns=['id', 'edge_id', 'timestamp', 'location',
-                                                  'appliance', 'dev_id', 'event_type',
-                                                  'matched', 'apt_no', 'reason', 'details'])
+                                          'event_type': [event_type], 'apt_no': [apt_no],
+                                          'location': ['none'], 'appliance': ['none'],
+                                          'dev_id': [unknown_id], 'matched': [0],
+                                          'reason': [reason], 'details': [details]},
+                                         columns=['id', 'edge_id', 'timestamp', 'magnitude',
+                                                  'event_type', 'apt_no',
+                                                  'location', 'appliance', 'dev_id',
+                                                  'matched', 'reason', 'details'])
             eval_event_df.to_csv(event_log, index=False)
         else:
             eval_event_df = pd.read_csv(event_log)
             event_i_df = pd.DataFrame({'id': [len(eval_event_df)], 'edge_id': [edge.id],
                                        'timestamp': [event_time], 'magnitude': [magnitude],
-                                       'location': [''], 'appliance': [''],
-                                       'dev_id': [''], 'event_type': [event_type],
-                                       'matched': [0], 'apt_no': [apt_no], 'reason': [reason],
-                                       'details': [details]},
-                                      columns=['id', 'edge_id', 'timestamp', 'location',
-                                               'appliance', 'dev_id', 'event_type',
-                                               'matched', 'apt_no', 'reason', 'details'])
+                                       'event_type': [event_type], 'apt_no': [apt_no],
+                                       'location': ['none'], 'appliance': ['none'],
+                                       'dev_id': [unknown_id], 'matched': [0],
+                                       'reason': [reason], 'details': [details]},
+                                      columns=['id', 'edge_id', 'timestamp', 'magnitude',
+                                               'event_type', 'apt_no',
+                                               'location', 'appliance', 'dev_id',
+                                               'matched', 'reason', 'details'])
             eval_event_df = pd.concat([eval_event_df, event_i_df])
             eval_event_df.reset_index(drop=True, inplace=True)
             eval_event_df.to_csv(event_log, index=False)
@@ -466,30 +485,32 @@ def classify_edge(edge):
 
             if not os.path.isfile(user_event_log):
                 u_eval_event_df = pd.DataFrame({'id': [0], 'edge_id': [edge.id],
-                                                'timestamp': [event_time],
-                                                'magnitude': [magnitude],
-                                                'location': [''], 'appliance': [''],
-                                                'dev_id': [dev_id], 'event_type': [event_type],
-                                                'matched': [0], 'apt_no': [apt_no],
+                                                'timestamp': [event_time], 'magnitude': [magnitude],
+                                                'event_type': [event_type], 'apt_no': [apt_no],
+                                                'location': ['none'], 'appliance': ['none'],
+                                                'dev_id': [dev_id],
+                                                'matched': [0],
                                                 'reason': [reason],
                                                 'details': [details]},
-                                               columns=['id', 'edge_id', 'timestamp', 'location',
-                                                        'appliance', 'dev_id', 'event_type',
-                                                        'matched', 'apt_no', 'reason', 'details'])
+                                               columns=['id', 'edge_id', 'timestamp', 'magnitude',
+                                                        'event_type', 'apt_no',
+                                                        'location', 'appliance', 'dev_id',
+                                                        'matched', 'reason', 'details'])
                 u_eval_event_df.to_csv(user_event_log, index=False)
             else:
                 u_eval_event_df = pd.read_csv(user_event_log)
                 u_event_i_df = pd.DataFrame({'id': [len(u_eval_event_df)], 'edge_id': [edge.id],
-                                             'timestamp': [event_time],
-                                             'magnitude': [magnitude],
-                                             'location': [''], 'appliance': [''],
-                                             'dev_id': [dev_id], 'event_type': [event_type],
-                                             'matched': [0], 'apt_no': [apt_no],
+                                             'timestamp': [event_time], 'magnitude': [magnitude],
+                                             'event_type': [event_type], 'apt_no': [apt_no],
+                                             'location': ['none'], 'appliance': ['none'],
+                                             'dev_id': [dev_id],
+                                             'matched': [0],
                                              'reason': [reason],
                                              'details': [details]},
-                                            columns=['id', 'edge_id', 'timestamp', 'location',
-                                                     'appliance', 'dev_id', 'event_type',
-                                                     'matched', 'apt_no', 'reason', 'details'])
+                                            columns=['id', 'edge_id', 'timestamp', 'magnitude',
+                                                     'event_type', 'apt_no',
+                                                     'location', 'appliance', 'dev_id',
+                                                     'matched', 'reason', 'details'])
                 u_eval_event_df = pd.concat([u_eval_event_df, u_event_i_df])
                 u_eval_event_df.reset_index(drop=True, inplace=True)
                 u_eval_event_df.to_csv(user_event_log, index=False)
@@ -501,6 +522,35 @@ def classify_edge(edge):
             location = classifier.classify_location(
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
             if isinstance(location, bool):
+                # Offline processing
+
+                # Remove event from the log
+                event_df = pd.read_csv(event_log)
+                t_event_df = event_df[event_df.timestamp == event_time]
+
+                if len(t_event_df) == 1:
+                    idx = t_event_df.index[0]
+                    idx_list = event_df.index.tolist()
+                    idx_list.remove(idx)
+                    event_df = event_df.ix[idx_list]
+                    event_df.to_csv(event_log, index=False)
+                else:
+                    logger.debug("Error! No record found in the log!!")
+                    sys.exit(0)
+
+                # Remove from user event log
+                u_eval_event_df = pd.read_csv(user_event_log)
+                t_event_df = u_eval_event_df[u_eval_event_df.timestamp == event_time]
+
+                if len(t_event_df) == 1:
+                    idx = t_event_df.index[0]
+                    idx_list = u_eval_event_df.index.tolist()
+                    idx_list.remove(idx)
+                    u_eval_event_df = u_eval_event_df.ix[idx_list]
+                    u_eval_event_df.to_csv(user_event_log, index=False)
+                else:
+                    logger.debug("Error! No record found in the log!!")
+                    sys.exit(0)
                 continue
             else:
                 location_dict[dev_id] = location
@@ -522,6 +572,35 @@ def classify_edge(edge):
             appliance = classifier.classify_appliance(
                 apt_no, start_time, end_time, user, edge, n_users_at_home)
             if isinstance(appliance, bool):
+                # Offline processing
+
+                # Remove event from the log
+                event_df = pd.read_csv(event_log)
+                t_event_df = event_df[event_df.timestamp == event_time]
+
+                if len(t_event_df) == 1:
+                    idx = t_event_df.index[0]
+                    idx_list = event_df.index.tolist()
+                    idx_list.remove(idx)
+                    event_df = event_df.ix[idx_list]
+                    event_df.to_csv(event_log, index=False)
+                else:
+                    logger.debug("Error! No record found in the log!!")
+                    sys.exit(0)
+
+                # Remove from user event log
+                u_eval_event_df = pd.read_csv(user_event_log)
+                t_event_df = u_eval_event_df[u_eval_event_df.timestamp == event_time]
+
+                if len(t_event_df) == 1:
+                    idx = t_event_df.index[0]
+                    idx_list = u_eval_event_df.index.tolist()
+                    idx_list.remove(idx)
+                    u_eval_event_df = u_eval_event_df.ix[idx_list]
+                    u_eval_event_df.to_csv(user_event_log, index=False)
+                else:
+                    logger.debug("Error! No record found in the log!!")
+                    sys.exit(0)
                 continue
             else:
                 appliance_dict[dev_id] = appliance
@@ -570,6 +649,7 @@ def classify_edge(edge):
                      (time.ctime(event_time), magnitude, who, where, what))
 
         # ---FILTER start---
+        # ---------------------Spurious Event Detection-----------------------------
         # Save only if the number of existing ongoing events for determined appliance
         # in the inferred location with the specified magnitude does not exceed
         # the number of appliances
@@ -635,6 +715,9 @@ def classify_edge(edge):
                 n_on_event_records = len(on_event_records_df)
                 logger.debug("Number of ongoing events: %s", n_on_event_records)
 
+                '''
+                Version 1:
+
                 if n_on_event_records > 0 and event_type == 'ON':
 
                     no_of_appl = metadata_df.ix[0]['how_many']
@@ -644,6 +727,7 @@ def classify_edge(edge):
                         who = "Unknown"
                         where = "Unknown"
                         what = "Unknown"
+                '''
             logger.debug("[%s] - [%d] :: After filter: Determined labels: %s %s %s" %
                          (time.ctime(event_time), magnitude, who, where, what))
 
@@ -690,15 +774,15 @@ def classify_edge(edge):
         # For offline processing -- START
         # Get index of the event
         event_df = pd.read_csv(event_log)
-        event_df = event_df[event_df.timestamp == event_time]
+        t_event_df = event_df[event_df.timestamp == event_time]
 
-        if len(event_df) == 1:
-            idx = event_df.index[0]
+        if len(t_event_df) == 1:
+            idx = t_event_df.index[0]
             event_df.ix[idx, 'location'] = where
             event_df.ix[idx, 'appliance'] = what
 
             if isinstance(who, list):
-                event_df.ix[idx, 'dev_id'] = who[0]
+                event_df.ix[idx, 'dev_id'] = who[0].dev_id
             else:
                 event_df.ix[idx, 'dev_id'] = who
 
@@ -715,10 +799,11 @@ def classify_edge(edge):
 
     except Exception, e:
         logger.exception("[ClassifyEdgeException]:: %s", e)
+        sys.exit(0)
         return return_error
 
     # return who[0], what, where, event
-    return who[0], what, where, event_df
+    return who[0], what, where, event_df[event_df.timestamp == event_time]
 
 
 @shared_task
@@ -797,7 +882,7 @@ def find_time_slice(result_labels):
         matched_on_event = e_match.match_events_offline(off_event)
 
         if isinstance(matched_on_event, bool):
-            logger.debug("No ON event found")
+            logger.debug("No ON event found/ OFF event ignored")
             return return_error
 
         # Update event and create a new activity
@@ -810,9 +895,12 @@ def find_time_slice(result_labels):
 
         event_df = pd.read_csv(event_log)
         on_event_df = event_df[event_df.id == matched_on_event.id]
-        on_event_df.idx[0, 'matched'] = 1
+        on_idx = on_event_df.index[0]
+        event_df.ix[on_idx, 'matched'] = 1
+
         off_event_df = event_df[event_df.id == off_id]
-        off_event_df.idx[0, 'matched'] = 1
+        off_idx = off_event_df.index[0]
+        event_df.ix[off_idx, 'matched'] = 1
         event_df.to_csv(event_log, index=False)
 
         # Inferred activity time slice
@@ -856,6 +944,7 @@ def find_time_slice(result_labels):
                      apt_no, who, what, where, time.ctime(start_time), time.ctime(end_time))
     except Exception, e:
         logger.exception("[FindTimeSliceException]:: %s", str(e))
+        sys.exit(0)
         return return_error
 
     return apt_no, start_time, end_time, activity
@@ -1028,7 +1117,7 @@ def apportion_energy(result_labels):
 
         # For presence based appliances, apportion based on stay duration
 
-        # start_user = activity.start_event.dev_id
+        # start_user = activity.start_event.dev_id.dev_id
 
         # Offline processing - evaluation - START
         start_user = get_userid_from_event(apt_no, activity.start_event)
@@ -1056,7 +1145,7 @@ def apportion_energy(result_labels):
 
         # Assign the activity location to the first time slice for
         # user who started the activity
-        presence_df.ix[0, str(start_user.dev_id)] = 1
+        presence_df.ix[0, str(start_user)] = 1
 
         # Merge slices where the user columns have the same values
         presence_df = core_f.merge_presence_matrix(presence_df)
@@ -1068,6 +1157,7 @@ def apportion_energy(result_labels):
 
     except Exception, e:
         logger.exception("[ApportionEnergyException]:: %s", str(e))
+        sys.exit(0)
 
 
 @shared_task

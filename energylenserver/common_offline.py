@@ -3,7 +3,7 @@ import math
 import time
 import pandas as pd
 import datetime as dt
-import numpy as np
+# import numpy as np
 
 from django.conf import settings
 
@@ -12,7 +12,7 @@ res_folder = os.path.join(base_dir, 'results/')
 gt_folder = os.path.join(base_dir, 'ground_truth/')
 
 # Bounds for time frame (in seconds)
-limit = 5
+limit = 7
 
 
 def to_time(time_string):
@@ -31,24 +31,49 @@ def read_run_no():
     return n_run
 
 
-def check_spurious_event(apt_no, ev_timestamp):
+def is_missed_set():
+    '''
+    Function to read the remove missed value from the common file
+    '''
+    rfile = res_folder + "missed.txt"
+    f = open(rfile, 'r')
+    missed = f.read()
+    f.close()
+
+    return bool(missed)
+
+
+def check_spurious_missed_event(apt_no, ev_timestamp):
     '''
     Function to check if event matches with ground truth
     If yes, then return the record and return result
     '''
-    ev_log_file = gt_folder + str(apt_no) + '_eventlog.csv'
+    ev_timestamp = int(ev_timestamp)
 
+    ev_log_file = gt_folder + str(apt_no) + '_eventlog.csv'
     gt_df = pd.read_csv(ev_log_file)
 
-    ev_timestamp = int(ev_timestamp)
+    gt_missed = gt_df[gt_df.missed == 1]
+    act_missed = gt_missed.act_id.unique().tolist()
+
+    missed_status = False
+    spurious_status = True
+
+    # Remove missed
     for gidx in gt_df.index:
 
         true_time = int(gt_df.ix[gidx]['timestamp'])
+        act_id = gt_df.ix[gidx]['act_id']
 
         if math.fabs(ev_timestamp - true_time) <= limit:
-            return False, gt_df.ix[gidx]
+            spurious_status = False
 
-    return True, {}
+            if act_id in act_missed:
+                missed_status = True
+
+            return missed_status, spurious_status
+
+    return missed_status, spurious_status
 
 
 def match_ground_truth(apt_no, ev_timestamp, location, appliance):
@@ -56,11 +81,16 @@ def match_ground_truth(apt_no, ev_timestamp, location, appliance):
     Function to check if event matches with ground truth
     If yes, then return the record
     '''
-    ev_log_file = gt_folder + str(apt_no) + '_eventlog.csv'
+
+    if is_missed_set():
+        ev_log_file = gt_folder + str(apt_no) + '_missed_eventlog.csv'
+    else:
+        ev_log_file = gt_folder + str(apt_no) + '_eventlog.csv'
 
     gt_df = pd.read_csv(ev_log_file)
 
     ev_timestamp = int(ev_timestamp)
+    label = 'none'
     for gidx in gt_df.index:
 
         true_time = int(gt_df.ix[gidx]['timestamp'])
@@ -72,22 +102,88 @@ def match_ground_truth(apt_no, ev_timestamp, location, appliance):
             if (location != "dummy" and appliance != "dummy"):
 
                 label = ''
-                if location == true_loc:
+                if location != true_loc:
                     label = "location"
-                if appliance == true_appl:
+                if appliance != true_appl:
                     if label == "location":
                         label = "both"
                     else:
                         label = "appliance"
 
-                if label != '':
+                if label == '':
                     return True, label
 
-            elif(location != "dummy" and location == true_loc) or \
-                    (appliance != "dummy" and appliance == true_appl):
-                return True, gt_df.ix[gidx]
+                break
 
-    return False, {}
+            elif(location != "dummy" and location == true_loc):
+                return True, "location"
+            elif (appliance != "dummy" and appliance == true_appl):
+                return True, "appliance"
+    if label != 'none' and label != '':
+        return False, label
+    return False, "spurious"
+
+
+def match_location(apt_no, dev_id, timestamp, location):
+    '''
+    Function to check if event matches with ground truth location
+    '''
+    timestamp = int(timestamp)
+
+    tos_file = gt_folder + str(apt_no) + '_' + str(dev_id) + '_timeofstay.csv'
+
+    gt_df = pd.read_csv(tos_file)
+    gt_df['time_entered'] = [to_time(time_string) for time_string in gt_df.time_entered]
+    gt_df['time_left'] = [to_time(time_string) for time_string in gt_df.time_left]
+
+    gt_df['time_entered'] = gt_df.time_entered.astype('int')
+    gt_df['time_left'] = gt_df.time_left.astype('int')
+
+    for gidx in gt_df.index:
+
+        true_loc = gt_df.ix[gidx]['location']
+        time_entered = gt_df.ix[gidx]['time_entered']
+        time_left = gt_df.ix[gidx]['time_left']
+
+        if timestamp in range(time_entered, time_left + 1) and location == true_loc:
+            return True
+    return False
+
+
+def match_appliance(apt_no, dev_id, timestamp, appliance):
+    '''
+    Function to check if event matches with ground truth location
+    '''
+    timestamp = int(timestamp)
+
+    tos_file = gt_folder + str(apt_no) + '_' + str(dev_id) + '_timeofstay.csv'
+    activity_log = gt_folder + str(apt_no) + '_activitylog.csv'
+
+    gt_df = pd.read_csv(tos_file)
+    gt_df['time_entered'] = [to_time(time_string) for time_string in gt_df.time_entered]
+    gt_df['time_left'] = [to_time(time_string) for time_string in gt_df.time_left]
+
+    gt_df['time_entered'] = gt_df.time_entered.astype('int')
+    gt_df['time_left'] = gt_df.time_left.astype('int')
+
+    # Find location
+    for gidx in gt_df.index:
+
+        true_loc = gt_df.ix[gidx]['location']
+        time_entered = gt_df.ix[gidx]['time_entered']
+        time_left = gt_df.ix[gidx]['time_left']
+
+        if timestamp in range(time_entered, time_left + 1):
+            location = true_loc
+            break
+
+    # Get activity log entries from the same location based on time
+    activity_gt = pd.read_csv(activity_log)
+
+    activity_gt = activity_gt[activity_gt.location == location]
+    activity_gt = activity_gt[activity_gt.end_time <= timestamp]
+
+    return False
 
 
 def write_classification_labels(apt_no, dev_id, timestamp, label, value):
@@ -122,7 +218,6 @@ def write_reason(apt_no, dev_id, timestamp, reason, details):
 
     event_df = pd.read_csv(event_log)
     t_event_df = event_df[event_df.timestamp == timestamp]
-    print "Indexes::", event_df.index
 
     if len(t_event_df) == 1:
         idx = t_event_df.index[0]
@@ -140,13 +235,16 @@ def write_reason(apt_no, dev_id, timestamp, reason, details):
     elif rec_details != 'nan':
         details = rec_details
 
-    print("Writing for: timestamp[%s]=%s reason=%s details=%s \n" %
-          (time.ctime(timestamp), timestamp, reason, details))
+    print("Writing for [%s]: time=%s[%s] reason=%s details=%s \n" %
+          (dev_id, timestamp, time.ctime(timestamp), rec_reason, details))
 
     if rec_reason == 'spurious':
         pass
-    elif rec_reason == 'location' and reason == 'appliance':
+    elif (rec_reason == 'location' and reason == 'appliance') or \
+            (rec_reason == 'appliance' and reason == 'location'):
         event_df.ix[idx, 'reason'] = 'both'
+    elif rec_reason != 'correct' and reason == 'correct':
+        event_df.ix[idx, 'reason'] = rec_reason
     else:
         event_df.ix[idx, 'reason'] = reason
 
@@ -193,6 +291,18 @@ def get_on_events_by_location_offline(apt_no, event_time, location):
         event_df = event_df[(event_df.timestamp <= event_time) & (event_df.apt_no == apt_no)
                             & (event_df.event_type == "ON") & (event_df.matched == 0) &
                             (event_df.location != "Unknown") & (event_df.location == location)]
+
+    return event_df
+
+
+def get_off_events_by_offline(apt_no, on_event_time, off_event_time, location, appliance):
+    event_df = get_table_df(apt_no, "event")
+
+    event_df = event_df[(event_df.timestamp >= on_event_time) &
+                        (event_df.timestamp <= off_event_time) &
+                        (event_df.apt_no == apt_no) &
+                        (event_df.event_type == "OFF") & (event_df.matched == 0) &
+                        (event_df.location == location) & (event_df.appliance == appliance)]
 
     return event_df
 

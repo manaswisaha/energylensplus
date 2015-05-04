@@ -89,7 +89,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             user['dev_id'] = "Unknown"
         logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
 
-        details = "algo_classify both"
+        details = "classify both"
         # Offline processing - evaluation - START
         '''
         Check with ground truth and
@@ -133,7 +133,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
             if len(appl_list) == 1:
                 appl = appl_list[0]
 
-                details = "algo_appliance classification"
+                details = "appliance attribution"
                 '''
                 md_audio = poss_user.md_audio.unique()[0]
                 appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
@@ -201,7 +201,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
 
                         logger.debug("Matched user(s) for edge with mag %d: %s", magnitude, user)
 
-                        details = "algo_similar appliance_distance diff"
+                        details = "similar appliance_distance diff"
                         # Offline processing - evaluation - START
                         '''
                         Check with ground truth and
@@ -234,7 +234,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         appl = "Unknown"
                     '''
 
-                    details = "algo_similar appliance"
+                    details = "similar appliance"
 
                 elif len(appl_list) > 1 and len(appl_audio_list) == 1:
 
@@ -245,7 +245,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     sel_idx = random.choice(poss_user.index)
                     appl = poss_user.ix[sel_idx]['md_appl']
 
-                    details = "algo_similar appliance_distance diff"
+                    details = "similar appliance_distance diff"
 
                 elif len(appl_audio_list) == 1:
                     # If both are audio based or otherwise then use correct label
@@ -254,7 +254,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     appl = poss_user.ix[sel_idx]['md_appl']
                     # appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
                     #                      'appliance', edge, location[sel_user])
-                    details = "algo_similar appliance_distance diff"
+                    details = "similar appliance_distance diff"
                 else:
 
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
@@ -275,7 +275,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                             idx = poss_user.index[0]
                             appl = poss_user.ix[idx]['md_appl']
 
-                    details = "algo_similar appliance_audio based"
+                    details = "similar appliance_audio based"
 
             user['dev_id'] = [sel_user]
             user['location'] = location[sel_user]
@@ -325,7 +325,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     else:
                         appl = "Unknown"
                     '''
-                    details = "algo_similar appliance_multiple users_distance diff"
+                    details = "similar appliance_multiple users_distance diff"
 
                 elif len(appl_list) > 1 and len(appl_audio_list) == 1:
                     # Multiple contending appliances but both are audio based
@@ -335,7 +335,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     sel_idx = random.choice(poss_user.index)
                     appl = poss_user.ix[sel_idx]['md_appl']
 
-                    details = "algo_similar appliance_multiple users_distance diff"
+                    details = "similar appliance_multiple users_distance diff"
 
                 elif len(appl_audio_list) == 1:
                     # Multiple contending audio based appliances
@@ -345,7 +345,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     appl = poss_user.ix[sel_idx]['md_appl']
                     # appl = correct_label(appliance[sel_user], pd.Series([appliance[sel_user]]),
                     #                      'appliance', edge, location[sel_user])
-                    details = "algo_similar appliance_multiple users_distance diff"
+                    details = "similar appliance_multiple users_distance diff"
                 else:
                     # Multiple contending appliances - selecting based on appliance type
                     appl_audio = md_df.ix[appliance[sel_user]]['audio_based']
@@ -363,7 +363,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         if len(poss_user) > 0:
                             idx = poss_user.index[0]
                             appl = poss_user.ix[idx]['md_appl']
-                    details = "algo_similar appliance_multiple users_audio based"
+                    details = "similar appliance_multiple users_audio based"
 
                 user['dev_id'] = [sel_user]
                 user['location'] = location[sel_user]
@@ -396,7 +396,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                     user['location'] = loc_list[0]
                     user['appliance'] = appl_list[0]
 
-                    details = "algo_similar appliance"
+                    details = "similar appliance"
 
                 else:
 
@@ -429,7 +429,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                             loc = "Unknown"
                             sel_user = "Unknown"
 
-                            details = "algo_similar appliance_audio based confusion"
+                            details = "similar appliance_audio based confusion"
 
                         else:
                             appl_dict = {}
@@ -456,7 +456,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                                 loc = "Unknown"
                                 appl = "Unknown"
 
-                            details = "algo_similar appliance_audio based"
+                            details = "similar appliance_audio based"
 
                         user['dev_id'] = sel_user
                         user['location'] = loc
@@ -470,7 +470,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         user['location'] = location[sel_user]
                         user['appliance'] = appliance[sel_user]
 
-                        details = "algo_similar appliance_audio classification"
+                        details = "similar appliance_audio classification"
 
                     else:
                         # Users share the time slice having the same magnitude
@@ -484,7 +484,7 @@ def identify_user(apt_no, magnitude, location, appliance, user_list, edge):
                         user['location'] = location[sel_user]
                         user['appliance'] = poss_user.ix[entry_idx[0]]['md_appl']
 
-                        details = "algo_similar appliance"
+                        details = "similar appliance"
 
             # Offline processing - evaluation - START
             '''
